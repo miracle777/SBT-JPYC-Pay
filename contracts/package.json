@@ -1,0 +1,24 @@
+{
+  "name": "jpyc-stamp-sbt-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for JPYC Stamp SBT system",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.js",
+    "deploy:polygon": "hardhat run scripts/deploy.js --network polygon",
+    "deploy:avalanche": "hardhat run scripts/deploy.js --network avalanche",
+    "deploy:localhost": "hardhat run scripts/deploy.js --network localhost",
+    "verify": "hardhat verify",
+    "node": "hardhat node"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "^5.0.0",
+    "hardhat": "^2.19.0",
+    "hardhat-deploy": "^0.11.45"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  }
+}

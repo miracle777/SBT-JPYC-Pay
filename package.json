@@ -1,0 +1,58 @@
+{
+  "name": "sbt-jpyc-pay",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "SBTスタンプカード発行・管理システム for 店舗",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0 --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.1",
+    "ethers": "^6.8.1",
+    "@walletconnect/ethereum-provider": "^2.11.0",
+    "@walletconnect/modal": "^2.6.2",
+    "qrcode": "^1.5.3",
+    "@types/qrcode": "^1.5.5",
+    "qr-scanner": "^1.4.2",
+    "zustand": "^4.4.7",
+    "tailwindcss": "^3.3.6",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "lucide-react": "^0.294.0",
+    "react-hot-toast": "^2.4.1",
+    "clsx": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "@vitejs/plugin-react": "^4.1.1",
+    "eslint": "^8.53.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0",
+    "vite-plugin-pwa": "^0.17.4"
+  },
+  "keywords": [
+    "SBT",
+    "JPYC",
+    "blockchain",
+    "stamp-card",
+    "PWA",
+    "ethereum",
+    "polygon",
+    "avalanche"
+  ],
+  "author": "miracle777",
+  "license": "MIT"
+}
