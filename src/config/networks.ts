@@ -60,6 +60,28 @@ export const NETWORKS: Record<string, Network> = {
     blockExplorerUrl: 'https://sepolia.etherscan.io',
     isTestnet: true,
   },
+
+  // Avalanche
+  AVALANCHE_MAINNET: {
+    id: 43114,
+    name: 'avalanche-mainnet',
+    displayName: 'Avalanche C-Chain Mainnet',
+    rpcUrl: 'https://avalanche-mainnet.infura.io/v3/',
+    chainId: 43114,
+    currencySymbol: 'AVAX',
+    blockExplorerUrl: 'https://snowtrace.io',
+    isTestnet: false,
+  },
+  AVALANCHE_FUJI: {
+    id: 43113,
+    name: 'avalanche-fuji',
+    displayName: 'Avalanche Fuji Testnet',
+    rpcUrl: 'https://api.avax-test.network/ext/bc/C/rpc',
+    chainId: 43113,
+    currencySymbol: 'AVAX',
+    blockExplorerUrl: 'https://subnets-test.avax.network/c-chain',
+    isTestnet: true,
+  },
 };
 
 export const JPYC: Currency = {
@@ -70,9 +92,11 @@ export const JPYC: Currency = {
     // Mainnet
     [NETWORKS.POLYGON_MAINNET.chainId]: '0x6ae7dda427d54fcb3e5b88e0bae5f5c8c5f5c8c8',
     [NETWORKS.ETHEREUM_MAINNET.chainId]: '0x431D5dfF03120AFA4bDf332c61A6e1766eF37BDB',
+    [NETWORKS.AVALANCHE_MAINNET.chainId]: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29', // 本番JPYC
     // Testnet
     [NETWORKS.POLYGON_AMOY.chainId]: '0x8ca1d8dabaa60231af875599558beb0a5aedd52b',
     [NETWORKS.ETHEREUM_SEPOLIA.chainId]: '0x431D5dfF03120AFA4bDf332c61A6e1766eF37BDB',
+    [NETWORKS.AVALANCHE_FUJI.chainId]: '', // Avalanche FujiのJPYCアドレス（確認待ち）
   },
 };
 
