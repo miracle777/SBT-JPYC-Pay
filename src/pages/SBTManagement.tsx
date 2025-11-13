@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Award, Plus, Edit2, Trash2, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useWallet } from '../context/WalletContext';
 
 interface SBTTemplate {
   id: string;
@@ -22,9 +23,12 @@ interface IssuedSBT {
   maxStamps: number;
   issuedAt: string;
   status: 'active' | 'redeemed';
+  sourcePaymentId?: string; // 発行元のQR決済セッションID
+  transactionHash?: string; // 決済トランザクションハッシュ
 }
 
 const SBTManagement: React.FC = () => {
+  const { address: walletAddress } = useWallet();
   const [templates, setTemplates] = useState<SBTTemplate[]>([
     {
       id: 'template-001',
@@ -85,6 +89,36 @@ const SBTManagement: React.FC = () => {
 
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [showIssuanceForm, setShowIssuanceForm] = useState(false);
+  const [completedPayments, setCompletedPayments] = useState<any[]>([]);
+
+  // LocalStorage から完了した支払いセッションを読み込み
+  useEffect(() => {
+    const saved = localStorage.getItem('completedPaymentSessions');
+    if (saved) {
+      try {
+        setCompletedPayments(JSON.parse(saved));
+      } catch (error) {
+        console.error('Failed to load completed payments:', error);
+      }
+    }
+  }, []);
+
+  // completedPayments を監視して、LocalStorage の変更を反映
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('completedPaymentSessions');
+      if (saved) {
+        try {
+          setCompletedPayments(JSON.parse(saved));
+        } catch (error) {
+          console.error('Failed to load completed payments:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const addTemplate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,12 +149,8 @@ const SBTManagement: React.FC = () => {
     toast.success('テンプレートを削除しました');
   };
 
-  const issueSBT = (e: React.FormEvent) => {
+  const issueSBT = (e: React.FormEvent, selectedPaymentId?: string) => {
     e.preventDefault();
-    if (!newIssuance.recipientAddress) {
-      toast.error('ウォレットアドレスを入力してください');
-      return;
-    }
 
     const template = templates.find((t) => t.id === newIssuance.templateId);
     if (!template) {
@@ -128,21 +158,47 @@ const SBTManagement: React.FC = () => {
       return;
     }
 
+    // 完了した支払いセッションから支払者アドレスを取得、またはウォレットアドレスを使用
+    let recipientAddress = '';
+    let sourcePaymentId = undefined;
+    let transactionHash = undefined;
+
+    if (selectedPaymentId) {
+      // 支払いセッションから発行する場合
+      const payment = completedPayments.find((p) => p.id === selectedPaymentId);
+      if (!payment || !payment.payerAddress) {
+        toast.error('支払者アドレスが見つかりません');
+        return;
+      }
+      recipientAddress = payment.payerAddress;
+      sourcePaymentId = payment.id;
+      transactionHash = payment.transactionHash;
+    } else {
+      // 手動発行の場合
+      if (!walletAddress) {
+        toast.error('ウォレットを接続してください');
+        return;
+      }
+      recipientAddress = walletAddress;
+    }
+
     const sbt: IssuedSBT = {
       id: `sbt-${Date.now()}`,
       templateId: template.id,
       templateName: template.name,
-      recipientAddress: newIssuance.recipientAddress,
+      recipientAddress,
       currentStamps: 0,
       maxStamps: template.maxStamps,
       issuedAt: new Date().toISOString().split('T')[0],
       status: 'active',
+      sourcePaymentId,
+      transactionHash,
     };
 
     setIssuedSBTs([sbt, ...issuedSBTs]);
     setNewIssuance({ templateId: templates[0]?.id || '', recipientAddress: '' });
     setShowIssuanceForm(false);
-    toast.success('SBTを発行しました');
+    toast.success(`SBTを${recipientAddress.slice(0, 6)}...${recipientAddress.slice(-4)}に発行しました`);
   };
 
   return (
@@ -269,6 +325,55 @@ const SBTManagement: React.FC = () => {
           </div>
         </div>
 
+        {/* 完了した支払いセッション一覧 */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">支払い完了一覧</h2>
+          {completedPayments.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+              <p className="text-gray-500">完了した支払いセッションはありません</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {completedPayments.map((payment) => (
+                <div key={payment.id} className="bg-white rounded-xl shadow-lg p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-gray-900 mb-2">{payment.amount} {payment.currency} - {payment.chainName}</h3>
+                      <p className="text-sm text-gray-600 mb-2">決済日: {payment.detectedAt}</p>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-xs text-gray-600">支払者アドレス</p>
+                        <p className="text-xs font-mono text-gray-700 break-all mt-1">
+                          {payment.payerAddress}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <select
+                        defaultValue=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const event = new Event('submit') as any;
+                            issueSBT(event, payment.id);
+                            e.target.value = ''; // リセット
+                          }
+                        }}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
+                      >
+                        <option value="">SBT発行...</option>
+                        {templates.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* SBT発行 */}
         <div>
           <div className="flex items-center justify-between mb-6">
@@ -300,19 +405,28 @@ const SBTManagement: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">ウォレットアドレス</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">支払い元ウォレットアドレス</label>
                   <input
                     type="text"
-                    value={newIssuance.recipientAddress}
-                    onChange={(e) => setNewIssuance({ ...newIssuance, recipientAddress: e.target.value })}
-                    placeholder="0x..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    value={walletAddress || ''}
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 font-mono text-sm"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {walletAddress 
+                      ? 'ウォレットから接続されているアドレスが自動的に使用されます'
+                      : 'ウォレットを接続してください'}
+                  </p>
                 </div>
                 <div className="flex gap-2">
                   <button
                     type="submit"
-                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
+                    disabled={!walletAddress}
+                    className={`flex-1 font-bold py-2 px-4 rounded-lg transition duration-200 ${
+                      walletAddress
+                        ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                   >
                     発行
                   </button>

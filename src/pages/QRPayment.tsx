@@ -22,6 +22,7 @@ interface PaymentSession {
   timeRemainingSeconds?: number;
   transactionHash?: string;
   detectedAt?: string;
+  payerAddress?: string; // 支払者のウォレットアドレス（SBT送付先）
 }
 
 const QRPayment: React.FC = () => {
@@ -70,6 +71,14 @@ const QRPayment: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // 完了したセッション情報を LocalStorage に保存
+  useEffect(() => {
+    const completedSessions = paymentSessions.filter(s => s.status === 'completed' && s.payerAddress);
+    if (completedSessions.length > 0) {
+      localStorage.setItem('completedPaymentSessions', JSON.stringify(completedSessions));
+    }
+  }, [paymentSessions]);
+
   // トランザクション監視 - pending セッションのトランザクションを検知
   useEffect(() => {
     const monitorTransactions = async () => {
@@ -108,6 +117,11 @@ const QRPayment: React.FC = () => {
             // トランザクションが見つかった場合は完了とする
             if (logs.length > 0) {
               const txHash = logs[0].transactionHash;
+              
+              // トランザクションの詳細情報を取得
+              const txDetails = await provider.getTransaction(txHash);
+              const payerAddress = txDetails?.from; // トランザクション送信者（支払者）のアドレス
+              
               setPaymentSessions((prev) =>
                 prev.map((s) =>
                   s.id === session.id
@@ -116,6 +130,7 @@ const QRPayment: React.FC = () => {
                         status: 'completed',
                         transactionHash: txHash,
                         detectedAt: new Date().toLocaleString('ja-JP'),
+                        payerAddress: payerAddress, // 支払者アドレスを保存
                       }
                     : s
                 )
@@ -194,6 +209,7 @@ const QRPayment: React.FC = () => {
         timeRemainingSeconds: expiryTimeMinutes * 60,
         transactionHash: undefined,
         detectedAt: undefined,
+        payerAddress: undefined, // トランザクション検知時に設定される
       };
 
       setPaymentSessions([newSession, ...paymentSessions]);
@@ -281,7 +297,7 @@ const QRPayment: React.FC = () => {
                           </div>
                           <div>
                             <p className="text-xs text-gray-600">ネットワーク</p>
-                            <p className="text-sm font-semibold text-gray-900">{session.chainName.split(' ')[0]}</p>
+                            <p className="text-sm font-semibold text-gray-900">{session.chainName}</p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-600">残り時間</p>
