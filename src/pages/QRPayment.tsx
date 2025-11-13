@@ -31,10 +31,8 @@ const QRPayment: React.FC = () => {
   const generateQRCode = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!shopWalletAddress) {
-      toast.error('ウォレットを接続してください');
-      return;
-    }
+    // テスト用のデモウォレットアドレス（環境変数や接続ウォレットがない場合）
+    const finalWalletAddress = shopWalletAddress || '0x0000000000000000000000000000000000000000';
 
     if (!amount || parseFloat(amount) <= 0) {
       toast.error('有効な金額を入力してください');
@@ -55,7 +53,7 @@ const QRPayment: React.FC = () => {
     const payload = createPaymentPayload(
       DEFAULT_SHOP_INFO.id,
       DEFAULT_SHOP_INFO.name,
-      shopWalletAddress,
+      finalWalletAddress,
       amountInWei,
       selectedNetwork,
       contractAddress,
@@ -193,13 +191,13 @@ const QRPayment: React.FC = () => {
                         {shopWalletAddress}
                       </p>
                     ) : (
-                      <p className="text-xs text-red-600 font-semibold">
-                        ⚠️ ウォレットを接続してください
+                      <p className="text-xs text-orange-600 font-semibold">
+                        ℹ️ ウォレット未接続（デモモード）
                       </p>
                     )}
                   </div>
                   <div>
-                    <p className="text-gray-600">契約アドレス (JPYC)</p>
+                    <p className="text-gray-600">コントラクトアドレス</p>
                     <p className="font-mono text-xs text-gray-900 break-all">
                       {contractAddress || 'N/A'}
                     </p>
