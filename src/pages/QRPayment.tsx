@@ -397,12 +397,21 @@ const QRPayment: React.FC = () => {
                               <p className="text-sm font-semibold text-gray-900 mb-2">
                                 QRコード
                               </p>
-                              <QRCodeDisplay
-                                data={session.qrCodeData}
-                                size={300}
-                                errorCorrectionLevel="H"
-                                className="w-48 h-48 rounded-lg shadow-md mx-auto border border-gray-200"
-                              />
+                              <div style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                padding: '1rem',
+                                background: '#f9fafb',
+                                borderRadius: '0.5rem',
+                                border: '1px solid #e5e7eb',
+                              }}>
+                                <QRCodeDisplay
+                                  data={session.qrCodeData}
+                                  size={300}
+                                  errorCorrectionLevel="H"
+                                  className="border border-gray-200 rounded"
+                                />
+                              </div>
                             </div>
                             <div className="bg-gray-50 p-3 rounded-lg">
                               <p className="text-xs text-gray-600 mb-2">
