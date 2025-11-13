@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { QrCode, Download, Copy, Trash2, Eye, EyeOff, AlertCircle, Clock } from 'lucide-react';
+import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { BrowserProvider } from 'ethers';
 import { NETWORKS, JPYC, getContractAddress } from '../config/networks';
 import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
 import { createPaymentPayload, encodePaymentPayload } from '../types/payment';
@@ -19,6 +20,8 @@ interface PaymentSession {
   expiresAt: string;
   expiresAtTimestamp: number;
   timeRemainingSeconds?: number;
+  transactionHash?: string;
+  detectedAt?: string;
 }
 
 const QRPayment: React.FC = () => {
@@ -42,7 +45,7 @@ const QRPayment: React.FC = () => {
   const isNetworkMismatch =
     currentChainId && currentChainId !== selectedChainForPayment;
 
-  // 有効期限チェックと時間更新
+  // 有効期限チェック、時間更新、トランザクション監視
   useEffect(() => {
     const interval = setInterval(() => {
       setPaymentSessions((prev) =>
@@ -50,7 +53,9 @@ const QRPayment: React.FC = () => {
           const now = Math.floor(Date.now() / 1000);
           const timeRemaining = session.expiresAtTimestamp - now;
           const newStatus =
-            timeRemaining <= 0
+            session.status === 'completed'
+              ? ('completed' as const)
+              : timeRemaining <= 0
               ? ('expired' as const)
               : session.status;
           return {
@@ -64,6 +69,71 @@ const QRPayment: React.FC = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // トランザクション監視 - pending セッションのトランザクションを検知
+  useEffect(() => {
+    const monitorTransactions = async () => {
+      try {
+        if (!window.ethereum) return;
+
+        // pending セッションのみ監視
+        const pendingSessions = paymentSessions.filter(
+          (s) => s.status === 'pending' && !s.transactionHash
+        );
+
+        if (pendingSessions.length === 0) return;
+
+        const provider = new BrowserProvider(window.ethereum);
+        const network = await provider.getNetwork();
+        const chainId = Number(network.chainId);
+
+        // 各 pending セッション向けのトランザクション検索
+        for (const session of pendingSessions) {
+          if (session.chainId !== chainId) continue; // ネットワークが一致するもののみ
+
+          try {
+            // ブロックを取得してトランザクションを検索
+            const latestBlockNumber = await provider.getBlockNumber();
+            const searchFromBlock = Math.max(0, latestBlockNumber - 100); // 過去100ブロックを検索
+
+            // 店舗ウォレットアドレス宛のトランザクションをフィルター
+            const filter = {
+              to: shopWalletAddress,
+              fromBlock: searchFromBlock,
+              toBlock: 'latest',
+            };
+
+            const logs = await provider.getLogs(filter);
+
+            // トランザクションが見つかった場合は完了とする
+            if (logs.length > 0) {
+              const txHash = logs[0].transactionHash;
+              setPaymentSessions((prev) =>
+                prev.map((s) =>
+                  s.id === session.id
+                    ? {
+                        ...s,
+                        status: 'completed',
+                        transactionHash: txHash,
+                        detectedAt: new Date().toLocaleString('ja-JP'),
+                      }
+                    : s
+                )
+              );
+              toast.success(`✓ 決済完了 (Tx: ${txHash.slice(0, 10)}...)`);;
+            }
+          } catch (error) {
+            console.error(`Transaction monitoring error for ${session.id}:`, error);
+          }
+        }
+      } catch (error) {
+        console.error('Transaction monitoring error:', error);
+      }
+    };
+
+    const monitorInterval = setInterval(monitorTransactions, 5000); // 5秒ごとに監視
+    return () => clearInterval(monitorInterval);
+  }, [paymentSessions, shopWalletAddress]);
 
   const generateQRCode = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,8 +162,9 @@ const QRPayment: React.FC = () => {
       const paymentId = `PAY${Date.now()}`;
       const expiresAtTimestamp = Math.floor(Date.now() / 1000) + expiryTimeMinutes * 60;
 
-      // Wei単位に変換（18小数点）
-      const amountInWei = (parseFloat(amount) * 1e18).toString();
+      // Wei単位に変換（18小数点）- 正確な小数点計算
+      const amountNum = parseFloat(amount);
+      const amountInWei = (BigInt(Math.floor(amountNum * 1e18))).toString();
 
       const payload = createPaymentPayload(
         DEFAULT_SHOP_INFO.id,
@@ -111,7 +182,7 @@ const QRPayment: React.FC = () => {
 
       const newSession: PaymentSession = {
         id: paymentId,
-        amount: parseFloat(amount),
+        amount: amountNum,
         currency: 'JPYC',
         chainId: selectedChainForPayment,
         chainName: paymentNetwork.displayName,
@@ -121,6 +192,8 @@ const QRPayment: React.FC = () => {
         expiresAt: new Date(expiresAtTimestamp * 1000).toLocaleString('ja-JP'),
         expiresAtTimestamp,
         timeRemainingSeconds: expiryTimeMinutes * 60,
+        transactionHash: undefined,
+        detectedAt: undefined,
       };
 
       setPaymentSessions([newSession, ...paymentSessions]);
@@ -262,22 +335,21 @@ const QRPayment: React.FC = () => {
                           <Download className="w-4 h-4" /> DL
                         </button>
                         <button
-                          onClick={() => {
-                            setPaymentSessions(prev => 
-                              prev.map(s => s.id === session.id ? { ...s, status: 'completed' } : s)
-                            );
-                            toast.success('決済完了として記録しました');
-                          }}
-                          className="flex items-center gap-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition"
-                        >
-                          ✓ 決済完了
-                        </button>
-                        <button
                           onClick={() => deleteSession(session.id)}
                           className="flex items-center gap-1 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-600 text-sm rounded-lg transition"
                         >
                           <Trash2 className="w-4 h-4" /> 削除
                         </button>
+                      </div>
+
+                      {/* トランザクション監視中表示 */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+                        <p className="text-xs text-blue-700 font-semibold">
+                          🔍 トランザクション監視中...
+                        </p>
+                        <p className="text-xs text-blue-600 mt-1">
+                          スマートフォンからの決済トランザクションを自動検知します
+                        </p>
                       </div>
 
                       {/* ペイロード情報 */}
@@ -446,7 +518,7 @@ const QRPayment: React.FC = () => {
                       <th className="text-left py-2 px-2 font-semibold text-gray-700">ネットワーク</th>
                       <th className="text-left py-2 px-2 font-semibold text-gray-700">作成時刻</th>
                       <th className="text-left py-2 px-2 font-semibold text-gray-700">状態</th>
-                      <th className="text-left py-2 px-2 font-semibold text-gray-700">残り時間</th>
+                      <th className="text-left py-2 px-2 font-semibold text-gray-700">トランザクション</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -458,20 +530,20 @@ const QRPayment: React.FC = () => {
                         <td className="py-2 px-2 text-xs text-gray-600">{session.createdAt.split(' ')[1]}</td>
                         <td className="py-2 px-2">{getStatusBadge(session.status)}</td>
                         <td className="py-2 px-2">
-                          <span className={`text-xs font-semibold ${
-                            session.status === 'expired'
-                              ? 'text-red-600'
-                              : session.timeRemainingSeconds && session.timeRemainingSeconds < 300
-                              ? 'text-orange-600'
-                              : 'text-gray-600'
-                          }`}>
-                            {session.status === 'expired' 
-                              ? '期限切れ'
-                              : session.timeRemainingSeconds
-                              ? `${Math.floor(session.timeRemainingSeconds / 60)}:${String(session.timeRemainingSeconds % 60).padStart(2, '0')}`
-                              : '-'
-                            }
-                          </span>
+                          {session.status === 'completed' && session.transactionHash ? (
+                            <div className="flex items-center gap-1">
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                              <span className="text-xs font-mono text-green-600">
+                                {session.transactionHash.slice(0, 8)}...
+                              </span>
+                            </div>
+                          ) : session.status === 'pending' ? (
+                            <span className="text-xs text-blue-600 font-semibold">監視中...</span>
+                          ) : session.status === 'expired' ? (
+                            <span className="text-xs text-red-600">期限切れ</span>
+                          ) : (
+                            <span className="text-xs text-gray-500">-</span>
+                          )}
                         </td>
                       </tr>
                     ))}
