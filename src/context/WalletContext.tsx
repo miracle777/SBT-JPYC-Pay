@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { BrowserProvider } from 'ethers';
 
 export interface WalletContextType {
   address: string | null;
   chainId: number | null;
   isConnected: boolean;
   isConnecting: boolean;
+  provider: BrowserProvider | null;
   connect: () => Promise<void>;
   disconnect: () => void;
   switchChain: (chainId: number) => Promise<void>;
@@ -17,25 +19,112 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [chainId, setChainId] = useState<number | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [provider, setProvider] = useState<BrowserProvider | null>(null);
 
   // ローカルストレージから接続情報を復元
   useEffect(() => {
     const savedAddress = localStorage.getItem('walletAddress');
-    const savedChainId = localStorage.getItem('walletChainId');
-    if (savedAddress) {
-      setAddress(savedAddress);
-      setChainId(savedChainId ? parseInt(savedChainId) : null);
-      setIsConnected(true);
+    
+    if (savedAddress && window.ethereum) {
+      // 自動再接続を試みる
+      checkConnection();
     }
   }, []);
 
+  // アカウント変更を監視
+  useEffect(() => {
+    if (!window.ethereum) return;
+
+    const handleAccountsChanged = (accounts: string[]) => {
+      if (accounts.length === 0) {
+        disconnect();
+      } else if (accounts[0] !== address) {
+        setAddress(accounts[0]);
+        localStorage.setItem('walletAddress', accounts[0]);
+      }
+    };
+
+    const handleChainChanged = (chainIdHex: string) => {
+      const newChainId = parseInt(chainIdHex, 16);
+      setChainId(newChainId);
+      localStorage.setItem('walletChainId', newChainId.toString());
+      window.location.reload();
+    };
+
+    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    window.ethereum.on('chainChanged', handleChainChanged);
+
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+    };
+  }, [address]);
+
+  const checkConnection = async () => {
+    if (!window.ethereum) return;
+
+    try {
+      const accounts = await window.ethereum.request({
+        method: 'eth_accounts',
+      });
+
+      if (accounts && accounts.length > 0) {
+        const chainIdHex = await window.ethereum.request({
+          method: 'eth_chainId',
+        });
+        const newChainId = parseInt(chainIdHex, 16);
+
+        setAddress(accounts[0]);
+        setChainId(newChainId);
+        setIsConnected(true);
+
+        const ethProvider = new BrowserProvider(window.ethereum);
+        setProvider(ethProvider);
+
+        localStorage.setItem('walletAddress', accounts[0]);
+        localStorage.setItem('walletChainId', newChainId.toString());
+      }
+    } catch (error) {
+      console.error('接続確認エラー:', error);
+    }
+  };
+
   const connect = async () => {
+    if (!window.ethereum) {
+      alert('MetaMaskまたはWeb3互換のウォレットをインストールしてください');
+      return;
+    }
+
     setIsConnecting(true);
     try {
-      // Web3Modalの実装は後続で追加
-      console.log('ウォレット接続処理を実行します');
-    } catch (error) {
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts',
+      });
+
+      if (accounts && accounts.length > 0) {
+        const chainIdHex = await window.ethereum.request({
+          method: 'eth_chainId',
+        });
+        const newChainId = parseInt(chainIdHex, 16);
+
+        setAddress(accounts[0]);
+        setChainId(newChainId);
+        setIsConnected(true);
+
+        const ethProvider = new BrowserProvider(window.ethereum);
+        setProvider(ethProvider);
+
+        localStorage.setItem('walletAddress', accounts[0]);
+        localStorage.setItem('walletChainId', newChainId.toString());
+      }
+    } catch (error: any) {
       console.error('ウォレット接続エラー:', error);
+      if (error.code !== 4001) {
+        // ユーザーがキャンセルした場合以外はアラート表示
+        alert(`ウォレット接続エラー: ${error.message}`);
+      }
     } finally {
       setIsConnecting(false);
     }
@@ -45,22 +134,29 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setAddress(null);
     setChainId(null);
     setIsConnected(false);
+    setProvider(null);
     localStorage.removeItem('walletAddress');
     localStorage.removeItem('walletChainId');
   };
 
   const switchChain = async (targetChainId: number) => {
+    if (!window.ethereum) {
+      throw new Error('Ethereum プロバイダーが利用できません');
+    }
+
     try {
-      if (window.ethereum) {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainHexId: `0x${targetChainId.toString(16)}` }],
-        });
-        setChainId(targetChainId);
-        localStorage.setItem('walletChainId', targetChainId.toString());
+      const chainIdHex = `0x${targetChainId.toString(16)}`;
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: chainIdHex }],
+      });
+      setChainId(targetChainId);
+      localStorage.setItem('walletChainId', targetChainId.toString());
+    } catch (error: any) {
+      // ネットワークが追加されていない場合のエラー処理
+      if (error.code === 4902) {
+        throw new Error('このネットワークは追加されていません');
       }
-    } catch (error) {
-      console.error('チェーン切り替えエラー:', error);
       throw error;
     }
   };
@@ -72,6 +168,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         chainId,
         isConnected,
         isConnecting,
+        provider,
         connect,
         disconnect,
         switchChain,
@@ -89,10 +186,3 @@ export const useWallet = () => {
   }
   return context;
 };
-
-// グローバル型定義
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
