@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { QrCode, Download, Copy, Trash2, Eye, EyeOff } from 'lucide-react';
+import { QrCode, Download, Copy, Trash2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { NETWORKS, JPYC, getContractAddress } from '../config/networks';
 import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
 import { createPaymentPayload, encodePaymentPayload } from '../types/payment';
 import { useWallet } from '../context/WalletContext';
+import QRCodeDisplay from '../components/QRCodeDisplay';
 
 interface PaymentSession {
   id: string;
   amount: number;
   currency: string;
   chainId: number;
+  chainName: string;
   qrCodeData: string;
   status: 'pending' | 'completed' | 'expired';
   createdAt: string;
@@ -18,66 +20,89 @@ interface PaymentSession {
 }
 
 const QRPayment: React.FC = () => {
-  const { address: walletAddress } = useWallet();
+  const { address: walletAddress, chainId: currentChainId } = useWallet();
   const [amount, setAmount] = useState('');
-  const [selectedNetwork, setSelectedNetwork] = useState(Object.values(NETWORKS)[0].chainId);
+  const [selectedChainForPayment, setSelectedChainForPayment] = useState(
+    Object.values(NETWORKS)[0].chainId
+  );
   const [paymentSessions, setPaymentSessions] = useState<PaymentSession[]>([]);
   const [showQR, setShowQR] = useState<string | null>(null);
 
   const shopWalletAddress = getShopWalletAddress(walletAddress);
-  const currentNetwork = Object.values(NETWORKS).find((net) => net.chainId === selectedNetwork);
-  const contractAddress = getContractAddress(selectedNetwork, JPYC);
+  const paymentNetwork = Object.values(NETWORKS).find(
+    (net) => net.chainId === selectedChainForPayment
+  );
+  const paymentContractAddress = getContractAddress(
+    selectedChainForPayment,
+    JPYC
+  );
+
+  const isNetworkMismatch =
+    currentChainId && currentChainId !== selectedChainForPayment;
 
   const generateQRCode = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // テスト用のデモウォレットアドレス（環境変数や接続ウォレットがない場合）
-    const finalWalletAddress = shopWalletAddress || '0x0000000000000000000000000000000000000000';
 
     if (!amount || parseFloat(amount) <= 0) {
       toast.error('有効な金額を入力してください');
       return;
     }
 
-    if (!currentNetwork) {
+    if (!shopWalletAddress) {
+      toast.error('ウォレットアドレスが設定されていません');
+      return;
+    }
+
+    if (!paymentNetwork) {
       toast.error('ネットワークを選択してください');
       return;
     }
 
-    const paymentId = `PAY${Date.now()}`;
-    const expiresAtTimestamp = Math.floor(Date.now() / 1000) + 60 * 60; // 1時間後
+    if (!paymentContractAddress) {
+      toast.error('このネットワークのコントラクトアドレスが見つかりません');
+      return;
+    }
 
-    // Wei単位に変換（18小数点）
-    const amountInWei = (parseFloat(amount) * 1e18).toString();
+    try {
+      const paymentId = `PAY${Date.now()}`;
+      const expiresAtTimestamp = Math.floor(Date.now() / 1000) + 60 * 60; // 1時間後
 
-    const payload = createPaymentPayload(
-      DEFAULT_SHOP_INFO.id,
-      DEFAULT_SHOP_INFO.name,
-      finalWalletAddress,
-      amountInWei,
-      selectedNetwork,
-      contractAddress,
-      expiresAtTimestamp,
-      paymentId,
-      `Payment from ${DEFAULT_SHOP_INFO.name}`
-    );
+      // Wei単位に変換（18小数点）
+      const amountInWei = (parseFloat(amount) * 1e18).toString();
 
-    const encodedPayload = encodePaymentPayload(payload);
+      const payload = createPaymentPayload(
+        DEFAULT_SHOP_INFO.id,
+        DEFAULT_SHOP_INFO.name,
+        shopWalletAddress,
+        amountInWei,
+        selectedChainForPayment,
+        paymentContractAddress,
+        expiresAtTimestamp,
+        paymentId,
+        `Payment from ${DEFAULT_SHOP_INFO.name}`
+      );
 
-    const newSession: PaymentSession = {
-      id: paymentId,
-      amount: parseFloat(amount),
-      currency: 'JPYC',
-      chainId: selectedNetwork,
-      qrCodeData: encodedPayload,
-      status: 'pending',
-      createdAt: new Date().toLocaleString('ja-JP'),
-      expiresAt: new Date(expiresAtTimestamp * 1000).toLocaleString('ja-JP'),
-    };
+      const encodedPayload = encodePaymentPayload(payload);
 
-    setPaymentSessions([newSession, ...paymentSessions]);
-    setAmount('');
-    toast.success('QRコードを生成しました');
+      const newSession: PaymentSession = {
+        id: paymentId,
+        amount: parseFloat(amount),
+        currency: 'JPYC',
+        chainId: selectedChainForPayment,
+        chainName: paymentNetwork.displayName,
+        qrCodeData: encodedPayload,
+        status: 'pending',
+        createdAt: new Date().toLocaleString('ja-JP'),
+        expiresAt: new Date(expiresAtTimestamp * 1000).toLocaleString('ja-JP'),
+      };
+
+      setPaymentSessions([newSession, ...paymentSessions]);
+      setAmount('');
+      toast.success('QRコードを生成しました');
+    } catch (error) {
+      console.error('QRコード生成エラー:', error);
+      toast.error('QRコード生成に失敗しました');
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -85,8 +110,10 @@ const QRPayment: React.FC = () => {
     toast.success('コピーしました');
   };
 
-  const downloadQR = (paymentId: string, amount: number, chainId: number) => {
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paymentId)}`;
+  const downloadQR = (paymentId: string) => {
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+      paymentId
+    )}`;
     const link = document.createElement('a');
     link.href = qrCodeUrl;
     link.download = `payment-qr-${paymentId}.png`;
@@ -124,31 +151,59 @@ const QRPayment: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* 生成フォーム */}
+        {/* 生成フォーム */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-lg p-6 sticky top-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">QRコード生成</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-6">
+                QRコード生成
+              </h2>
               <form onSubmit={generateQRCode} className="space-y-4">
+                {/* 支払い用ネットワーク選択 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">ネットワーク</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    支払いネットワーク
+                  </label>
                   <select
-                    value={selectedNetwork}
-                    onChange={(e) => setSelectedNetwork(parseInt(e.target.value))}
+                    value={selectedChainForPayment}
+                    onChange={(e) =>
+                      setSelectedChainForPayment(parseInt(e.target.value))
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {networkList.map((network) => (
+                    {Object.values(NETWORKS).map((network) => (
                       <option key={network.chainId} value={network.chainId}>
-                        {network.displayName} {network.isTestnet ? '(テスト)' : ''}
+                        {network.displayName}{' '}
+                        {network.isTestnet ? '(テスト)' : ''}
                       </option>
                     ))}
                   </select>
-                  {currentNetwork && (
+                  {paymentNetwork && (
                     <p className="text-xs text-gray-500 mt-1">
-                      ChainID: {currentNetwork.chainId}
+                      ChainID: {paymentNetwork.chainId}
                     </p>
                   )}
                 </div>
 
+                {/* ネットワーク不一致警告 */}
+                {isNetworkMismatch && (
+                  <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg flex gap-2">
+                    <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-orange-700">
+                      <p className="font-semibold">ネットワーク不一致</p>
+                      <p className="text-xs mt-1">
+                        ウォレットが接続している:{' '}
+                        {Object.values(NETWORKS).find(
+                          (n) => n.chainId === currentChainId
+                        )?.displayName || `ChainID: ${currentChainId}`}
+                      </p>
+                      <p className="text-xs mt-1">
+                        QR支払い用: {paymentNetwork?.displayName}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 金額入力 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     金額 (JPYC)
@@ -168,6 +223,7 @@ const QRPayment: React.FC = () => {
                   </div>
                 </div>
 
+                {/* 生成ボタン */}
                 <button
                   type="submit"
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
@@ -182,11 +238,15 @@ const QRPayment: React.FC = () => {
                 <div className="space-y-3 text-sm">
                   <div>
                     <p className="text-gray-600">店舗名</p>
-                    <p className="font-semibold text-gray-900 break-all">{DEFAULT_SHOP_INFO.name}</p>
+                    <p className="font-semibold text-gray-900 break-all">
+                      {DEFAULT_SHOP_INFO.name}
+                    </p>
                   </div>
                   <div>
                     <p className="text-gray-600">受け取りアドレス</p>
-                    {shopWalletAddress ? (
+                    {shopWalletAddress &&
+                    shopWalletAddress !==
+                      '0x0000000000000000000000000000000000000000' ? (
                       <p className="font-mono text-xs text-gray-900 break-all">
                         {shopWalletAddress}
                       </p>
@@ -199,7 +259,7 @@ const QRPayment: React.FC = () => {
                   <div>
                     <p className="text-gray-600">コントラクトアドレス</p>
                     <p className="font-mono text-xs text-gray-900 break-all">
-                      {contractAddress || 'N/A'}
+                      {paymentContractAddress || 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -211,18 +271,22 @@ const QRPayment: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600">総生成数</span>
-                    <span className="font-bold text-gray-900">{paymentSessions.length}</span>
+                    <span className="font-bold text-gray-900">
+                      {paymentSessions.length}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">完了</span>
                     <span className="font-bold text-green-600">
-                      {paymentSessions.filter((s) => s.status === 'completed').length}
+                      {paymentSessions.filter((s) => s.status === 'completed')
+                        .length}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">待機中</span>
                     <span className="font-bold text-yellow-600">
-                      {paymentSessions.filter((s) => s.status === 'pending').length}
+                      {paymentSessions.filter((s) => s.status === 'pending')
+                        .length}
                     </span>
                   </div>
                 </div>
@@ -233,11 +297,15 @@ const QRPayment: React.FC = () => {
           {/* 支払いセッション一覧 */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">支払いセッション</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-6">
+                支払いセッション
+              </h2>
               {paymentSessions.length === 0 ? (
                 <div className="text-center py-12">
                   <QrCode className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">QRコードをまだ生成していません</p>
+                  <p className="text-gray-500">
+                    QRコードをまだ生成していません
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -249,7 +317,9 @@ const QRPayment: React.FC = () => {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-bold text-gray-900">ID: {session.id}</h3>
+                            <h3 className="font-bold text-gray-900">
+                              ID: {session.id}
+                            </h3>
                             {getStatusBadge(session.status)}
                           </div>
                           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -262,17 +332,20 @@ const QRPayment: React.FC = () => {
                             <div>
                               <p className="text-gray-600">ネットワーク</p>
                               <p className="font-semibold text-gray-900">
-                                {Object.values(NETWORKS).find((n) => n.chainId === session.chainId)
-                                  ?.displayName || `ChainID: ${session.chainId}`}
+                                {session.chainName}
                               </p>
                             </div>
                             <div>
                               <p className="text-gray-600">作成日時</p>
-                              <p className="font-semibold text-gray-900 text-xs">{session.createdAt}</p>
+                              <p className="font-semibold text-gray-900 text-xs">
+                                {session.createdAt}
+                              </p>
                             </div>
                             <div>
                               <p className="text-gray-600">有効期限</p>
-                              <p className="font-semibold text-gray-900 text-xs">{session.expiresAt}</p>
+                              <p className="font-semibold text-gray-900 text-xs">
+                                {session.expiresAt}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -300,9 +373,7 @@ const QRPayment: React.FC = () => {
                             <Copy className="w-5 h-5 text-gray-600" />
                           </button>
                           <button
-                            onClick={() =>
-                              downloadQR(session.id, session.amount, session.chainId)
-                            }
+                            onClick={() => downloadQR(session.id)}
                             className="p-2 hover:bg-gray-100 rounded-lg transition"
                             title="ダウンロード"
                           >
@@ -322,16 +393,25 @@ const QRPayment: React.FC = () => {
                       {showQR === session.id && (
                         <div className="mt-4 pt-4 border-t border-gray-200 flex justify-center">
                           <div className="text-center">
-                            <img
-                              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-                                session.qrCodeData
-                              )}`}
-                              alt={`Payment QR ${session.id}`}
-                              className="w-48 h-48 rounded-lg shadow-md mx-auto"
-                            />
-                            <p className="text-xs text-gray-500 mt-2 break-all max-w-sm">
-                              {session.qrCodeData}
-                            </p>
+                            <div className="mb-4">
+                              <p className="text-sm font-semibold text-gray-900 mb-2">
+                                QRコード
+                              </p>
+                              <QRCodeDisplay
+                                data={session.qrCodeData}
+                                size={300}
+                                errorCorrectionLevel="H"
+                                className="w-48 h-48 rounded-lg shadow-md mx-auto border border-gray-200"
+                              />
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <p className="text-xs text-gray-600 mb-2">
+                                ペイロードデータ:
+                              </p>
+                              <p className="text-xs text-gray-500 break-all font-mono">
+                                {session.qrCodeData.substring(0, 100)}...
+                              </p>
+                            </div>
                           </div>
                         </div>
                       )}
