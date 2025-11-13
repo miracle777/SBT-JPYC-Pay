@@ -1,112 +1,102 @@
 import React from 'react';
-import { Bell, Menu, X } from 'lucide-react';
-import { useWallet } from '../../hooks/useWallet';
-import { formatAddress, getNetworkConfig } from '../../utils/helpers';
-import { Button } from '../ui/Button';
+import { Link } from 'react-router-dom';
+import { Store, Menu, X } from 'lucide-react';
+import { WalletButton } from '../WalletButton';
+import { useState } from 'react';
 
-export const Header: React.FC = () => {
-  const { isConnected, address, chainId, balance } = useWallet();
-  const [showMobileMenu, setShowMobileMenu] = React.useState(false);
-
-  const networkConfig = chainId ? getNetworkConfig(chainId) : null;
+const Header: React.FC = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-      {/* Mobile menu button */}
-      <div className="md:hidden">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => setShowMobileMenu(!showMobileMenu)}
-        >
-          {showMobileMenu ? <X size={20} /> : <Menu size={20} />}
-        </Button>
-      </div>
+    <header className="bg-white shadow-sm sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="flex items-center justify-between">
+          {/* ロゴ */}
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition">
+            <Store className="w-8 h-8 text-blue-600" />
+            <span className="text-2xl font-bold text-gray-900">SBT JPYC Pay</span>
+          </Link>
 
-      {/* Title */}
-      <div className="flex-1 md:flex-none">
-        <h1 className="text-xl font-semibold text-gray-900 md:hidden">
-          SBT Pay
-        </h1>
-      </div>
+          {/* デスクトップナビゲーション */}
+          <nav className="hidden md:flex items-center gap-6">
+            <Link
+              to="/"
+              className="text-gray-600 hover:text-gray-900 font-medium transition"
+            >
+              ダッシュボード
+            </Link>
+            <Link
+              to="/payment"
+              className="text-gray-600 hover:text-gray-900 font-medium transition"
+            >
+              QR決済
+            </Link>
+            <Link
+              to="/sbt"
+              className="text-gray-600 hover:text-gray-900 font-medium transition"
+            >
+              SBT管理
+            </Link>
+            <Link
+              to="/settings"
+              className="text-gray-600 hover:text-gray-900 font-medium transition"
+            >
+              設定
+            </Link>
+          </nav>
 
-      {/* Right section */}
-      <div className="flex items-center space-x-4">
-        {/* Network & Account Info */}
-        {isConnected && (
-          <div className="hidden md:flex items-center space-x-4">
-            {/* Network indicator */}
-            {networkConfig && (
-              <div className="flex items-center space-x-2 px-3 py-1.5 bg-gray-100 rounded-lg">
-                <div 
-                  className={`w-2 h-2 rounded-full ${
-                    networkConfig.name === 'Polygon' ? 'bg-purple-500' :
-                    networkConfig.name === 'Ethereum Mainnet' ? 'bg-blue-500' :
-                    networkConfig.name === 'Avalanche' ? 'bg-red-500' :
-                    'bg-gray-500'
-                  }`}
-                />
-                <span className="text-sm text-gray-700 font-medium">
-                  {networkConfig.name}
-                </span>
-              </div>
-            )}
-
-            {/* Account info */}
-            <div className="flex items-center space-x-3 px-3 py-1.5 bg-gray-50 rounded-lg">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">
-                  {formatAddress(address || '')}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {parseFloat(balance).toFixed(4)} ETH
-                </p>
-              </div>
-              <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-bold">
-                  {address ? address[2].toUpperCase() : '?'}
-                </span>
-              </div>
-            </div>
+          {/* ウォレットボタンとメニューボタン */}
+          <div className="flex items-center gap-4">
+            <WalletButton />
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+            >
+              {isMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
           </div>
+        </div>
+
+        {/* モバイルナビゲーション */}
+        {isMenuOpen && (
+          <nav className="md:hidden mt-4 space-y-2 border-t border-gray-200 pt-4">
+            <Link
+              to="/"
+              className="block px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              ダッシュボード
+            </Link>
+            <Link
+              to="/payment"
+              className="block px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              QR決済
+            </Link>
+            <Link
+              to="/sbt"
+              className="block px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              SBT管理
+            </Link>
+            <Link
+              to="/settings"
+              className="block px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              設定
+            </Link>
+          </nav>
         )}
-
-        {/* Notifications */}
-        <Button variant="secondary" size="sm" className="relative">
-          <Bell size={20} />
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
-            3
-          </span>
-        </Button>
-
-        {/* User menu */}
-        <div className="relative">
-          <Button variant="secondary" size="sm">
-            <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
-          </Button>
-        </div>
       </div>
-
-      {/* Mobile menu overlay */}
-      {showMobileMenu && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
-          <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
-            {/* Mobile menu content would go here */}
-            <div className="p-4">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowMobileMenu(false)}
-                className="mb-4"
-              >
-                <X size={20} className="mr-2" />
-                閉じる
-              </Button>
-              {/* Add mobile navigation items here */}
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 };
+
+export default Header;

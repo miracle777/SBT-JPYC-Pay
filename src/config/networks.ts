@@ -32,7 +32,7 @@ export const NETWORKS: Record<string, Network> = {
     id: 80002,
     name: 'polygon-amoy',
     displayName: 'Polygon Amoy (Testnet)',
-    rpcUrl: 'https://polygon-amoy.infura.io/v3/',
+    rpcUrl: 'https://rpc-amoy.polygon.technology',
     chainId: 80002,
     currencySymbol: 'MATIC',
     blockExplorerUrl: 'https://amoy.polygonscan.com',

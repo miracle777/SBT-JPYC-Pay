@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { QrCode, Download, Copy, Trash2, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { NETWORKS, JPYC, getContractAddress } from '../config/networks';
-import { SHOP_INFO } from '../config/shop';
+import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
 import { createPaymentPayload, encodePaymentPayload } from '../types/payment';
+import { useWallet } from '../context/WalletContext';
 
 interface PaymentSession {
   id: string;
@@ -17,16 +18,24 @@ interface PaymentSession {
 }
 
 const QRPayment: React.FC = () => {
+  const { address: walletAddress } = useWallet();
   const [amount, setAmount] = useState('');
   const [selectedNetwork, setSelectedNetwork] = useState(Object.values(NETWORKS)[0].chainId);
   const [paymentSessions, setPaymentSessions] = useState<PaymentSession[]>([]);
   const [showQR, setShowQR] = useState<string | null>(null);
 
+  const shopWalletAddress = getShopWalletAddress(walletAddress);
   const currentNetwork = Object.values(NETWORKS).find((net) => net.chainId === selectedNetwork);
   const contractAddress = getContractAddress(selectedNetwork, JPYC);
 
   const generateQRCode = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!shopWalletAddress) {
+      toast.error('ウォレットを接続してください');
+      return;
+    }
+
     if (!amount || parseFloat(amount) <= 0) {
       toast.error('有効な金額を入力してください');
       return;
@@ -44,21 +53,18 @@ const QRPayment: React.FC = () => {
     const amountInWei = (parseFloat(amount) * 1e18).toString();
 
     const payload = createPaymentPayload(
-      SHOP_INFO.id,
-      SHOP_INFO.name,
-      SHOP_INFO.walletAddress,
+      DEFAULT_SHOP_INFO.id,
+      DEFAULT_SHOP_INFO.name,
+      shopWalletAddress,
       amountInWei,
       selectedNetwork,
       contractAddress,
       expiresAtTimestamp,
       paymentId,
-      `Payment from ${SHOP_INFO.name}`
+      `Payment from ${DEFAULT_SHOP_INFO.name}`
     );
 
     const encodedPayload = encodePaymentPayload(payload);
-
-    // QRコード生成URL（Googleチャートを使用）
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(encodedPayload)}`;
 
     const newSession: PaymentSession = {
       id: paymentId,
@@ -178,13 +184,19 @@ const QRPayment: React.FC = () => {
                 <div className="space-y-3 text-sm">
                   <div>
                     <p className="text-gray-600">店舗名</p>
-                    <p className="font-semibold text-gray-900 break-all">{SHOP_INFO.name}</p>
+                    <p className="font-semibold text-gray-900 break-all">{DEFAULT_SHOP_INFO.name}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">ウォレットアドレス</p>
-                    <p className="font-mono text-xs text-gray-900 break-all">
-                      {SHOP_INFO.walletAddress}
-                    </p>
+                    <p className="text-gray-600">受け取りアドレス</p>
+                    {shopWalletAddress ? (
+                      <p className="font-mono text-xs text-gray-900 break-all">
+                        {shopWalletAddress}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-red-600 font-semibold">
+                        ⚠️ ウォレットを接続してください
+                      </p>
+                    )}
                   </div>
                   <div>
                     <p className="text-gray-600">契約アドレス (JPYC)</p>
