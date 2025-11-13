@@ -391,27 +391,37 @@ const QRPayment: React.FC = () => {
 
                       {/* QRコード表示エリア */}
                       {showQR === session.id && (
-                        <div className="mt-4 pt-4 border-t border-gray-200 flex justify-center">
+                        <div className="mt-4 pt-4 border-t border-gray-200">
                           <div className="text-center">
-                            <div className="mb-4">
-                              <p className="text-sm font-semibold text-gray-900 mb-2">
+                            <div className="mb-6">
+                              <p className="text-sm font-semibold text-gray-900 mb-4">
                                 QRコード
                               </p>
                               <div style={{
                                 display: 'flex',
                                 justifyContent: 'center',
-                                padding: '1rem',
+                                padding: '1.5rem',
                                 background: '#f9fafb',
                                 borderRadius: '0.5rem',
-                                border: '1px solid #e5e7eb',
+                                border: '2px solid #e5e7eb',
                               }}>
                                 <QRCodeDisplay
                                   data={session.qrCodeData}
-                                  size={300}
+                                  size={400}
                                   errorCorrectionLevel="H"
-                                  className="border border-gray-200 rounded"
+                                  onDownload={(type) => {
+                                    toast.success(`QRコードを${type === 'png' ? 'PNG' : 'SVG'}でダウンロードしました`);
+                                  }}
                                 />
                               </div>
+                            </div>
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                              <p className="text-xs text-blue-700 font-semibold mb-2">
+                                💡 支払い方法
+                              </p>
+                              <p className="text-xs text-blue-600">
+                                このQRコードをスキャンして、{session.amount} JPYC を {session.chainName} で支払ってください
+                              </p>
                             </div>
                             <div className="bg-gray-50 p-3 rounded-lg">
                               <p className="text-xs text-gray-600 mb-2">

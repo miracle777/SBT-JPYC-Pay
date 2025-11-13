@@ -25,6 +25,7 @@
     "postcss": "^8.4.32",
     "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.3",
+    "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.1",
