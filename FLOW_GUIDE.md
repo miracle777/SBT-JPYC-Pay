@@ -164,18 +164,27 @@ SBT JPYC Pay は、QRコード決済とSBT（Soulbound Token）スタンプカ�
 
 #### 金額計算の精度
 
+JPYCはステーブルコインで、1 JPYC = 1円で固定されています。そのため、小数点の計算は不要です。
+
 ```javascript
-// 入力: 100（文字列）
+// 入力: 100（ユーザーが入力した整数値）
 ↓
-const amountNum = parseFloat(amount);  // 100（数値）
+const amountNum = parseInt(amount) || parseFloat(amount);  // 100（数値）
 ↓
-// Wei 単位に変換（18小数点、整数に正確に変換）
-const amountInWei = (BigInt(Math.floor(amountNum * 1e18))).toString();
-// 結果: 100000000000000000000 Wei
+// Wei 単位に変換（18小数点、整数値をそのまま使用）
+const amountInWei = (BigInt(amountNum) * BigInt(10 ** 18)).toString();
+// 結果: 100000000000000000000 Wei（100 JPYC）
 ↓
 // ペイロード内に含める金額（ユーザーに表示される金額）
-amount: amountNum  // 100 JPYC
+amount: amountNum  // 100 JPYC = 100円
 ```
+
+**計算の特徴:**
+
+- ✅ 小数点不要（1 JPYC = 1円で完全な1:1対応）
+- ✅ 整数値のみを使用（parseFloat ではなく parseInt 優先）
+- ✅ BigInt を使用して正確に18小数点に変換
+- ✅ 誤差なし（例：100は100.00になる）
 
 #### トランザクション監視メカニズム
 
@@ -246,9 +255,88 @@ amount: amountNum  // 100 JPYC
 
 ---
 
-### 3. SBT管理ページ（/sbt）
+#### SBT発行パターン
 
-**用途**: スタンプカードテンプレートの作成・管理と SBT 発行
+SBTテンプレートでは、以下の3つの発行パターンを選択できます：
+
+#### 1. 毎回発行（per_payment）
+
+- **発行タイミング**: 支払いの度にSBT（スタンプ）を発行
+- **用途例**:
+  - コーヒーチェーン：毎回注文時に1スタンプ、10スタンプでコーヒー1杯無料
+  - 飲食店：毎回食事時に1スタンプ、5スタンプでデザート付き
+- **設定項目**:
+  - スタンプ最大数: カード完成時の総スタンプ数（例：10）
+  - 報酬内容: カード完成時の報酬（例：「コーヒー1杯無料」）
+
+#### 2. N回後発行（after_count）
+
+- **発行タイミング**: 指定回数の支払い条件を達成時に1回だけSBT発行
+- **用途例**:
+  - キャリア形成プログラム：10回の購入で「シルバー会員証」SBT発行
+  - ロイヤリティプログラム：5回の訪店で「VIP会員」SBT発行
+- **設定項目**:
+  - 達成条件回数: 何回の支払いで発行するか（例：10回）
+  - 報酬内容: 達成時の特典（例：「VIP会員特典」）
+- **発行される回数**: 1回限り
+
+#### 3. 期間内発行（time_period）
+
+- **発行タイミング**: 指定期間内に支払いがある場合にSBT発行
+- **用途例**:
+  - 時間限定キャンペーン：「11月14日～11月30日の期間内に支払い＝特別SBT獲得」
+  - 季節限定: 夏のキャンペーン期間内の支払いで「夏の思い出メダル」獲得
+- **設定項目**:
+  - 有効期間（日数）: キャンペーン期間（例：30日）
+  - スタンプ最大数: 期間内の最大スタンプ数（例：5回まで）
+  - 報酬内容: 期間限定特典（例：「キャンペーン参加記念」）
+
+### SBT テンプレート インターフェース
+
+```typescript
+type IssuePattern = 'per_payment' | 'after_count' | 'time_period';
+
+interface SBTTemplate {
+  id: string;                          // テンプレートID
+  name: string;                        // テンプレート名
+  description: string;                 // 説明
+  issuePattern: IssuePattern;          // 発行パターン
+  maxStamps: number;                   // スタンプ最大数
+  timePeriodDays?: number;             // 期間内発行の場合の有効期間（日数）
+  rewardDescription: string;           // 報酬内容
+  imageUrl: string;                    // Base64 JPEG画像データ
+  imageMimeType: string;               // 'image/jpeg'
+  createdAt: string;                   // 作成日
+  status: 'active' | 'inactive';       // ステータス
+}
+```
+
+### SBT 画像アップロード仕様
+
+#### 画像要件
+
+- **解像度**: 512px × 512px
+- **ファイル形式**: JPEG のみ
+- **最大ファイルサイズ**: 3MB
+- **形状**: 丸形アイコン（メダル、はんこなどをイメージ）
+
+#### 画像保存方法
+
+- Base64 エンコーディングでブラウザに保存
+- LocalStorage または IndexedDB に格納可能
+- ブロックチェーンに記録する際は、IPFS等の分散ストレージに保存することを推奨
+
+#### アップロード処理フロー
+
+```javascript
+1. ユーザーが JPEG ファイルを選択
+2. ファイルサイズチェック（≤3MB）
+3. ファイル形式チェック（JPEG のみ）
+4. FileReader でファイルを読み込み
+5. Base64 に変換
+6. プレビュー表示（丸形トリミング）
+7. テンプレート保存時に imageUrl に含める
+```
 
 #### 画面構成
 

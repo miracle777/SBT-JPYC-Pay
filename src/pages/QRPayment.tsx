@@ -177,9 +177,10 @@ const QRPayment: React.FC = () => {
       const paymentId = `PAY${Date.now()}`;
       const expiresAtTimestamp = Math.floor(Date.now() / 1000) + expiryTimeMinutes * 60;
 
-      // Wei単位に変換（18小数点）- 正確な小数点計算
-      const amountNum = parseFloat(amount);
-      const amountInWei = (BigInt(Math.floor(amountNum * 1e18))).toString();
+      // Wei単位に変換（18小数点、整数値に変換）
+      // JPYCは1JPYCが1円で固定されているため、小数点は不要
+      const amountNum = parseInt(amount) || parseFloat(amount);
+      const amountInWei = (BigInt(amountNum) * BigInt(10 ** 18)).toString();
 
       const payload = createPaymentPayload(
         DEFAULT_SHOP_INFO.id,
