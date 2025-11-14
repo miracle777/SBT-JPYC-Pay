@@ -1,3 +1,4 @@
+```markdown
 # SBT-JPYC-Pay
 
 > お店側のSBTスタンプカード発行・管理システム
@@ -25,15 +26,12 @@ This is a Progressive Web App (PWA) for shop owners to issue and manage SBT (Sou
 ## 📋 セットアップ
 
 ### 1. 依存関係のインストール
-
 ```bash
 npm install
 ```
 
 ### 2. 環境変数の設定
-
 `.env`ファイルを作成：
-
 ```env
 VITE_PINATA_API_KEY=your_pinata_api_key
 VITE_PINATA_API_SECRET=your_pinata_api_secret
@@ -41,7 +39,6 @@ VITE_WALLET_CONNECT_PROJECT_ID=your_wallet_connect_project_id
 ```
 
 ### 3. スマートコントラクトのデプロイ
-
 ```bash
 cd contracts
 npm install
@@ -50,7 +47,6 @@ npx hardhat deploy --network polygon
 ```
 
 ### 4. 開発サーバーの起動
-
 ```bash
 npm run dev
 ```
@@ -58,7 +54,6 @@ npm run dev
 ## 📖 使用方法
 
 ### お店側の操作
-
 詳細は [Shop仕様.md](./Shop仕様.md) を参照
 
 1. **ウォレット接続**: MetaMaskを接続
@@ -67,7 +62,6 @@ npm run dev
 4. **SBT発行**: 条件達成時に自動でSBTを発行
 
 ### ユーザー側の操作
-
 詳細は [user仕様.md](./user仕様.md) を参照
 
 ## 🌐 ネットワーク設定
@@ -170,3 +164,4 @@ Polygon Amoy でテストを行う際は、テストネットトークン（POL�
 ## 📄 ライセンス
 
 MIT License
+

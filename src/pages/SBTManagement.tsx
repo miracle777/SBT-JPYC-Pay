@@ -51,8 +51,8 @@ const SBTManagement: React.FC = () => {
       issuePattern: 'per_payment',
       maxStamps: 10,
       rewardDescription: 'スタンプ1個',
-      imageUrl: 'https://via.placeholder.com/512?text=Stamp',
-      imageMimeType: 'image/jpeg',
+      imageUrl: '/sbt-images/visit-memorial.png',
+      imageMimeType: 'image/png',
       createdAt: '2025-11-14',
       status: 'active',
     },
@@ -63,8 +63,8 @@ const SBTManagement: React.FC = () => {
       issuePattern: 'after_count',
       maxStamps: 10,
       rewardDescription: 'ゴールド会員バッジ',
-      imageUrl: 'https://via.placeholder.com/512?text=Milestone',
-      imageMimeType: 'image/jpeg',
+      imageUrl: '/sbt-images/milestone-10x.png',
+      imageMimeType: 'image/png',
       createdAt: '2025-11-14',
       status: 'active',
     },
@@ -76,8 +76,8 @@ const SBTManagement: React.FC = () => {
       maxStamps: 5,
       timePeriodDays: 30,
       rewardDescription: 'キャンペーン記念メダル',
-      imageUrl: 'https://via.placeholder.com/512?text=Campaign',
-      imageMimeType: 'image/jpeg',
+      imageUrl: '/sbt-images/campaign-limited.png',
+      imageMimeType: 'image/png',
       createdAt: '2025-11-14',
       status: 'active',
     },
@@ -106,6 +106,7 @@ const SBTManagement: React.FC = () => {
 
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [showIssuanceForm, setShowIssuanceForm] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [completedPayments, setCompletedPayments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -185,9 +186,9 @@ const SBTManagement: React.FC = () => {
       return;
     }
 
-    // ファイル形式チェック（JPEG のみ）
-    if (!file.type.includes('jpeg')) {
-      toast.error('JPEGファイルをアップロードしてください');
+    // ファイル形式チェック（JPEG/PNG）
+    if (!file.type.includes('jpeg') && !file.type.includes('png')) {
+      toast.error('JPEGまたはPNG形式の画像をアップロードしてください');
       return;
     }
 
@@ -247,33 +248,100 @@ const SBTManagement: React.FC = () => {
       }
     }
 
-    const template: SBTTemplate = {
-      id: `template-${Date.now()}`,
-      name: newTemplate.name,
-      description: newTemplate.description,
-      issuePattern: newTemplate.issuePattern,
-      maxStamps: newTemplate.maxStamps,
-      timePeriodDays: newTemplate.issuePattern === 'time_period' ? newTemplate.timePeriodDays : undefined,
-      periodStartDate: newTemplate.issuePattern === 'period_range' ? newTemplate.periodStartDate : undefined,
-      periodEndDate: newTemplate.issuePattern === 'period_range' ? newTemplate.periodEndDate : undefined,
-      rewardDescription: newTemplate.rewardDescription,
-      imageUrl: newTemplate.imageUrl,
-      imageMimeType: newTemplate.imageMimeType,
-      createdAt: new Date().toISOString().split('T')[0],
-      status: 'active',
-    };
+    handleTemplateFormSubmit(e);
+  };
 
-    // IndexedDB + localStorage に保存
-    sbtStorage.saveTemplate(template).catch(err => {
-      console.error('テンプレート保存エラー:', err);
-      toast.error('テンプレートの保存に失敗しました');
+  const deleteTemplate = (id: string) => {
+    // 削除対象テンプレートから発行された SBT を確認
+    const relatedSBTs = issuedSBTs.filter((sbt) => sbt.templateId === id);
+    const completedSBTs = relatedSBTs.filter((sbt) => sbt.status === 'redeemed');
+
+    // ⭐ 完了済み SBT がある場合は削除を阻止
+    if (completedSBTs.length > 0) {
+      toast.error(
+        `❌ 削除できません\n${completedSBTs.length}件の完了済みSBTが存在します。\n完了済みSBTがあるテンプレートは削除できません。`,
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    setTemplates(templates.filter((t) => t.id !== id));
+    
+    // IndexedDB + localStorage から削除
+    sbtStorage.deleteTemplate(id).catch(err => {
+      console.error('テンプレート削除エラー:', err);
+      toast.error('テンプレートの削除に失敗しました');
     });
 
-    setTemplates([template, ...templates]);
+    toast.success('テンプレートを削除しました');
+  };
+
+  // ⭐ テンプレートを編集モードで開く
+  const editTemplate = (template: SBTTemplate) => {
+    setNewTemplate({
+      name: template.name,
+      description: template.description,
+      issuePattern: template.issuePattern,
+      maxStamps: template.maxStamps,
+      timePeriodDays: template.timePeriodDays || 30,
+      periodStartDate: template.periodStartDate || '',
+      periodEndDate: template.periodEndDate || '',
+      rewardDescription: template.rewardDescription,
+      imageUrl: template.imageUrl,
+      imageMimeType: template.imageMimeType,
+    });
+    setImagePreview(template.imageUrl);
+    setEditingTemplateId(template.id);
+    setShowTemplateForm(true);
+  };
+
+  // ⭐ テンプレートを編集保存（上書き）
+  const saveTemplateEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!newTemplate.name.trim()) {
+      toast.error('テンプレート名を入力してください');
+      return;
+    }
+
+    if (!newTemplate.imageUrl) {
+      toast.error('画像をアップロードしてください');
+      return;
+    }
+
+    if (editingTemplateId) {
+      // 既存テンプレートを更新
+      const updatedTemplates = templates.map((t) =>
+        t.id === editingTemplateId
+          ? {
+              ...t,
+              name: newTemplate.name,
+              description: newTemplate.description,
+              issuePattern: newTemplate.issuePattern,
+              maxStamps: newTemplate.maxStamps,
+              timePeriodDays: newTemplate.issuePattern === 'time_period' ? (newTemplate.timePeriodDays || 30) : undefined,
+              periodStartDate: newTemplate.issuePattern === 'period_range' ? newTemplate.periodStartDate : undefined,
+              periodEndDate: newTemplate.issuePattern === 'period_range' ? newTemplate.periodEndDate : undefined,
+              rewardDescription: newTemplate.rewardDescription,
+              imageUrl: newTemplate.imageUrl,
+              imageMimeType: newTemplate.imageMimeType,
+            }
+          : t
+      );
+      setTemplates(updatedTemplates);
+
+      // IndexedDB に保存
+      await sbtStorage.saveTemplate(updatedTemplates.find((t) => t.id === editingTemplateId)!);
+      
+      toast.success('テンプレートを更新しました');
+      setEditingTemplateId(null);
+    }
+
+    // フォームをリセット
     setNewTemplate({
       name: '',
       description: '',
-      issuePattern: 'per_payment',
+      issuePattern: 'per_payment' as IssuePattern,
       maxStamps: 10,
       timePeriodDays: 30,
       periodStartDate: '',
@@ -284,19 +352,85 @@ const SBTManagement: React.FC = () => {
     });
     setImagePreview('');
     setShowTemplateForm(false);
-    toast.success('テンプレートを作成しました');
   };
 
-  const deleteTemplate = (id: string) => {
-    setTemplates(templates.filter((t) => t.id !== id));
-    
-    // IndexedDB + localStorage から削除
-    sbtStorage.deleteTemplate(id).catch(err => {
-      console.error('テンプレート削除エラー:', err);
-      toast.error('テンプレートの削除に失敗しました');
+  // ⭐ テンプレートをコピーして新規作成
+  const copyTemplateAsNew = (template: SBTTemplate) => {
+    setNewTemplate({
+      name: `${template.name} (コピー)`,
+      description: template.description,
+      issuePattern: template.issuePattern,
+      maxStamps: template.maxStamps,
+      timePeriodDays: template.timePeriodDays || 30,
+      periodStartDate: template.periodStartDate || '',
+      periodEndDate: template.periodEndDate || '',
+      rewardDescription: template.rewardDescription,
+      imageUrl: template.imageUrl,
+      imageMimeType: template.imageMimeType,
     });
+    setImagePreview(template.imageUrl);
+    setEditingTemplateId(null);  // 新規作成モード
+    setShowTemplateForm(true);
+  };
 
-    toast.success('テンプレートを削除しました');
+  // ⭐ テンプレート追加フォームの送信を改変
+  const handleTemplateFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!newTemplate.name.trim()) {
+      toast.error('テンプレート名を入力してください');
+      return;
+    }
+
+    if (!newTemplate.imageUrl) {
+      toast.error('画像をアップロードしてください');
+      return;
+    }
+
+    if (editingTemplateId) {
+      // 編集保存
+      await saveTemplateEdit(e);
+    } else {
+      // 新規作成（コピーも含む）
+      const newTemplateData: SBTTemplate = {
+        id: `template-${Date.now()}`,
+        name: newTemplate.name,
+        description: newTemplate.description,
+        issuePattern: newTemplate.issuePattern,
+        maxStamps: newTemplate.maxStamps,
+        timePeriodDays: newTemplate.timePeriodDays,
+        periodStartDate: newTemplate.periodStartDate,
+        periodEndDate: newTemplate.periodEndDate,
+        rewardDescription: newTemplate.rewardDescription,
+        imageUrl: newTemplate.imageUrl,
+        imageMimeType: newTemplate.imageMimeType,
+        createdAt: new Date().toISOString().split('T')[0],
+        status: 'active',
+      };
+
+      const updatedTemplates = [newTemplateData, ...templates];
+      setTemplates(updatedTemplates);
+
+      // IndexedDB に保存
+      await sbtStorage.saveTemplate(newTemplateData);
+
+      // フォームをリセット
+      setNewTemplate({
+        name: '',
+        description: '',
+        issuePattern: 'per_payment' as IssuePattern,
+        maxStamps: 10,
+        timePeriodDays: 30,
+        periodStartDate: '',
+        periodEndDate: '',
+        rewardDescription: '',
+        imageUrl: '',
+        imageMimeType: 'image/jpeg',
+      });
+      setImagePreview('');
+      setShowTemplateForm(false);
+      toast.success(editingTemplateId ? 'テンプレートを更新しました' : 'テンプレートを作成しました');
+    }
   };
 
   const issueSBT = async (e: React.FormEvent, selectedPaymentId?: string) => {
@@ -449,17 +583,40 @@ const SBTManagement: React.FC = () => {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">テンプレート</h2>
             <button
-              onClick={() => setShowTemplateForm(!showTemplateForm)}
+              onClick={() => {
+                if (editingTemplateId) {
+                  setEditingTemplateId(null);
+                  setImagePreview('');
+                  setNewTemplate({
+                    name: '',
+                    description: '',
+                    issuePattern: 'per_payment' as IssuePattern,
+                    maxStamps: 10,
+                    timePeriodDays: 30,
+                    periodStartDate: '',
+                    periodEndDate: '',
+                    rewardDescription: '',
+                    imageUrl: '',
+                    imageMimeType: 'image/jpeg',
+                  });
+                }
+                setShowTemplateForm(!showTemplateForm);
+              }}
               className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
             >
               <Plus className="w-5 h-5" />
-              新規作成
+              {editingTemplateId ? '編集をキャンセル' : '新規作成'}
             </button>
           </div>
 
           {showTemplateForm && (
             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
               <form onSubmit={addTemplate} className="space-y-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {editingTemplateId ? '✏️ テンプレート編集' : '➕ 新規テンプレート作成'}
+                  </h3>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">テンプレート名 <span className="text-red-500">*</span></label>
                   <input
@@ -487,14 +644,29 @@ const SBTManagement: React.FC = () => {
                     <div className="flex-1">
                       <input
                         type="file"
-                        accept="image/jpeg"
+                        accept="image/jpeg,image/png"
                         onChange={handleImageUpload}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                       />
+                      <p className="text-xs text-gray-500 mt-1">PNG/JPEG ファイルをサポート</p>
                     </div>
                     {imagePreview && (
-                      <div className="flex-shrink-0 w-20 h-20 rounded-full overflow-hidden border-2 border-purple-400 flex items-center justify-center bg-gray-100">
-                        <img src={imagePreview} alt="preview" className="w-full h-full object-cover" />
+                      <div className="flex-shrink-0">
+                        <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-purple-400 flex items-center justify-center bg-gray-100">
+                          <img src={imagePreview} alt="preview" className="w-full h-full object-cover" />
+                        </div>
+                        {editingTemplateId && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImagePreview('');
+                              setNewTemplate({ ...newTemplate, imageUrl: '' });
+                            }}
+                            className="text-xs text-red-600 mt-1 hover:text-red-800"
+                          >
+                            画像変更
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -611,11 +783,27 @@ const SBTManagement: React.FC = () => {
                     type="submit"
                     className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
                   >
-                    作成
+                    {editingTemplateId ? '✅ 更新保存' : '➕ 作成'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowTemplateForm(false)}
+                    onClick={() => {
+                      setShowTemplateForm(false);
+                      setEditingTemplateId(null);
+                      setImagePreview('');
+                      setNewTemplate({
+                        name: '',
+                        description: '',
+                        issuePattern: 'per_payment' as IssuePattern,
+                        maxStamps: 10,
+                        timePeriodDays: 30,
+                        periodStartDate: '',
+                        periodEndDate: '',
+                        rewardDescription: '',
+                        imageUrl: '',
+                        imageMimeType: 'image/jpeg',
+                      });
+                    }}
                     className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-200"
                   >
                     キャンセル
@@ -655,13 +843,33 @@ const SBTManagement: React.FC = () => {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <button className="flex-1 p-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition flex items-center justify-center gap-2">
+                    <button 
+                      onClick={() => editTemplate(template)}
+                      className="flex-1 p-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition flex items-center justify-center gap-2"
+                    >
                       <Edit2 className="w-4 h-4" />
                       編集
                     </button>
                     <button
+                      onClick={() => copyTemplateAsNew(template)}
+                      className="flex-1 p-2 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg transition flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      コピー
+                    </button>
+                    <button
                       onClick={() => deleteTemplate(template.id)}
-                      className="flex-1 p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition flex items-center justify-center gap-2"
+                      disabled={issuedSBTs.some((sbt) => sbt.templateId === template.id && sbt.status === 'redeemed')}
+                      className={`flex-1 p-2 rounded-lg transition flex items-center justify-center gap-2 ${
+                        issuedSBTs.some((sbt) => sbt.templateId === template.id && sbt.status === 'redeemed')
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-red-100 hover:bg-red-200 text-red-600'
+                      }`}
+                      title={
+                        issuedSBTs.some((sbt) => sbt.templateId === template.id && sbt.status === 'redeemed')
+                          ? '完了済みSBTがあるため削除できません'
+                          : ''
+                      }
                     >
                       <Trash2 className="w-4 h-4" />
                       削除

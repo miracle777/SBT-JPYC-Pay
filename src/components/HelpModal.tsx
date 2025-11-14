@@ -314,30 +314,32 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Category Filter */}
-        <div className="border-b px-6 py-3 bg-gray-50 flex gap-2 overflow-x-auto">
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className={`px-4 py-2 rounded-full whitespace-nowrap font-semibold text-sm transition ${
-              selectedCategory === null
-                ? 'bg-purple-600 text-white'
-                : 'bg-white border border-gray-300 text-gray-700 hover:border-purple-400'
-            }`}
-          >
-            すべて
-          </button>
-          {categories.map(category => (
+        <div className="border-b px-6 py-3 bg-gray-50">
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6">
             <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full whitespace-nowrap font-semibold text-sm transition ${
-                selectedCategory === category
+              onClick={() => setSelectedCategory(null)}
+              className={`px-4 py-2 rounded-full whitespace-nowrap font-semibold text-sm transition flex-shrink-0 ${
+                selectedCategory === null
                   ? 'bg-purple-600 text-white'
                   : 'bg-white border border-gray-300 text-gray-700 hover:border-purple-400'
               }`}
             >
-              {category}
+              すべて
             </button>
-          ))}
+            {categories.map(category => (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`px-4 py-2 rounded-full whitespace-nowrap font-semibold text-sm transition flex-shrink-0 ${
+                  selectedCategory === category
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-white border border-gray-300 text-gray-700 hover:border-purple-400'
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Content */}

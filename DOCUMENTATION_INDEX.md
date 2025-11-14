@@ -12,6 +12,7 @@
 | **PWA機能について知りたい** | → `PWA_GUIDE.md` |
 | **スマホアプリを開発したい** | → `MOBILE_APP_INTEGRATION.md` |
 | **開発完了内容を確認したい** | → `DEVELOPMENT_COMPLETE.md` |
+| **⭐ トランザクション検証方法** | → `TRANSACTION_VERIFICATION_GUIDE.md` |
 | **ショップ機能の詳細仕様** | → `Shop仕様.md` |
 | **ユーザー機能の詳細仕様** | → `user仕様.md` |
 
@@ -19,7 +20,7 @@
 
 ## 📖 ドキュメント詳細
 
-### 1. 📋 README.md
+### 2. 🌐 PWA_GUIDE.md
 **内容**: プロジェクト概要、インストール手順、使用方法  
 **対象**: 初めてプロジェクトを見る人  
 **読むべき人**:
@@ -89,7 +90,59 @@ QRコード内に含まれるネットワーク情報:
 
 ---
 
-### 4. ✨ DEVELOPMENT_COMPLETE.md
+### ⭐ 5. 🔗 TRANSACTION_VERIFICATION_GUIDE.md （★NEW★）
+
+**内容**: JPYC 決済トランザクションと SBT 発行トランザクションの完全検証ガイド  
+**対象**: ブロックチェーンの検証・テストをする人  
+**読むべき人**:
+- テストネットでの検証を行う人
+- Polygonscan でトランザクションを確認したい人
+- SBT 発行の仕組みを理解したい人
+- ブロックチェーン統合を理解したい人
+
+**★ 特に重要な内容**:
+
+#### **1️⃣ JPYC 決済トランザクション**
+- タイプ: ERC-20 トークン転送
+- 自動検知: ✅ アプリが 5 秒ごとに監視
+- データ: `transactionHash` に記録
+- 確認方法:
+  1. アプリ内で確認（ハッシュ表示）
+  2. MetaMask で確認（アクティビティ）
+  3. **Polygonscan で外部検証** ← 重要
+
+#### **2️⃣ SBT 発行トランザクション**（⭐ NEW）
+- タイプ: ERC-721 mint（NFT 生成）
+- ブロックチェーン記録: ✅ 永続記録（消えない）
+- データ: `sbtTransactionHash` に記録
+- 確認方法:
+  1. アプリ内で確認（SBTCard コンポーネント）
+  2. MetaMask で確認（アクティビティ）
+  3. **Polygonscan で外部検証** ← 重要
+
+#### **3️⃣ テストネット検証手順**
+- 前提条件確認
+- ステップバイステップガイド
+- Polygonscan での詳細検証方法
+- チェックリスト
+
+#### **4️⃣ セキュリティ検証**
+- トランザクションハッシュの形式確認
+- ブロックチェーンの不変性
+- 両トランザクションの関連付け方法
+
+**主要セクション**:
+- 全体フロー図（図解）
+- JPYC 決済トランザクション詳細
+- SBT 発行トランザクション詳細
+- 両トランザクションの関連付け
+- テストネット検証手順
+- トランザクション検証チェックリスト
+- セキュリティ・検証ポイント
+
+---
+
+### 6. ✨ DEVELOPMENT_COMPLETE.md
 **内容**: 完了した開発内容の詳細レポート  
 **対象**: 開発内容を確認・引き継ぐ人  
 **読むべき人**:
@@ -156,13 +209,15 @@ QRコード内に含まれるネットワーク情報:
 ├─ 機能理解段階
 │  ├─ PWA_GUIDE.md ────────── PWA・オフライン機能
 │  ├─ DEVELOPMENT_COMPLETE.md ─ 実装内容確認
-│  └─ MOBILE_APP_INTEGRATION.md ─ スマホ連携仕様
+│  ├─ MOBILE_APP_INTEGRATION.md ─ スマホ連携仕様
+│  └─ ⭐ TRANSACTION_VERIFICATION_GUIDE.md ─ ブロックチェーン検証
 │
 ├─ 詳細実装段階
 │  ├─ Shop仕様.md ─────────── ショップ機能詳細
 │  └─ user仕様.md ────────── ユーザー機能詳細
 │
 └─ 運用・保守段階
+   ├─ ⭐ TRANSACTION_VERIFICATION_GUIDE.md ← トランザクション検証
    └─ 各ドキュメント ────── 機能確認・トラブル対応
 ```
 
@@ -280,6 +335,12 @@ SBT-JPYC-Pay
 | FAQ | DEVELOPMENT_COMPLETE.md |
 | 期間テンプレート | DEVELOPMENT_COMPLETE.md |
 | スマホアプリ | MOBILE_APP_INTEGRATION.md, user仕様.md |
+| ⭐ トランザクション検証 | TRANSACTION_VERIFICATION_GUIDE.md |
+| ⭐ JPYC決済トランザクション | TRANSACTION_VERIFICATION_GUIDE.md |
+| ⭐ SBT mint トランザクション | TRANSACTION_VERIFICATION_GUIDE.md |
+| ⭐ Polygonscan | TRANSACTION_VERIFICATION_GUIDE.md |
+| ⭐ ブロックチェーン記録 | TRANSACTION_VERIFICATION_GUIDE.md |
+| ⭐ テストネット検証 | TRANSACTION_VERIFICATION_GUIDE.md |
 
 ---
 
@@ -303,17 +364,18 @@ SBT-JPYC-Pay
 2. DEVELOPMENT_COMPLETE.md （30分）
 3. PWA_GUIDE.md （20分）
 4. MOBILE_APP_INTEGRATION.md （60分）
+5. ⭐ TRANSACTION_VERIFICATION_GUIDE.md （30分）
 
-**合計**: 約 2 時間でプロジェクト全体を理解
+**合計**: 約 2.5 時間でプロジェクト全体を理解
 
 ---
 
 ### 👨‍💼 プロジェクト管理者向け
 1. README.md （10分）
 2. DEVELOPMENT_COMPLETE.md （20分）
-3. 技術スタック確認 （5分）
+3. ⭐ TRANSACTION_VERIFICATION_GUIDE.md （15分：トランザクション確認方法のみ）
 
-**合計**: 約 35 分でプロジェクト状態を把握
+**合計**: 約 45 分でプロジェクト状態を把握
 
 ---
 
@@ -321,8 +383,18 @@ SBT-JPYC-Pay
 1. README.md（概要）（10分）
 2. MOBILE_APP_INTEGRATION.md（全セクション）（90分）
 3. user仕様.md（ユーザー機能）（30分）
+4. ⭐ TRANSACTION_VERIFICATION_GUIDE.md（決済トランザクション部分）（20分）
 
-**合計**: 約 2 時間 10 分
+**合計**: 約 2.5 時間
+
+---
+
+### 🧪 テスト・QA 向け
+1. ⭐ TRANSACTION_VERIFICATION_GUIDE.md （45分：テストネット検証手順）
+2. DEVELOPMENT_COMPLETE.md（テスト項目チェックリスト）（20分）
+3. PWA_GUIDE.md（トラブルシューティング）（15分）
+
+**合計**: 約 1.5 時間で検証方法を習得
 
 ---
 
