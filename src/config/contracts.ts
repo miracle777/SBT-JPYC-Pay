@@ -761,3 +761,15 @@ export const JPYC_STAMP_SBT_ABI = [
     "type": "function"
   }
 ] as const;
+
+// SBT コントラクトアドレス（デプロイ後に更新）
+export const SBT_CONTRACT_ADDRESS: Record<number, string> = {
+  // Mainnet
+  137: '0x0000000000000000000000000000000000000000', // Polygon Mainnet - デプロイ待ち
+  1: '0x0000000000000000000000000000000000000000',   // Ethereum Mainnet - デプロイ待ち
+  43114: '0x0000000000000000000000000000000000000000', // Avalanche - デプロイ待ち
+  // Testnet
+  80002: '0x0000000000000000000000000000000000000000', // Polygon Amoy - デプロイ待ち
+  11155111: '0x0000000000000000000000000000000000000000', // Ethereum Sepolia - デプロイ待ち
+  43113: '0x0000000000000000000000000000000000000000', // Avalanche Fuji - デプロイ待ち
+};

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Save, Copy, ExternalLink } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Copy, ExternalLink, Download, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { NETWORKS } from '../config/networks';
 import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
 import { useWallet } from '../context/WalletContext';
+import { sbtStorage } from '../utils/storage';
 
 const Settings: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
@@ -22,6 +23,52 @@ const Settings: React.FC = () => {
 
   const handleSave = () => {
     toast.success('設定を保存しました');
+  };
+
+  // エクスポート機能
+  const handleExport = async () => {
+    try {
+      const data = await sbtStorage.exportData();
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sbt-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`✅ バックアップ完了: ${data.templates.length} テンプレート、${data.sbts.length} SBT`);
+    } catch (error) {
+      console.error('エクスポートエラー:', error);
+      toast.error('バックアップに失敗しました');
+    }
+  };
+
+  // インポート機能
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      // バリデーション
+      if (!data.templates || !data.sbts || !Array.isArray(data.templates) || !Array.isArray(data.sbts)) {
+        throw new Error('無効なバックアップファイル形式です');
+      }
+
+      await sbtStorage.importData(data);
+      toast.success(`✅ リストア完了: ${data.templates.length} テンプレート、${data.sbts.length} SBT`);
+      
+      // ページ再読み込み（データ反映）
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      console.error('インポートエラー:', error);
+      toast.error(error instanceof Error ? error.message : 'リストアに失敗しました');
+    }
   };
 
   return (
@@ -186,6 +233,59 @@ const Settings: React.FC = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* データ管理（バックアップ・復元） */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-6">📦 データ管理</h2>
+          <p className="text-gray-600 mb-6">テンプレートと SBT 発行履歴をバックアップ・復元します</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* エクスポート */}
+            <div className="border-2 border-green-200 rounded-lg p-6 bg-green-50">
+              <div className="flex items-center gap-3 mb-4">
+                <Download className="w-6 h-6 text-green-600" />
+                <h3 className="font-bold text-green-900">バックアップ</h3>
+              </div>
+              <p className="text-sm text-gray-700 mb-4">
+                すべてのテンプレートと SBT 発行データを JSON ファイルとして保存
+              </p>
+              <button
+                onClick={handleExport}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                バックアップをダウンロード
+              </button>
+              <p className="text-xs text-gray-600 mt-3 border-t border-green-200 pt-3">
+                💡 定期的にバックアップしておくことをお勧めします
+              </p>
+            </div>
+
+            {/* インポート */}
+            <div className="border-2 border-blue-200 rounded-lg p-6 bg-blue-50">
+              <div className="flex items-center gap-3 mb-4">
+                <Upload className="w-6 h-6 text-blue-600" />
+                <h3 className="font-bold text-blue-900">復元</h3>
+              </div>
+              <p className="text-sm text-gray-700 mb-4">
+                バックアップファイルから データを復元
+              </p>
+              <label className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2 cursor-pointer">
+                <Upload className="w-4 h-4" />
+                ファイルを選択
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImport}
+                  className="hidden"
+                />
+              </label>
+              <p className="text-xs text-gray-600 mt-3 border-t border-blue-200 pt-3">
+                ⚠️ 復元後、ページが自動的に再読み込みされます
+              </p>
             </div>
           </div>
         </div>

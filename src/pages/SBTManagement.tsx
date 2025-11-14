@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Plus, Edit2, Trash2, Send } from 'lucide-react';
+import { Award, Plus, Edit2, Trash2, Send, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
+import { mintSBT, getBlockExplorerUrl } from '../utils/sbtMinting';
+import { NETWORKS } from '../config/networks';
+import SBTCard from '../components/SBTCard';
 
 type IssuePattern = 'per_payment' | 'after_count' | 'time_period' | 'period_range';
 
@@ -33,10 +36,13 @@ interface IssuedSBT {
   status: 'active' | 'redeemed';
   sourcePaymentId?: string; // 発行元のQR決済セッションID
   transactionHash?: string; // 決済トランザクションハッシュ
+  sbtTransactionHash?: string; // ⭐ SBT発行トランザクションハッシュ（ブロックチェーン記録）
+  sbtMintStatus?: 'pending' | 'success' | 'failed'; // SBT mint ステータス
+  chainId?: number; // SBT が発行されたチェーンID
 }
 
 const SBTManagement: React.FC = () => {
-  const { address: walletAddress } = useWallet();
+  const { address: walletAddress, chainId: currentChainId } = useWallet();
   const [templates, setTemplates] = useState<SBTTemplate[]>([
     {
       id: 'template-stamp-card',
@@ -293,7 +299,7 @@ const SBTManagement: React.FC = () => {
     toast.success('テンプレートを削除しました');
   };
 
-  const issueSBT = (e: React.FormEvent, selectedPaymentId?: string) => {
+  const issueSBT = async (e: React.FormEvent, selectedPaymentId?: string) => {
     e.preventDefault();
 
     const template = templates.find((t) => t.id === newIssuance.templateId);
@@ -339,6 +345,7 @@ const SBTManagement: React.FC = () => {
       recipientAddress = walletAddress;
     }
 
+    // 基本的な SBT オブジェクトを作成
     const sbt: IssuedSBT = {
       id: `sbt-${Date.now()}`,
       templateId: template.id,
@@ -350,18 +357,79 @@ const SBTManagement: React.FC = () => {
       status: 'active',
       sourcePaymentId,
       transactionHash,
+      sbtMintStatus: 'pending',
+      chainId: currentChainId || undefined,
     };
 
-    // IndexedDB + localStorage に保存
-    sbtStorage.saveSBT(sbt).catch(err => {
-      console.error('SBT保存エラー:', err);
-      toast.error('SBTの保存に失敗しました');
-    });
-
+    // UI に一度表示
     setIssuedSBTs([sbt, ...issuedSBTs]);
     setNewIssuance({ templateId: templates[0]?.id || '', recipientAddress: '' });
     setShowIssuanceForm(false);
-    toast.success(`SBTを${recipientAddress.slice(0, 6)}...${recipientAddress.slice(-4)}に発行しました`);
+
+    // ⭐ ブロックチェーンに mint（非同期）
+    const mintingToast = toast.loading('🔄 SBT をブロックチェーンに記録中...');
+
+    try {
+      // tokenURI は base64 イメージそのもの
+      const tokenURI = template.imageUrl;
+
+      if (!currentChainId) {
+        toast.error('ネットワークを接続してください', { id: mintingToast });
+        return;
+      }
+
+      // SBT mint 実行
+      const result = await mintSBT({
+        recipientAddress,
+        shopId: 1, // TODO: 実装で適切な shopId を使用
+        tokenURI,
+        chainId: currentChainId,
+      });
+
+      if (result.success && result.transactionHash) {
+        // ✅ mint 成功
+        sbt.sbtTransactionHash = result.transactionHash;
+        sbt.sbtMintStatus = 'success';
+        
+        // IndexedDB に保存
+        await sbtStorage.saveSBT(sbt);
+
+        // 表示を更新
+        setIssuedSBTs(prev =>
+          prev.map(s => (s.id === sbt.id ? sbt : s))
+        );
+
+        toast.success(
+          `✅ SBT をブロックチェーンに記録しました！\nTx: ${result.transactionHash.slice(0, 10)}...`,
+          { id: mintingToast }
+        );
+      } else {
+        // ❌ mint 失敗
+        sbt.sbtMintStatus = 'failed';
+        await sbtStorage.saveSBT(sbt);
+        setIssuedSBTs(prev =>
+          prev.map(s => (s.id === sbt.id ? sbt : s))
+        );
+
+        toast.error(
+          `❌ SBT 記録失敗: ${result.error || 'Unknown error'}`,
+          { id: mintingToast }
+        );
+      }
+    } catch (error: any) {
+      // エラーハンドリング
+      sbt.sbtMintStatus = 'failed';
+      await sbtStorage.saveSBT(sbt);
+      setIssuedSBTs(prev =>
+        prev.map(s => (s.id === sbt.id ? sbt : s))
+      );
+
+      console.error('SBT mint エラー:', error);
+      toast.error(
+        `SBT 記録エラー: ${error.message || 'Unknown error'}`,
+        { id: mintingToast }
+      );
+    }
   };
 
   return (
@@ -956,53 +1024,15 @@ const SBTManagement: React.FC = () => {
                       return acc;
                     }, {} as Record<string, IssuedSBT[]>)
                   ).map(([address, sbtsForAddress]) => (
-                    <div key={address} className="bg-white rounded-xl shadow-lg overflow-hidden">
-                      <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4 text-white">
+                    <div key={address} className="space-y-4">
+                      <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl px-6 py-4 text-white">
                         <h3 className="font-bold text-lg mb-1">ウォレット</h3>
                         <p className="font-mono text-sm break-all">{address}</p>
                       </div>
-                      <div className="p-6">
-                        <div className="space-y-4">
-                          {sbtsForAddress.map((sbt) => (
-                            <div key={sbt.id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-400 transition">
-                              <div className="flex items-start justify-between mb-3">
-                                <div>
-                                  <h4 className="font-bold text-gray-900">{sbt.templateName}</h4>
-                                  <p className="text-xs text-gray-500 mt-1">ID: {sbt.id}</p>
-                                </div>
-                                <span
-                                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
-                                    sbt.status === 'active'
-                                      ? 'bg-green-100 text-green-800'
-                                      : 'bg-blue-100 text-blue-800'
-                                  }`}
-                                >
-                                  {sbt.status === 'active' ? '有効' : '報酬獲得'}
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-3 gap-3 mb-3 text-sm">
-                                <div>
-                                  <p className="text-gray-500 text-xs">スタンプ進捗</p>
-                                  <p className="font-semibold">{sbt.currentStamps} / {sbt.maxStamps}</p>
-                                </div>
-                                <div>
-                                  <p className="text-gray-500 text-xs">発行日</p>
-                                  <p className="font-semibold">{sbt.issuedAt}</p>
-                                </div>
-                                <div>
-                                  <p className="text-gray-500 text-xs">進捗率</p>
-                                  <p className="font-semibold">{Math.round((sbt.currentStamps / sbt.maxStamps) * 100)}%</p>
-                                </div>
-                              </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div
-                                  className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-300"
-                                  style={{ width: `${(sbt.currentStamps / sbt.maxStamps) * 100}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                      <div className="space-y-4">
+                        {sbtsForAddress.map((sbt) => (
+                          <SBTCard key={sbt.id} sbt={sbt} />
+                        ))}
                       </div>
                     </div>
                   ))}
