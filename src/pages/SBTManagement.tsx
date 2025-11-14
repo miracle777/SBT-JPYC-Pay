@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Plus, Edit2, Trash2, Send, ExternalLink } from 'lucide-react';
+import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
 import { mintSBT, getBlockExplorerUrl } from '../utils/sbtMinting';
 import { NETWORKS } from '../config/networks';
+import { BrowserProvider } from 'ethers';
+import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
 import SBTCard from '../components/SBTCard';
 
 type IssuePattern = 'per_payment' | 'after_count' | 'time_period' | 'period_range';
@@ -109,6 +111,11 @@ const SBTManagement: React.FC = () => {
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [completedPayments, setCompletedPayments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [estimatedSBTGasPOL, setEstimatedSBTGasPOL] = useState<string>('0.007'); // デフォルト値（Polygon 35 Gwei, 200000 gas）
+  const [sbtGasPrice, setSBTGasPrice] = useState<string>('35.00'); // デフォルト値（Polygon標準）
+  const [loadingSBTGasEstimate, setLoadingSBTGasEstimate] = useState(false);
+  const [walletPolBalance, setWalletPolBalance] = useState<bigint | null>(null);
+  const [hasInsufficientSBTGas, setHasInsufficientSBTGas] = useState(false);
 
   // マウント時: IndexedDB + localStorage からデータを読み込み
   useEffect(() => {
@@ -145,6 +152,63 @@ const SBTManagement: React.FC = () => {
 
     loadData();
   }, []);
+
+  // SBT発行時のガス代を計算
+  useEffect(() => {
+    const fetchSBTGasPrice = async () => {
+      try {
+        setLoadingSBTGasEstimate(true);
+        
+        if (!window.ethereum || !currentChainId) {
+          // デフォルト値を保持
+          setWalletPolBalance(null);
+          setHasInsufficientSBTGas(false);
+          setLoadingSBTGasEstimate(false);
+          return;
+        }
+
+        const provider = new BrowserProvider(window.ethereum);
+        const currentGasPrice = await getNetworkGasPrice(currentChainId, provider);
+        
+        // ガス価格をGwei単位で表示
+        const gasPriceGwei = formatGasPriceGwei(currentGasPrice);
+        setSBTGasPrice(gasPriceGwei);
+
+        // SBT Mint（ERC721）のガス消費量（概算）
+        // NFTミントは150,000-250,000 gasユニット程度
+        const estimatedGasUnits = BigInt(200000);
+        const totalGasCostWei = estimatedGasUnits * currentGasPrice;
+        const totalGasCostPOL = formatGasCostPOL(totalGasCostWei);
+        
+        setEstimatedSBTGasPOL(totalGasCostPOL);
+
+        // ウォレットのPOL残高を取得
+        if (address) {
+          const balance = await provider.getBalance(address);
+          setWalletPolBalance(balance);
+          
+          // ガス代が足りるか確認
+          const hasEnoughGas = balance >= totalGasCostWei;
+          setHasInsufficientSBTGas(!hasEnoughGas);
+          
+          if (!hasEnoughGas) {
+            const shortfall = totalGasCostWei - balance;
+            console.warn(`SBT発行ガス代不足: ${formatGasCostPOL(shortfall)} POL が必要です`);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to fetch SBT gas price:', error);
+        // デフォルト値を設定（Polygon標準）
+        setSBTGasPrice('35.00');
+        setEstimatedSBTGasPOL('0.007');
+        setHasInsufficientSBTGas(false);
+      } finally {
+        setLoadingSBTGasEstimate(false);
+      }
+    };
+
+    fetchSBTGasPrice();
+  }, [currentChainId, address]);
 
   // LocalStorage から完了した支払いセッションを読み込み
   useEffect(() => {
@@ -1125,6 +1189,82 @@ const SBTManagement: React.FC = () => {
                       : 'ウォレットを接続してください'}
                   </p>
                 </div>
+
+                {/* ガス代表示 */}
+                {!loadingSBTGasEstimate && (
+                  <div className={`p-3 rounded-lg border-2 ${
+                    isLowCostNetwork(currentChainId || 137)
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-orange-50 border-orange-200'
+                  }`}>
+                    <div className="flex items-start gap-2">
+                      <Zap className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                        isLowCostNetwork(currentChainId || 137)
+                          ? 'text-green-600'
+                          : 'text-orange-600'
+                      }`} />
+                      <div className="flex-1 text-xs">
+                        <p className={`font-semibold ${
+                          isLowCostNetwork(currentChainId || 137)
+                            ? 'text-green-900'
+                            : 'text-orange-900'
+                        }`}>
+                          SBT発行ガス代推定
+                        </p>
+                        <p className={`${
+                          isLowCostNetwork(currentChainId || 137)
+                            ? 'text-green-800'
+                            : 'text-orange-800'
+                        }`}>
+                          {estimatedSBTGasPOL} POL
+                          {sbtGasPrice && <span className="ml-2 text-gray-600">（{sbtGasPrice} Gwei）</span>}
+                        </p>
+                        {isLowCostNetwork(currentChainId || 137) && (
+                          <p className="text-green-700 mt-1">💡 ガスレス決済：お店がガス代を負担します</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ガス代読み込み中 */}
+                {loadingSBTGasEstimate && (
+                  <div className="p-3 bg-gray-50 border-2 border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <div className="animate-spin">⏳</div>
+                      SBT発行ガス代を計算中...
+                    </div>
+                  </div>
+                )}
+
+                {/* SBT発行ガス代不足警告 */}
+                {hasInsufficientSBTGas && walletPolBalance !== null && (
+                  <div className="p-3 bg-red-50 border-2 border-red-200 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 text-xs">
+                        <p className="font-semibold text-red-900">⚠️ SBT発行ガス代が不足しています</p>
+                        <p className="text-red-800 mt-1">
+                          必要: {estimatedSBTGasPOL} POL<br />
+                          現在: {(walletPolBalance / BigInt(10 ** 18)).toString()} POL
+                        </p>
+                        <p className="text-red-700 mt-2">
+                          このネットワークでSBTを発行するにはPOLが足りません。
+                          <a 
+                            href="https://faucet.polygon.technology/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="underline font-semibold hover:text-red-900"
+                          >
+                            Polygon Faucet
+                          </a>
+                          からPOLを取得してください。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <button
                     type="submit"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor } from 'lucide-react';
+import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { BrowserProvider } from 'ethers';
 import { NETWORKS, JPYC, getContractAddress } from '../config/networks';
@@ -8,6 +8,7 @@ import { createPaymentPayload, encodePaymentPayload } from '../types/payment';
 import { useWallet } from '../context/WalletContext';
 import QRCodeDisplay from '../components/QRCodeDisplay';
 import QRCodeWindow from '../components/QRCodeWindow';
+import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
 
 interface PaymentSession {
   id: string;
@@ -35,6 +36,11 @@ const QRPayment: React.FC = () => {
   const [paymentSessions, setPaymentSessions] = useState<PaymentSession[]>([]);
   const [expiryTimeMinutes, setExpiryTimeMinutes] = useState(15); // デフォルト15分
   const [selectedSessionForWindow, setSelectedSessionForWindow] = useState<string | null>(null);
+  const [estimatedGasPOL, setEstimatedGasPOL] = useState<string>('0.002275'); // デフォルト値（Polygon 35 Gwei, 65000 gas）
+  const [gasPrice, setGasPrice] = useState<string>('35.00'); // デフォルト値（Polygon標準）
+  const [loadingGasEstimate, setLoadingGasEstimate] = useState(false);
+  const [walletPolBalance, setWalletPolBalance] = useState<bigint | null>(null);
+  const [hasInsufficientGas, setHasInsufficientGas] = useState(false);
 
   const shopWalletAddress = getShopWalletAddress(walletAddress);
   const paymentNetwork = Object.values(NETWORKS).find(
@@ -48,7 +54,74 @@ const QRPayment: React.FC = () => {
   const isNetworkMismatch =
     currentChainId && currentChainId !== selectedChainForPayment;
 
-  // 有効期限チェック、時間更新、トランザクション監視
+  // ガス代を計算
+  useEffect(() => {
+    const fetchGasPrice = async () => {
+      try {
+        setLoadingGasEstimate(true);
+        
+        if (!window.ethereum) {
+          // MetaMaskがない場合はデフォルト値を使用
+          const defaultGwei = '35.00';
+          const defaultPOL = '0.002275'; // 65000 gas * 35 Gwei / 1e9
+          setGasPrice(defaultGwei);
+          setEstimatedGasPOL(defaultPOL);
+          setWalletPolBalance(null);
+          setHasInsufficientGas(false);
+          console.log('MetaMask not available, using default gas price');
+          setLoadingGasEstimate(false);
+          return;
+        }
+
+        const provider = new BrowserProvider(window.ethereum);
+        const currentGasPrice = await getNetworkGasPrice(selectedChainForPayment, provider);
+        
+        // ガス価格をGwei単位で表示
+        const gasPriceGwei = formatGasPriceGwei(currentGasPrice);
+        setGasPrice(gasPriceGwei);
+
+        // ERC20トークン転送のガス消費量（概算）
+        // 一般的なERC20転送は65,000 gasユニット程度
+        const estimatedGasUnits = BigInt(65000);
+        const totalGasCostWei = estimatedGasUnits * currentGasPrice;
+        const totalGasCostPOL = formatGasCostPOL(totalGasCostWei);
+        
+        setEstimatedGasPOL(totalGasCostPOL);
+        console.log(`ガス代計算完了: ${totalGasCostPOL} POL (${gasPriceGwei} Gwei)`);
+
+        // ウォレットのPOL残高を取得
+        if (walletAddress) {
+          const balance = await provider.getBalance(walletAddress);
+          setWalletPolBalance(balance);
+          
+          // ガス代が足りるか確認
+          const hasEnoughGas = balance >= totalGasCostWei;
+          setHasInsufficientGas(!hasEnoughGas);
+          
+          if (!hasEnoughGas) {
+            const shortfall = totalGasCostWei - balance;
+            console.warn(`ガス代不足: ${formatGasCostPOL(shortfall)} POL が必要です`);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch gas price:', error);
+        // エラーの場合はデフォルト値を設定（Polygon標準）
+        const defaultGwei = '35.00';
+        const defaultPOL = '0.002275'; // 65000 gas * 35 Gwei / 1e9
+        setGasPrice(defaultGwei);
+        setEstimatedGasPOL(defaultPOL);
+        setHasInsufficientGas(false);
+        console.log('Using default gas price due to error');
+      } finally {
+        setLoadingGasEstimate(false);
+      }
+    };
+
+    // 初期ロード時とネットワーク選択時、ウォレットアドレス変更時に実行
+    if (selectedChainForPayment) {
+      fetchGasPrice();
+    }
+  }, [selectedChainForPayment, walletAddress]);
   useEffect(() => {
     const interval = setInterval(() => {
       setPaymentSessions((prev) =>
@@ -448,6 +521,81 @@ const QRPayment: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     />
                   </div>
+
+                  {/* ガス代表示 */}
+                  {!loadingGasEstimate && (
+                    <div className={`p-3 rounded-lg border-2 ${
+                      isLowCostNetwork(selectedChainForPayment)
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-orange-50 border-orange-200'
+                    }`}>
+                      <div className="flex items-start gap-2">
+                        <Zap className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                          isLowCostNetwork(selectedChainForPayment)
+                            ? 'text-green-600'
+                            : 'text-orange-600'
+                        }`} />
+                        <div className="flex-1 text-xs">
+                          <p className={`font-semibold ${
+                            isLowCostNetwork(selectedChainForPayment)
+                              ? 'text-green-900'
+                              : 'text-orange-900'
+                          }`}>
+                            ガス代推定
+                          </p>
+                          <p className={`${
+                            isLowCostNetwork(selectedChainForPayment)
+                              ? 'text-green-800'
+                              : 'text-orange-800'
+                          }`}>
+                            {estimatedGasPOL} POL
+                            {gasPrice && <span className="ml-2 text-gray-600">（{gasPrice} Gwei）</span>}
+                          </p>
+                          {isLowCostNetwork(selectedChainForPayment) && (
+                            <p className="text-green-700 mt-1">💡 Polygonは低ガス代ネットワークです</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ガス代不足警告 */}
+                  {hasInsufficientGas && walletPolBalance !== null && (
+                    <div className="p-3 bg-red-50 border-2 border-red-200 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 text-xs">
+                          <p className="font-semibold text-red-900">⚠️ ガス代が不足しています</p>
+                          <p className="text-red-800 mt-1">
+                            必要: {estimatedGasPOL} POL<br />
+                            現在: {(walletPolBalance / BigInt(10 ** 18)).toString()} POL
+                          </p>
+                          <p className="text-red-700 mt-2">
+                            このネットワークでQR決済を実行するにはPOLが足りません。
+                            <a 
+                              href="https://faucet.polygon.technology/" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="underline font-semibold hover:text-red-900"
+                            >
+                              Polygon Faucet
+                            </a>
+                            からPOLを取得してください。
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ガス代読み込み中 */}
+                  {loadingGasEstimate && (
+                    <div className="p-3 bg-gray-50 border-2 border-gray-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <div className="animate-spin">⏳</div>
+                        ガス代を計算中...
+                      </div>
+                    </div>
+                  )}
 
                   {/* 有効期限設定 */}
                   <div>
