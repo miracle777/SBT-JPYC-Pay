@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap } from 'lucide-react';
+import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
@@ -183,8 +183,8 @@ const SBTManagement: React.FC = () => {
         setEstimatedSBTGasPOL(totalGasCostPOL);
 
         // ウォレットのPOL残高を取得
-        if (address) {
-          const balance = await provider.getBalance(address);
+        if (walletAddress) {
+          const balance = await provider.getBalance(walletAddress);
           setWalletPolBalance(balance);
           
           // ガス代が足りるか確認
@@ -208,7 +208,7 @@ const SBTManagement: React.FC = () => {
     };
 
     fetchSBTGasPrice();
-  }, [currentChainId, address]);
+  }, [currentChainId, walletAddress]);
 
   // LocalStorage から完了した支払いセッションを読み込み
   useEffect(() => {
