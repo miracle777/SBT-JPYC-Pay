@@ -8,10 +8,6 @@ import {
   SUPPORTED_CHAINS 
 } from '../types';
 import { 
-  getNetworkConfig, 
-  isSupportedNetwork, 
-  toHexChainId, 
-  fromHexChainId,
   formatEther,
   storage,
   getErrorMessage 
@@ -117,17 +113,6 @@ export function useWallet(options: UseWalletOptions = {}) {
       storage.set(STORAGE_KEYS.WALLET_CONNECTION, true);
       storage.set(STORAGE_KEYS.LAST_NETWORK, chainId);
 
-      // Check if we're on the correct network
-      if (!isSupportedNetwork(chainId)) {
-        toast.error(`サポートされていないネットワークです (Chain ID: ${chainId})`);
-        return false;
-      }
-
-      // Switch to required network if needed
-      if (chainId !== requiredChainId) {
-        await switchNetwork(requiredChainId);
-      }
-
       toast.success('ウォレットに接続しました');
       return true;
 
@@ -160,55 +145,27 @@ export function useWallet(options: UseWalletOptions = {}) {
     toast.success('ウォレットを切断しました');
   }, []);
 
-  // Switch network
-  const switchNetwork = useCallback(async (chainId: ChainId) => {
+  // Switch network (simplified)
+  const switchNetwork = useCallback(async (targetChainId: ChainId) => {
     if (!window.ethereum) {
       throw new Error('MetaMask がインストールされていません');
     }
 
-    const networkConfig = getNetworkConfig(chainId);
-    if (!networkConfig) {
-      throw new Error(`サポートされていないネットワーク: ${chainId}`);
-    }
-
     try {
-      // Try to switch to the network
+      // Try to switch using hex chain ID
+      const hexChainId = `0x${targetChainId.toString(16)}`;
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: toHexChainId(chainId) }],
+        params: [{ chainId: hexChainId }],
       });
 
-      toast.success(`${networkConfig.name} に切り替えました`);
+      toast.success(`ネットワークを切り替えました (Chain ID: ${targetChainId})`);
       return true;
 
-    } catch (switchError: any) {
-      // Network doesn't exist, try to add it
-      if (switchError.code === 4902) {
-        try {
-          await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: toHexChainId(chainId),
-              chainName: networkConfig.name,
-              rpcUrls: [networkConfig.rpcUrl],
-              blockExplorerUrls: [networkConfig.blockExplorerUrl],
-              nativeCurrency: networkConfig.nativeCurrency,
-            }],
-          });
-
-          toast.success(`${networkConfig.name} を追加して切り替えました`);
-          return true;
-
-        } catch (addError) {
-          const message = getErrorMessage(addError);
-          toast.error(`ネットワーク追加に失敗: ${message}`);
-          throw addError;
-        }
-      } else {
-        const message = getErrorMessage(switchError);
-        toast.error(`ネットワーク切り替えに失敗: ${message}`);
-        throw switchError;
-      }
+    } catch (error: any) {
+      const message = getErrorMessage(error);
+      toast.error(`ネットワーク切り替えに失敗: ${message}`);
+      throw error;
     }
   }, []);
 
@@ -248,17 +205,14 @@ export function useWallet(options: UseWalletOptions = {}) {
 
   // Handle chain change
   const handleChainChanged = useCallback((hexChainId: string) => {
-    const chainId = fromHexChainId(hexChainId);
+    const chainId = parseInt(hexChainId, 16);
     setWalletState(prev => ({
       ...prev,
-      chainId,
+      chainId: chainId as ChainId,
     }));
 
     storage.set(STORAGE_KEYS.LAST_NETWORK, chainId);
-
-    if (!isSupportedNetwork(chainId)) {
-      toast.error(`サポートされていないネットワークです (Chain ID: ${chainId})`);
-    }
+    toast.success(`ネットワークが切り替わりました (Chain ID: ${chainId})`);
   }, []);
 
   // Handle disconnect

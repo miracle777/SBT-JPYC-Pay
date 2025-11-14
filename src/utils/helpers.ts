@@ -1,5 +1,4 @@
 import { ethers } from 'ethers';
-import { ChainId, NetworkConfig, NETWORKS } from '../types';
 
 /**
  * アドレスを短縮表示用にフォーマット
@@ -89,44 +88,7 @@ export function getAddressFromPrivateKey(privateKey: string): string {
   }
 }
 
-/**
- * チェーンIDからネットワーク設定を取得
- */
-export function getNetworkConfig(chainId: ChainId): NetworkConfig | null {
-  return NETWORKS[chainId] || null;
-}
-
-/**
- * ネットワーク名からチェーンIDを取得
- */
-export function getChainIdByName(networkName: string): ChainId | null {
-  const entries = Object.entries(NETWORKS);
-  const found = entries.find(([, config]) => 
-    config.name.toLowerCase() === networkName.toLowerCase()
-  );
-  return found ? Number(found[0]) : null;
-}
-
-/**
- * ネットワークがサポートされているかチェック
- */
-export function isSupportedNetwork(chainId: number): boolean {
-  return chainId in NETWORKS;
-}
-
-/**
- * Hexチェーンフォーマットに変換（MetaMask用）
- */
-export function toHexChainId(chainId: ChainId): string {
-  return `0x${chainId.toString(16)}`;
-}
-
-/**
- * 十六進数文字列から数値に変換
- */
-export function fromHexChainId(hexChainId: string): ChainId {
-  return parseInt(hexChainId, 16);
-}
+// ネットワーク関連関数は ethers.js を直接使用してください
 
 /**
  * トランザクションハッシュの妥当性をチェック

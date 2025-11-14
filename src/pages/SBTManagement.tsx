@@ -2,16 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Award, Plus, Edit2, Trash2, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
+import { sbtStorage } from '../utils/storage';
 
-type IssuePattern = 'per_payment' | 'after_count' | 'time_period';
+type IssuePattern = 'per_payment' | 'after_count' | 'time_period' | 'period_range';
 
 interface SBTTemplate {
   id: string;
   name: string;
   description: string;
-  issuePattern: IssuePattern; // 'per_payment': 毎回発行 | 'after_count': N回後に発行 | 'time_period': 期間内に発行
+  issuePattern: IssuePattern; // 'per_payment': 毎回発行 | 'after_count': N回後に発行 | 'time_period': 期間内に発行 | 'period_range': 期間指定
   maxStamps: number; // after_countパターンの場合は達成条件回数
   timePeriodDays?: number; // time_periodパターンの場合、発行対象期間（日数）
+  periodStartDate?: string; // period_rangeパターンの場合、開始日（YYYY-MM-DD）
+  periodEndDate?: string; // period_rangeパターンの場合、終了日（YYYY-MM-DD）
   rewardDescription: string;
   imageUrl: string; // Base64 または JPEG BLOB
   imageMimeType: string; // 'image/jpeg' など
@@ -36,53 +39,45 @@ const SBTManagement: React.FC = () => {
   const { address: walletAddress } = useWallet();
   const [templates, setTemplates] = useState<SBTTemplate[]>([
     {
-      id: 'template-001',
-      name: 'コーヒーカード',
-      description: '10杯でコーヒー1杯無料',
+      id: 'template-stamp-card',
+      name: 'スタンプカード',
+      description: '毎回の支払いでスタンプを1つ獲得',
       issuePattern: 'per_payment',
       maxStamps: 10,
-      rewardDescription: 'コーヒー1杯無料',
-      imageUrl: 'https://via.placeholder.com/512?text=Coffee',
+      rewardDescription: 'スタンプ1個',
+      imageUrl: 'https://via.placeholder.com/512?text=Stamp',
       imageMimeType: 'image/jpeg',
-      createdAt: '2025-11-01',
+      createdAt: '2025-11-14',
       status: 'active',
     },
     {
-      id: 'template-002',
-      name: 'ランチセット',
-      description: '5回利用でデザート付き',
-      issuePattern: 'per_payment',
-      maxStamps: 5,
-      rewardDescription: 'デザート1品',
-      imageUrl: 'https://via.placeholder.com/512?text=Lunch',
+      id: 'template-milestone',
+      name: 'マイルストーン達成',
+      description: '10回の支払い達成時にバッジを授与',
+      issuePattern: 'after_count',
+      maxStamps: 10,
+      rewardDescription: 'ゴールド会員バッジ',
+      imageUrl: 'https://via.placeholder.com/512?text=Milestone',
       imageMimeType: 'image/jpeg',
-      createdAt: '2025-11-05',
+      createdAt: '2025-11-14',
+      status: 'active',
+    },
+    {
+      id: 'template-campaign',
+      name: 'キャンペーン記念',
+      description: 'キャンペーン期間内（30日）の支払いで期間限定メダルを取得',
+      issuePattern: 'time_period',
+      maxStamps: 5,
+      timePeriodDays: 30,
+      rewardDescription: 'キャンペーン記念メダル',
+      imageUrl: 'https://via.placeholder.com/512?text=Campaign',
+      imageMimeType: 'image/jpeg',
+      createdAt: '2025-11-14',
       status: 'active',
     },
   ]);
 
-  const [issuedSBTs, setIssuedSBTs] = useState<IssuedSBT[]>([
-    {
-      id: 'sbt-001',
-      templateId: 'template-001',
-      templateName: 'コーヒーカード',
-      recipientAddress: '0x742d...8f4c',
-      currentStamps: 7,
-      maxStamps: 10,
-      issuedAt: '2025-11-10',
-      status: 'active',
-    },
-    {
-      id: 'sbt-002',
-      templateId: 'template-002',
-      templateName: 'ランチセット',
-      recipientAddress: '0x1a2b...3f4g',
-      currentStamps: 5,
-      maxStamps: 5,
-      issuedAt: '2025-11-08',
-      status: 'redeemed',
-    },
-  ]);
+  const [issuedSBTs, setIssuedSBTs] = useState<IssuedSBT[]>([]);
 
   const [newTemplate, setNewTemplate] = useState({
     name: '',
@@ -90,6 +85,8 @@ const SBTManagement: React.FC = () => {
     issuePattern: 'per_payment' as IssuePattern,
     maxStamps: 10,
     timePeriodDays: 30,
+    periodStartDate: '',
+    periodEndDate: '',
     rewardDescription: '',
     imageUrl: '',
     imageMimeType: 'image/jpeg',
@@ -104,6 +101,43 @@ const SBTManagement: React.FC = () => {
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [showIssuanceForm, setShowIssuanceForm] = useState(false);
   const [completedPayments, setCompletedPayments] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // マウント時: IndexedDB + localStorage からデータを読み込み
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // テンプレートを読み込み
+        const savedTemplates = await sbtStorage.getAllTemplates();
+        if (savedTemplates.length > 0) {
+          setTemplates(savedTemplates);
+          console.log(`✅ ${savedTemplates.length}個のテンプレートをロード`);
+        }
+
+        // 発行済み SBT を読み込み
+        const savedSBTs = await sbtStorage.getAllSBTs();
+        if (savedSBTs.length > 0) {
+          setIssuedSBTs(savedSBTs);
+          console.log(`✅ ${savedSBTs.length}個の SBT をロード`);
+        }
+
+        // 完了した支払いセッションを読み込み
+        const completedPayments = localStorage.getItem('completedPaymentSessions');
+        if (completedPayments) {
+          setCompletedPayments(JSON.parse(completedPayments));
+        }
+      } catch (error) {
+        console.error('データロードエラー:', error);
+        toast.error('データの読み込みに失敗しました');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // LocalStorage から完了した支払いセッションを読み込み
   useEffect(() => {
@@ -115,6 +149,23 @@ const SBTManagement: React.FC = () => {
         console.error('Failed to load completed payments:', error);
       }
     }
+  }, []);
+
+  // completedPayments を監視して、LocalStorage の変更を反映
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('completedPaymentSessions');
+      if (saved) {
+        try {
+          setCompletedPayments(JSON.parse(saved));
+        } catch (error) {
+          console.error('Failed to load completed payments:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // 画像ファイルアップロード処理
@@ -179,6 +230,17 @@ const SBTManagement: React.FC = () => {
       return;
     }
 
+    if (newTemplate.issuePattern === 'period_range') {
+      if (!newTemplate.periodStartDate || !newTemplate.periodEndDate) {
+        toast.error('期間指定パターンの場合、開始日と終了日を入力してください');
+        return;
+      }
+      if (new Date(newTemplate.periodStartDate) >= new Date(newTemplate.periodEndDate)) {
+        toast.error('終了日は開始日より後の日付にしてください');
+        return;
+      }
+    }
+
     const template: SBTTemplate = {
       id: `template-${Date.now()}`,
       name: newTemplate.name,
@@ -186,12 +248,20 @@ const SBTManagement: React.FC = () => {
       issuePattern: newTemplate.issuePattern,
       maxStamps: newTemplate.maxStamps,
       timePeriodDays: newTemplate.issuePattern === 'time_period' ? newTemplate.timePeriodDays : undefined,
+      periodStartDate: newTemplate.issuePattern === 'period_range' ? newTemplate.periodStartDate : undefined,
+      periodEndDate: newTemplate.issuePattern === 'period_range' ? newTemplate.periodEndDate : undefined,
       rewardDescription: newTemplate.rewardDescription,
       imageUrl: newTemplate.imageUrl,
       imageMimeType: newTemplate.imageMimeType,
       createdAt: new Date().toISOString().split('T')[0],
       status: 'active',
     };
+
+    // IndexedDB + localStorage に保存
+    sbtStorage.saveTemplate(template).catch(err => {
+      console.error('テンプレート保存エラー:', err);
+      toast.error('テンプレートの保存に失敗しました');
+    });
 
     setTemplates([template, ...templates]);
     setNewTemplate({
@@ -200,6 +270,8 @@ const SBTManagement: React.FC = () => {
       issuePattern: 'per_payment',
       maxStamps: 10,
       timePeriodDays: 30,
+      periodStartDate: '',
+      periodEndDate: '',
       rewardDescription: '',
       imageUrl: '',
       imageMimeType: 'image/jpeg',
@@ -211,6 +283,13 @@ const SBTManagement: React.FC = () => {
 
   const deleteTemplate = (id: string) => {
     setTemplates(templates.filter((t) => t.id !== id));
+    
+    // IndexedDB + localStorage から削除
+    sbtStorage.deleteTemplate(id).catch(err => {
+      console.error('テンプレート削除エラー:', err);
+      toast.error('テンプレートの削除に失敗しました');
+    });
+
     toast.success('テンプレートを削除しました');
   };
 
@@ -221,6 +300,19 @@ const SBTManagement: React.FC = () => {
     if (!template) {
       toast.error('テンプレートが見つかりません');
       return;
+    }
+
+    // 期間指定パターンの場合、現在の日付が期間内かチェック
+    if (template.issuePattern === 'period_range') {
+      const now = new Date();
+      const startDate = new Date(template.periodStartDate || '');
+      const endDate = new Date(template.periodEndDate || '');
+      
+      if (now < startDate || now > endDate) {
+        const periodStr = `${template.periodStartDate} ～ ${template.periodEndDate}`;
+        toast.error(`このテンプレートは指定期間（${periodStr}）内でのみ発行できます`);
+        return;
+      }
     }
 
     // 完了した支払いセッションから支払者アドレスを取得、またはウォレットアドレスを使用
@@ -259,6 +351,12 @@ const SBTManagement: React.FC = () => {
       sourcePaymentId,
       transactionHash,
     };
+
+    // IndexedDB + localStorage に保存
+    sbtStorage.saveSBT(sbt).catch(err => {
+      console.error('SBT保存エラー:', err);
+      toast.error('SBTの保存に失敗しました');
+    });
 
     setIssuedSBTs([sbt, ...issuedSBTs]);
     setNewIssuance({ templateId: templates[0]?.id || '', recipientAddress: '' });
@@ -342,7 +440,8 @@ const SBTManagement: React.FC = () => {
                   >
                     <option value="per_payment">毎回発行 - 支払いの度にSBTを発行</option>
                     <option value="after_count">N回後発行 - 指定回数の支払い達成時に発行</option>
-                    <option value="time_period">期間内発行 - 指定期間内の支払いで発行</option>
+                    <option value="time_period">期間内発行 - 指定期間内の支払いで発行（固定30日）</option>
+                    <option value="period_range">期間指定発行 - 開始日～終了日を自由に指定</option>
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -351,6 +450,7 @@ const SBTManagement: React.FC = () => {
                       {newTemplate.issuePattern === 'per_payment' && 'スタンプ最大数'}
                       {newTemplate.issuePattern === 'after_count' && '達成条件回数'}
                       {newTemplate.issuePattern === 'time_period' && 'スタンプ最大数'}
+                      {newTemplate.issuePattern === 'period_range' && 'スタンプ最大数'}
                     </label>
                     <input
                       type="number"
@@ -363,6 +463,7 @@ const SBTManagement: React.FC = () => {
                       {newTemplate.issuePattern === 'per_payment' && '例: 10回でカード完成'}
                       {newTemplate.issuePattern === 'after_count' && '例: 10回支払ったらSBT発行'}
                       {newTemplate.issuePattern === 'time_period' && '例: 期間内に達成したらSBT発行'}
+                      {newTemplate.issuePattern === 'period_range' && '例: 期間指定内の支払いでSBT発行'}
                     </p>
                   </div>
                   {newTemplate.issuePattern === 'time_period' && (
@@ -378,7 +479,18 @@ const SBTManagement: React.FC = () => {
                       <p className="text-xs text-gray-500 mt-1">例: 30日間のキャンペーン</p>
                     </div>
                   )}
-                  {newTemplate.issuePattern !== 'time_period' && (
+                  {newTemplate.issuePattern === 'period_range' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">キャンペーン開始日</label>
+                      <input
+                        type="date"
+                        value={newTemplate.periodStartDate}
+                        onChange={(e) => setNewTemplate({ ...newTemplate, periodStartDate: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                  )}
+                  {newTemplate.issuePattern !== 'time_period' && newTemplate.issuePattern !== 'period_range' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">報酬内容</label>
                       <input
@@ -391,6 +503,17 @@ const SBTManagement: React.FC = () => {
                     </div>
                   )}
                 </div>
+                {newTemplate.issuePattern === 'period_range' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">キャンペーン終了日</label>
+                    <input
+                      type="date"
+                      value={newTemplate.periodEndDate}
+                      onChange={(e) => setNewTemplate({ ...newTemplate, periodEndDate: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                )}
                 {newTemplate.issuePattern === 'time_period' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">報酬内容</label>
@@ -399,6 +522,18 @@ const SBTManagement: React.FC = () => {
                       value={newTemplate.rewardDescription}
                       onChange={(e) => setNewTemplate({ ...newTemplate, rewardDescription: e.target.value })}
                       placeholder="例: キャンペーン期間内の支払いで特別SBT"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                )}
+                {newTemplate.issuePattern === 'period_range' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">報酬内容</label>
+                    <input
+                      type="text"
+                      value={newTemplate.rewardDescription}
+                      onChange={(e) => setNewTemplate({ ...newTemplate, rewardDescription: e.target.value })}
+                      placeholder="例: 期間指定キャンペーンの特別SBT"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
@@ -440,6 +575,7 @@ const SBTManagement: React.FC = () => {
                       {template.issuePattern === 'per_payment' && '🎁 毎回発行'}
                       {template.issuePattern === 'after_count' && `🔢 ${template.maxStamps}回後発行`}
                       {template.issuePattern === 'time_period' && `📅 ${template.timePeriodDays}日間キャンペーン`}
+                      {template.issuePattern === 'period_range' && `📅 ${template.periodStartDate} ～ ${template.periodEndDate}`}
                     </div>
                     <p className="text-gray-700">
                       <span className="font-semibold">スタンプ最大:</span> {template.maxStamps}個
@@ -531,6 +667,157 @@ const SBTManagement: React.FC = () => {
             </button>
           </div>
 
+          {/* 統計ダッシュボード */}
+          {issuedSBTs.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">📊 発行・配布統計ダッシュボード</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
+                  <p className="text-xs text-gray-600 font-medium mb-1">配布総数</p>
+                  <p className="text-3xl font-bold text-blue-600">{issuedSBTs.length}</p>
+                  <p className="text-xs text-gray-600 mt-2">{new Set(issuedSBTs.map(s => s.recipientAddress)).size}個の異なるウォレット</p>
+                </div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
+                  <p className="text-xs text-gray-600 font-medium mb-1">有効SBT</p>
+                  <p className="text-3xl font-bold text-green-600">{issuedSBTs.filter(s => s.status === 'active').length}</p>
+                  <p className="text-xs text-gray-600 mt-2">進行中</p>
+                </div>
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-4">
+                  <p className="text-xs text-gray-600 font-medium mb-1">報酬獲得済み</p>
+                  <p className="text-3xl font-bold text-orange-600">{issuedSBTs.filter(s => s.status === 'redeemed').length}</p>
+                  <p className="text-xs text-gray-600 mt-2">完了</p>
+                </div>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-4">
+                  <p className="text-xs text-gray-600 font-medium mb-1">スタンプ集計</p>
+                  <p className="text-3xl font-bold text-purple-600">
+                    {issuedSBTs.reduce((sum, s) => sum + s.currentStamps, 0)}/{issuedSBTs.reduce((sum, s) => sum + s.maxStamps, 0)}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-2">
+                    {Math.round((issuedSBTs.reduce((sum, s) => sum + s.currentStamps, 0) / issuedSBTs.reduce((sum, s) => sum + s.maxStamps, 0)) * 100)}% 進捗
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 配布先ウォレット統計セクション */}
+          {issuedSBTs.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">👛 配布先ウォレット統計</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(
+                  issuedSBTs.reduce((acc, sbt) => {
+                    const addr = sbt.recipientAddress;
+                    if (!acc[addr]) {
+                      acc[addr] = {
+                        address: addr,
+                        totalSBTs: 0,
+                        activeSBTs: 0,
+                        redeemedSBTs: 0,
+                        totalStamps: 0,
+                        maxStamps: 0,
+                      };
+                    }
+                    acc[addr].totalSBTs += 1;
+                    acc[addr].totalStamps += sbt.currentStamps;
+                    acc[addr].maxStamps += sbt.maxStamps;
+                    if (sbt.status === 'active') acc[addr].activeSBTs += 1;
+                    if (sbt.status === 'redeemed') acc[addr].redeemedSBTs += 1;
+                    return acc;
+                  }, {} as Record<string, any>)
+                ).map(([address, stats]) => (
+                  <div key={address} className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-600 font-medium mb-1">ウォレットアドレス</p>
+                      <p className="font-mono text-xs text-gray-900 break-all">{address}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-white rounded p-2">
+                        <p className="text-xs text-gray-600">SBT総数</p>
+                        <p className="text-lg font-bold text-purple-600">{stats.totalSBTs}</p>
+                      </div>
+                      <div className="bg-white rounded p-2">
+                        <p className="text-xs text-gray-600">有効</p>
+                        <p className="text-lg font-bold text-green-600">{stats.activeSBTs}</p>
+                      </div>
+                      <div className="bg-white rounded p-2">
+                        <p className="text-xs text-gray-600">報酬獲得</p>
+                        <p className="text-lg font-bold text-blue-600">{stats.redeemedSBTs}</p>
+                      </div>
+                      <div className="bg-white rounded p-2">
+                        <p className="text-xs text-gray-600">スタンプ合計</p>
+                        <p className="text-sm font-bold text-orange-600">{stats.totalStamps}/{stats.maxStamps}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <p className="text-xs text-gray-600 mb-1">進捗</p>
+                      <div className="w-full bg-gray-300 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all"
+                          style={{ width: `${(stats.totalStamps / stats.maxStamps) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* テンプレート別発行統計 */}
+          {issuedSBTs.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">🎯 テンプレート別発行統計</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Array.from(new Set(issuedSBTs.map(s => s.templateId)))
+                  .map(templateId => {
+                    const template = templates.find(t => t.id === templateId);
+                    const sbtsForTemplate = issuedSBTs.filter(s => s.templateId === templateId);
+                    const activeSBTs = sbtsForTemplate.filter(s => s.status === 'active').length;
+                    const redeemedSBTs = sbtsForTemplate.filter(s => s.status === 'redeemed').length;
+                    const totalStamps = sbtsForTemplate.reduce((sum, s) => sum + s.currentStamps, 0);
+                    const maxStamps = sbtsForTemplate.reduce((sum, s) => sum + s.maxStamps, 0);
+                    
+                    return (
+                      <div key={templateId} className="bg-white border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h4 className="font-bold text-gray-900">{template?.name}</h4>
+                            <p className="text-xs text-gray-500 mt-1">{template?.description}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-purple-600">{sbtsForTemplate.length}</p>
+                            <p className="text-xs text-gray-600">配布済み</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
+                          <div className="bg-green-50 rounded p-2">
+                            <p className="text-gray-600">有効</p>
+                            <p className="font-bold text-green-600">{activeSBTs}</p>
+                          </div>
+                          <div className="bg-blue-50 rounded p-2">
+                            <p className="text-gray-600">完了</p>
+                            <p className="font-bold text-blue-600">{redeemedSBTs}</p>
+                          </div>
+                          <div className="bg-orange-50 rounded p-2">
+                            <p className="text-gray-600">スタンプ</p>
+                            <p className="font-bold text-orange-600">{totalStamps}/{maxStamps}</p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full"
+                            style={{ width: `${(totalStamps / maxStamps) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })
+                }
+              </div>
+            </div>
+          )}
+
           {showIssuanceForm && (
             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
               <form onSubmit={issueSBT} className="space-y-4">
@@ -586,48 +873,142 @@ const SBTManagement: React.FC = () => {
             </div>
           )}
 
-          <div className="space-y-4">
-            {issuedSBTs.map((sbt) => (
-              <div key={sbt.id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition duration-200">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 mb-1">{sbt.templateName}</h3>
-                    <p className="text-sm text-gray-600">ID: {sbt.id}</p>
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      sbt.status === 'active'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-blue-100 text-blue-800'
-                    }`}
-                  >
-                    {sbt.status === 'active' ? '有効' : '報酬獲得'}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-600">ウォレット</p>
-                    <p className="font-semibold text-gray-900">{sbt.recipientAddress}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">スタンプ進捗</p>
-                    <p className="font-semibold text-gray-900">
-                      {sbt.currentStamps} / {sbt.maxStamps}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">発行日</p>
-                    <p className="font-semibold text-gray-900">{sbt.issuedAt}</p>
-                  </div>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className="bg-purple-600 h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${(sbt.currentStamps / sbt.maxStamps) * 100}%` }}
-                  ></div>
-                </div>
+          <div className="space-y-6">
+            {issuedSBTs.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+                <Award className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">発行済みのSBTはまだありません</p>
               </div>
-            ))}
+            ) : (
+              <>
+                {/* PC向けテーブルビュー */}
+                <div className="hidden lg:block bg-white rounded-xl shadow-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+                          <th className="px-6 py-3 text-left text-sm font-semibold">配布先ウォレット</th>
+                          <th className="px-6 py-3 text-left text-sm font-semibold">SBT名</th>
+                          <th className="px-6 py-3 text-center text-sm font-semibold">スタンプ</th>
+                          <th className="px-6 py-3 text-center text-sm font-semibold">発行日</th>
+                          <th className="px-6 py-3 text-center text-sm font-semibold">ステータス</th>
+                          <th className="px-6 py-3 text-center text-sm font-semibold">進捗</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {issuedSBTs.map((sbt, idx) => (
+                          <tr
+                            key={sbt.id}
+                            className={`border-b ${
+                              idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                            } hover:bg-purple-50 transition`}
+                          >
+                            <td className="px-6 py-4 text-sm font-mono text-gray-900">
+                              <div className="truncate" title={sbt.recipientAddress}>
+                                {sbt.recipientAddress.slice(0, 12)}...{sbt.recipientAddress.slice(-8)}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                              {sbt.templateName}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-center">
+                              <span className="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full font-semibold">
+                                {sbt.currentStamps}/{sbt.maxStamps}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-center text-gray-600">
+                              {sbt.issuedAt}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-center">
+                              <span
+                                className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                                  sbt.status === 'active'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-blue-100 text-blue-800'
+                                }`}
+                              >
+                                {sbt.status === 'active' ? '有効' : '報酬獲得'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="w-24 bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full"
+                                  style={{ width: `${(sbt.currentStamps / sbt.maxStamps) * 100}%` }}
+                                ></div>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* タブレット・スマホ向けカードビュー */}
+                <div className="lg:hidden space-y-6">
+                  {/* ウォレットアドレス単位でグループ化 */}
+                  {Object.entries(
+                    issuedSBTs.reduce((acc, sbt) => {
+                      const addr = sbt.recipientAddress;
+                      if (!acc[addr]) acc[addr] = [];
+                      acc[addr].push(sbt);
+                      return acc;
+                    }, {} as Record<string, IssuedSBT[]>)
+                  ).map(([address, sbtsForAddress]) => (
+                    <div key={address} className="bg-white rounded-xl shadow-lg overflow-hidden">
+                      <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4 text-white">
+                        <h3 className="font-bold text-lg mb-1">ウォレット</h3>
+                        <p className="font-mono text-sm break-all">{address}</p>
+                      </div>
+                      <div className="p-6">
+                        <div className="space-y-4">
+                          {sbtsForAddress.map((sbt) => (
+                            <div key={sbt.id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-400 transition">
+                              <div className="flex items-start justify-between mb-3">
+                                <div>
+                                  <h4 className="font-bold text-gray-900">{sbt.templateName}</h4>
+                                  <p className="text-xs text-gray-500 mt-1">ID: {sbt.id}</p>
+                                </div>
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                                    sbt.status === 'active'
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-blue-100 text-blue-800'
+                                  }`}
+                                >
+                                  {sbt.status === 'active' ? '有効' : '報酬獲得'}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-3 mb-3 text-sm">
+                                <div>
+                                  <p className="text-gray-500 text-xs">スタンプ進捗</p>
+                                  <p className="font-semibold">{sbt.currentStamps} / {sbt.maxStamps}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500 text-xs">発行日</p>
+                                  <p className="font-semibold">{sbt.issuedAt}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500 text-xs">進捗率</p>
+                                  <p className="font-semibold">{Math.round((sbt.currentStamps / sbt.maxStamps) * 100)}%</p>
+                                </div>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${(sbt.currentStamps / sbt.maxStamps) * 100}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

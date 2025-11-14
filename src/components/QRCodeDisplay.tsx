@@ -36,7 +36,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
       data,
       {
         errorCorrectionLevel: errorCorrectionLevel,
-        type: 'image/svg+xml',
+        type: 'svg' as any,
         width: size,
         margin: margin,
         color: {

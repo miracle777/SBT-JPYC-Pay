@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import { useState } from 'react';
 import Dashboard from './pages/Dashboard';
 import QRPayment from './pages/QRPayment';
 import SBTManagement from './pages/SBTManagement';
@@ -6,12 +7,15 @@ import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 import { WalletProvider } from './context/WalletContext';
 import Header from './components/layout/Header';
+import HelpModal from './components/HelpModal';
 
 function App() {
+  const [showHelp, setShowHelp] = useState(false);
+
   return (
     <WalletProvider>
       <div className="App min-h-screen bg-gray-50 flex flex-col">
-        <Header />
+        <Header onHelpClick={() => setShowHelp(true)} />
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -21,6 +25,7 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
+        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
       </div>
     </WalletProvider>
   );

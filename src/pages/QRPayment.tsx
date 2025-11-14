@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle } from 'lucide-react';
+import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { BrowserProvider } from 'ethers';
 import { NETWORKS, JPYC, getContractAddress } from '../config/networks';
@@ -7,6 +7,7 @@ import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
 import { createPaymentPayload, encodePaymentPayload } from '../types/payment';
 import { useWallet } from '../context/WalletContext';
 import QRCodeDisplay from '../components/QRCodeDisplay';
+import QRCodeWindow from '../components/QRCodeWindow';
 
 interface PaymentSession {
   id: string;
@@ -33,6 +34,7 @@ const QRPayment: React.FC = () => {
   );
   const [paymentSessions, setPaymentSessions] = useState<PaymentSession[]>([]);
   const [expiryTimeMinutes, setExpiryTimeMinutes] = useState(15); // デフォルト15分
+  const [selectedSessionForWindow, setSelectedSessionForWindow] = useState<string | null>(null);
 
   const shopWalletAddress = getShopWalletAddress(walletAddress);
   const paymentNetwork = Object.values(NETWORKS).find(
@@ -340,6 +342,12 @@ const QRPayment: React.FC = () => {
                       {/* 操作ボタン */}
                       <div className="flex gap-2 mt-4 flex-wrap justify-center">
                         <button
+                          onClick={() => setSelectedSessionForWindow(session.id)}
+                          className="flex items-center gap-1 px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-600 text-sm rounded-lg transition font-semibold"
+                        >
+                          <Monitor className="w-4 h-4" /> 新規ウィンドウ
+                        </button>
+                        <button
                           onClick={() => copyToClipboard(session.id)}
                           className="flex items-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition"
                         >
@@ -571,6 +579,27 @@ const QRPayment: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* QRコード新規ウィンドウ表示 */}
+      {selectedSessionForWindow && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-screen overflow-auto">
+            {paymentSessions
+              .filter((s) => s.id === selectedSessionForWindow)
+              .map((session) => (
+                <QRCodeWindow
+                  key={session.id}
+                  sessionId={session.id}
+                  qrData={session.qrCodeData}
+                  amount={session.amount}
+                  shopName={DEFAULT_SHOP_INFO.name}
+                  chainName={session.chainName}
+                  onClose={() => setSelectedSessionForWindow(null)}
+                />
+              ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

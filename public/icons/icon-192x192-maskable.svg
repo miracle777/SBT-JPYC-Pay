@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" fill="#7c3aed"/>
+  <circle cx="96" cy="96" r="76.80000000000001" fill="white" opacity="0.2"/>
+  <text x="96" y="124.80000000000001" font-size="67.19999999999999" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial, sans-serif">SBT</text>
+</svg>

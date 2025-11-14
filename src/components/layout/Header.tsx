@@ -1,10 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Store, Menu, X } from 'lucide-react';
+import { Store, Menu, X, HelpCircle } from 'lucide-react';
 import { WalletButton } from '../WalletButton';
 import { useState } from 'react';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  onHelpClick?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
@@ -45,8 +49,17 @@ const Header: React.FC = () => {
             </Link>
           </nav>
 
-          {/* ウォレットボタンとメニューボタン */}
+          {/* ウォレットボタン、FAQボタン、メニューボタン */}
           <div className="flex items-center gap-4">
+            {onHelpClick && (
+              <button
+                onClick={onHelpClick}
+                className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600 hover:text-gray-900"
+                title="ヘルプ"
+              >
+                <HelpCircle className="w-6 h-6" />
+              </button>
+            )}
             <WalletButton />
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -92,6 +105,18 @@ const Header: React.FC = () => {
             >
               設定
             </Link>
+            {onHelpClick && (
+              <button
+                onClick={() => {
+                  onHelpClick();
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition flex items-center gap-2"
+              >
+                <HelpCircle className="w-5 h-5" />
+                ヘルプ
+              </button>
+            )}
           </nav>
         )}
       </div>

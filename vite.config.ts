@@ -8,37 +8,37 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
-      manifest: {
-        name: 'SBT JPYC Pay - 店舗管理',
-        short_name: 'SBT Pay Store',
-        description: 'SBTスタンプカード発行・QR決済管理システム',
-        theme_color: '#1f2937',
-        background_color: '#ffffff',
-        display: 'standalone',
-        start_url: '/',
-        scope: '/',
-        icons: [
+      includeAssets: [
+        'icons/**/*.png',
+        'icons/**/*.svg',
+        'manifest.json',
+      ],
+      manifest: false, // 外部manifest.jsonを使用
+      workbox: {
+        globPatterns: [
+          '**/*.{js,css,html,png,svg,ico,webp}',
+          'icons/**/*.png',
+          'manifest.json',
+        ],
+        runtimeCaching: [
           {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable',
+            urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif|webp)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'image-cache',
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30日
+              },
+            },
           },
         ],
+        cleanupOutdatedCaches: true,
       },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+      devOptions: {
+        enabled: true,
+        navigateFallback: 'index.html',
+        suppressWarnings: true,
       },
     }),
   ],

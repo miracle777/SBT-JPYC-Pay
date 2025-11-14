@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Maskable icon should use full canvas -->
+  <rect width="512" height="512" fill="white"/>
+  
+  <!-- Gradient -->
+  <defs>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Full circle for maskable -->
+  <circle cx="256" cy="256" r="256" fill="url(#grad2)"/>
+  
+  <!-- Icon inside -->
+  <g transform="translate(256, 256)">
+    <!-- Card -->
+    <rect x="-100" y="-60" width="200" height="120" rx="15" fill="white" opacity="0.9"/>
+    
+    <!-- Stamps -->
+    <circle cx="-45" cy="-30" r="12" fill="none" stroke="white" stroke-width="2"/>
+    <path d="M -50 -25 L -45 -20 L -35 -35" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <circle cx="0" cy="-30" r="12" fill="none" stroke="white" stroke-width="2"/>
+    <path d="M -5 -25 L 0 -20 L 10 -35" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <circle cx="45" cy="-30" r="12" fill="none" stroke="white" stroke-width="2"/>
+    <path d="M 40 -25 L 45 -20 L 55 -35" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Text -->
+    <text x="0" y="20" font-size="32" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial, sans-serif">SBT</text>
+  </g>
+</svg>

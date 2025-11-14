@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="540" height="720" viewBox="0 0 540 720" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="540" height="720" fill="white"/>
+  
+  <!-- Header -->
+  <rect width="540" height="80" fill="url(#grad3)"/>
+  <text x="270" y="55" font-size="48" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial, sans-serif">SBT JPYC Pay</text>
+  
+  <!-- Content -->
+  <g transform="translate(40, 120)">
+    
+      <!-- Single column layout for narrow -->
+      <rect width="460" height="500" rx="20" fill="#f3f4f6" stroke="#e5e7eb" stroke-width="2"/>
+      <text x="230" y="50" font-size="24" font-weight="bold" fill="#1f2937" text-anchor="middle" font-family="Arial, sans-serif">SBT管理画面</text>
+      <rect x="20" y="80" width="420" height="60" rx="12" fill="white" stroke="#d1d5db" stroke-width="2"/>
+      <text x="40" y="115" font-size="14" fill="#6b7280" font-family="Arial, sans-serif">テンプレート・発行管理</text>
+    
+  </g>
+  
+  <!-- Gradient definition -->
+  <defs>
+    <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>

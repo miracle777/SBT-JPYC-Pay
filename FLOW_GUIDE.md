@@ -180,7 +180,6 @@ amount: amountNum  // 100 JPYC = 100円
 ```
 
 **計算の特徴:**
-
 - ✅ 小数点不要（1 JPYC = 1円で完全な1:1対応）
 - ✅ 整数値のみを使用（parseFloat ではなく parseInt 優先）
 - ✅ BigInt を使用して正確に18小数点に変換

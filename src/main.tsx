@@ -5,18 +5,48 @@ import { Toaster } from 'react-hot-toast';
 import App from './App';
 import './index.css';
 
-// PWA service worker registration
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((registration) => {
-        console.log('✅ PWA: Service worker registered', registration);
-      })
-      .catch((error) => {
-        console.log('❌ PWA: Service worker registration failed', error);
+// PWA Service Worker Registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.register(
+        import.meta.env.PROD
+          ? '/sw.js'
+          : '/dev-sw.js?dev-sw'
+      );
+      
+      console.log('✅ PWA: Service Worker registered', registration);
+      
+      // Update checking
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated') {
+              console.log('🔄 PWA: New version available! Reload to update.');
+              // 自動更新の通知もここで可能
+            }
+          });
+        }
       });
+      
+      // 定期的に更新をチェック
+      setInterval(() => {
+        registration.update();
+      }, 60 * 60 * 1000); // 1時間ごと
+      
+    } catch (error) {
+      console.error('❌ PWA: Service Worker registration failed', error);
+    }
   });
+}
+
+// iOS対応: ホーム画面追加時のスタンドアロン表示
+if (
+  (navigator as any).standalone === true ||
+  window.matchMedia('(display-mode: standalone)').matches
+) {
+  console.log('📱 PWA running in standalone mode');
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
