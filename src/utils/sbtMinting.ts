@@ -156,9 +156,16 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
     const signer = await provider.getSigner();
 
     // 現在のネットワークを確認
-    const network = await provider.getNetwork();
+    let network;
+    try {
+      network = await provider.getNetwork();
+    } catch (networkError) {
+      console.warn('ネットワーク取得エラー（続行）:', networkError);
+      // network 取得失敗した場合は続行（後で検証）
+    }
+
     // provider.getNetwork().chainId は number 型なので比較は数値で行う
-    if (network.chainId !== chainId) {
+    if (network && network.chainId !== chainId) {
       return {
         success: false,
         error: `ネットワークが一致していません。Chain ID ${chainId} に切り替えてください`,

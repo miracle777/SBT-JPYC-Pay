@@ -169,7 +169,9 @@ const SBTManagement: React.FC = () => {
         setLoadingSBTGasEstimate(true);
         
         if (!window.ethereum || !currentChainId) {
-          // デフォルト値を保持
+          // デフォルト値を保持（Polygon標準）
+          setSBTGasPrice('35.00');
+          setEstimatedSBTGasPOL('0.007');
           setWalletPolBalance(null);
           setHasInsufficientSBTGas(false);
           setLoadingSBTGasEstimate(false);
@@ -177,6 +179,8 @@ const SBTManagement: React.FC = () => {
         }
 
         const provider = new BrowserProvider(window.ethereum);
+        
+        // ガス価格を取得（デフォルト値優先）
         const currentGasPrice = await getNetworkGasPrice(currentChainId, provider);
         
         // ガス価格をGwei単位で表示
@@ -193,20 +197,26 @@ const SBTManagement: React.FC = () => {
 
         // ウォレットのPOL残高を取得
         if (walletAddress) {
-          const balance = await provider.getBalance(walletAddress);
-          setWalletPolBalance(balance);
-          
-          // ガス代が足りるか確認
-          const hasEnoughGas = balance >= totalGasCostWei;
-          setHasInsufficientSBTGas(!hasEnoughGas);
-          
-          if (!hasEnoughGas) {
-            const shortfall = totalGasCostWei - balance;
-            console.warn(`SBT発行ガス代不足: ${formatGasCostPOL(shortfall)} POL が必要です`);
+          try {
+            const balance = await provider.getBalance(walletAddress);
+            setWalletPolBalance(balance);
+            
+            // ガス代が足りるか確認
+            const hasEnoughGas = balance >= totalGasCostWei;
+            setHasInsufficientSBTGas(!hasEnoughGas);
+            
+            if (!hasEnoughGas) {
+              const shortfall = totalGasCostWei - balance;
+              console.warn(`ℹ️ SBT発行ガス代残高チェック: ${formatGasCostPOL(shortfall)} POL が必要です`);
+            }
+          } catch (balanceError) {
+            console.warn('ウォレット残高取得エラー:', balanceError);
+            setWalletPolBalance(null);
+            setHasInsufficientSBTGas(false);
           }
         }
       } catch (error) {
-        console.warn('Failed to fetch SBT gas price:', error);
+        console.warn('SBT ガス価格取得エラー:', error);
         // デフォルト値を設定（Polygon標準）
         setSBTGasPrice('35.00');
         setEstimatedSBTGasPOL('0.007');

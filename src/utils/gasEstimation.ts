@@ -25,36 +25,16 @@ export async function getNetworkGasPrice(
   provider: BrowserProvider
 ): Promise<bigint> {
   try {
-    // Try getFeeData with timeout to prevent RPC issues
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒でタイムアウト
-    
-    try {
-      const feeData = await provider.getFeeData();
-      clearTimeout(timeoutId);
-      
-      // EIP-1559対応ネットワーク（maxFeePerGasが存在）
-      if (feeData.maxFeePerGas && feeData.maxFeePerGas > BigInt(0)) {
-        return feeData.maxFeePerGas;
-      }
-      
-      // レガシーネットワーク
-      if (feeData.gasPrice && feeData.gasPrice > BigInt(0)) {
-        return feeData.gasPrice;
-      }
-    } catch (rpcError) {
-      clearTimeout(timeoutId);
-      console.warn(`getFeeData failed: ${rpcError}, falling back to default`);
-    }
-    
-    // デフォルト値を使用（RPC未対応またはエラーの場合）
+    // 最初からデフォルト値で対応（RPC互換性の問題を回避）
+    // PolygonネットワークではfeeDataが信頼できない場合が多いため、
+    // チェーンIDベースのデフォルト値を直接使用
     const defaultGwei = GAS_PRICES[chainId as keyof typeof GAS_PRICES]?.standard || 35;
-    console.log(`Using default gas price: ${defaultGwei} Gwei for chain ${chainId}`);
+    console.log(`📊 ガス価格（デフォルト）: ${defaultGwei} Gwei (Chain ${chainId})`);
     return parseUnits(defaultGwei.toString(), 'gwei');
   } catch (error) {
-    console.warn(`Failed to get gas price from network: ${error}, using default`);
-    const defaultGwei = GAS_PRICES[chainId as keyof typeof GAS_PRICES]?.standard || 35;
-    return parseUnits(defaultGwei.toString(), 'gwei');
+    console.warn(`ガス価格取得エラー: ${error}`);
+    // 最終的なフォールバック
+    return parseUnits('35', 'gwei');
   }
 }
 
