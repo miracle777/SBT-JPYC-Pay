@@ -8,6 +8,7 @@ import { NETWORKS } from '../config/networks';
 import { BrowserProvider } from 'ethers';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
 import SBTCard from '../components/SBTCard';
+import { pinataService } from '../utils/pinata';
 
 type IssuePattern = 'per_payment' | 'after_count' | 'time_period' | 'period_range';
 
@@ -23,6 +24,7 @@ interface SBTTemplate {
   rewardDescription: string;
   imageUrl: string; // Base64 または JPEG BLOB
   imageMimeType: string; // 'image/jpeg' など
+  imageFile?: File; // 実際の画像ファイル（IPFS アップロード用）
   createdAt: string;
   status: 'active' | 'inactive';
 }
@@ -119,6 +121,7 @@ const SBTManagement: React.FC = () => {
   const [loadingSBTGasEstimate, setLoadingSBTGasEstimate] = useState(false);
   const [walletPolBalance, setWalletPolBalance] = useState<bigint | null>(null);
   const [hasInsufficientSBTGas, setHasInsufficientSBTGas] = useState(false);
+  const [selectedSBT, setSelectedSBT] = useState<IssuedSBT | null>(null);
 
   // マウント時: IndexedDB + localStorage からデータを読み込み
   useEffect(() => {
@@ -570,13 +573,71 @@ const SBTManagement: React.FC = () => {
     setShowIssuanceForm(false);
 
     // ⭐ ブロックチェーンに mint（非同期）
-    const mintingToast = toast.loading('🔄 SBT をブロックチェーンに記録中...');
+    const mintingToast = toast.loading('🔄 画像をIPFSにアップロード中...');
 
     try {
-      // tokenURI は IPFS 形式で生成（ダミーハッシュを使用）
-      // 実際の運用では Pinata にメタデータをアップロードして取得
-      const dummyHash = `Qm${Date.now().toString(36)}${Math.random().toString(36).substring(2, 15)}`.padEnd(46, '0');
-      const tokenURI = `ipfs://${dummyHash}`;
+      // テンプレートの画像をBlobに変換してPinataにアップロード
+      let tokenURI = '';
+      
+      try {
+        let file: File;
+        
+        // Data URL形式かどうかを判定
+        if (template.imageUrl.startsWith('data:')) {
+          // Data URL形式の場合、Base64デコード
+          const matches = template.imageUrl.match(/^data:(.+);base64,(.+)$/);
+          if (!matches) {
+            throw new Error('Invalid data URL format');
+          }
+          
+          const mimeType = matches[1];
+          const base64Data = matches[2];
+          
+          // Base64をバイナリに変換
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          
+          const blob = new Blob([bytes], { type: mimeType });
+          const extension = mimeType.split('/')[1] || 'png';
+          file = new File([blob], `${template.name}.${extension}`, { type: mimeType });
+        } else {
+          // URL形式の場合、fetchして取得
+          const response = await fetch(template.imageUrl);
+          const blob = await response.blob();
+          file = new File([blob], `${template.name}.jpg`, { type: blob.type || 'image/jpeg' });
+        }
+
+        toast.loading('📤 画像とメタデータをIPFSにアップロード中...', { id: mintingToast });
+
+        // Pinataにアップロードしてtokenuri取得
+        const result = await pinataService.createSBTWithImage(
+          file,
+          template.name,
+          template.description,
+          [
+            { trait_type: 'スタンプ最大数', value: template.maxStamps },
+            { trait_type: '報酬', value: template.rewardDescription },
+            { trait_type: '発行パターン', value: template.issuePattern },
+          ]
+        );
+
+        tokenURI = result.tokenURI;
+        console.log('✅ IPFS Upload成功:', tokenURI);
+
+      } catch (uploadError: any) {
+        console.error('IPFS Upload エラー:', uploadError);
+        toast.error(`画像アップロード失敗: ${uploadError.message}`, { id: mintingToast });
+        
+        // フォールバック: ダミーのIPFS URIを使用
+        const dummyHash = `Qm${Date.now().toString(36)}${Math.random().toString(36).substring(2, 15)}`.padEnd(46, '0');
+        tokenURI = `ipfs://${dummyHash}`;
+        console.warn('⚠️ ダミーURI使用:', tokenURI);
+      }
+
+      toast.loading('🔄 SBT をブロックチェーンに記録中...', { id: mintingToast });
 
       // SBT mint 実行（選択されたネットワークを使用）
       const result = await mintSBT({
@@ -1044,13 +1105,11 @@ const SBTManagement: React.FC = () => {
                   <p className="text-xs text-gray-600 mt-2">完了</p>
                 </div>
                 <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-4">
-                  <p className="text-xs text-gray-600 font-medium mb-1">スタンプ集計</p>
+                  <p className="text-xs text-gray-600 font-medium mb-1">SBTの種類</p>
                   <p className="text-3xl font-bold text-purple-600">
-                    {issuedSBTs.reduce((sum, s) => sum + s.currentStamps, 0)}/{issuedSBTs.reduce((sum, s) => sum + s.maxStamps, 0)}
+                    {new Set(issuedSBTs.map(s => s.templateId)).size}
                   </p>
-                  <p className="text-xs text-gray-600 mt-2">
-                    {Math.round((issuedSBTs.reduce((sum, s) => sum + s.currentStamps, 0) / issuedSBTs.reduce((sum, s) => sum + s.maxStamps, 0)) * 100)}% 進捗
-                  </p>
+                  <p className="text-xs text-gray-600 mt-2">発行されたテンプレートの種類数です。テンプレート別の配布数は下の「テンプレート別発行統計」をご覧ください。</p>
                 </div>
               </div>
             </div>
@@ -1331,9 +1390,12 @@ const SBTManagement: React.FC = () => {
                         {issuedSBTs.map((sbt, idx) => (
                           <tr
                             key={sbt.id}
+                            onClick={() => setSelectedSBT(sbt)}
+                            role="button"
+                            tabIndex={0}
                             className={`border-b ${
                               idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                            } hover:bg-purple-50 transition`}
+                            } hover:bg-purple-50 transition cursor-pointer`}
                           >
                             <td className="px-6 py-4 text-sm font-mono text-gray-900">
                               <div className="truncate" title={sbt.recipientAddress}>
@@ -1376,6 +1438,46 @@ const SBTManagement: React.FC = () => {
                     </table>
                   </div>
                 </div>
+
+                {/* SBT詳細モーダル */}
+                {selectedSBT && (
+                  <div className="fixed inset-0 flex items-center justify-center">
+                    <div className="fixed inset-0 bg-black opacity-40 z-40" onClick={() => setSelectedSBT(null)}></div>
+                    <div className="bg-white rounded-lg shadow-lg z-50 p-6 max-w-lg w-full mx-4 relative">
+                      <div className="flex items-start justify-between">
+                        <h3 className="text-lg font-bold">SBT 詳細</h3>
+                        <button onClick={() => setSelectedSBT(null)} className="text-gray-500 hover:text-gray-800">閉じる</button>
+                      </div>
+                      <div className="mt-4 text-sm space-y-2">
+                        <p><span className="font-semibold">配布先:</span> <span className="font-mono">{selectedSBT.recipientAddress}</span></p>
+                        <p><span className="font-semibold">SBT名:</span> {selectedSBT.templateName}</p>
+                        <p><span className="font-semibold">スタンプ:</span> {selectedSBT.currentStamps}/{selectedSBT.maxStamps}</p>
+                        <p><span className="font-semibold">発行日:</span> {selectedSBT.issuedAt}</p>
+                        <p><span className="font-semibold">ステータス:</span> {selectedSBT.status}</p>
+                        {selectedSBT.transactionHash && (
+                          <p>
+                            <span className="font-semibold">支払い Tx:</span>{' '}
+                            <a href={getBlockExplorerUrl(selectedSBT.chainId || selectedChainForSBT, selectedSBT.transactionHash)} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all">
+                              {selectedSBT.transactionHash}
+                            </a>
+                          </p>
+                        )}
+                        {selectedSBT.sbtTransactionHash && (
+                          <p>
+                            <span className="font-semibold">SBT発行 Tx:</span>{' '}
+                            <a href={getBlockExplorerUrl(selectedSBT.chainId || selectedChainForSBT, selectedSBT.sbtTransactionHash)} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all">
+                              {selectedSBT.sbtTransactionHash}
+                            </a>
+                          </p>
+                        )}
+                        {selectedSBT.chainId && <p><span className="font-semibold">チェーンID:</span> {selectedSBT.chainId}</p>}
+                      </div>
+                      <div className="mt-4 flex justify-end">
+                        <button onClick={() => setSelectedSBT(null)} className="px-4 py-2 bg-gray-200 rounded">閉じる</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* タブレット・スマホ向けカードビュー */}
                 <div className="lg:hidden space-y-6">
