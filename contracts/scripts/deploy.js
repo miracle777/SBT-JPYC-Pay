@@ -51,24 +51,13 @@ async function main() {
   try {
     console.log("\n🏪 Registering sample shops...");
     
+    // shop.ts の DEFAULT_SHOP_INFO に対応
     const sampleShops = [
       {
-        shopId: 1001,
-        name: "Welight Guitars",
-        description: "Premium guitar shop in Tokyo",
+        shopId: 1, // shop-001 に対応する数値ID
+        name: "SBT JPYC Pay Demo Store",
+        description: "デモンストレーション用の店舗",
         requiredVisits: 10,
-      },
-      {
-        shopId: 1002,
-        name: "Cafe Kichijoji",
-        description: "Cozy coffee shop in Kichijoji",
-        requiredVisits: 10,
-      },
-      {
-        shopId: 1003,
-        name: "Ishida Factory",
-        description: "Innovative tech lab",
-        requiredVisits: 5,
       },
     ];
 

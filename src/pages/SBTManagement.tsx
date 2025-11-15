@@ -105,6 +105,9 @@ const SBTManagement: React.FC = () => {
     templateId: templates[0]?.id || '',
     recipientAddress: '',
   });
+  
+  // SBT発行先ネットワーク（Polygon Mainnet または Amoy Testnet）
+  const [selectedChainForSBT, setSelectedChainForSBT] = useState(137); // デフォルトはPolygon Mainnet
 
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [showIssuanceForm, setShowIssuanceForm] = useState(false);
@@ -497,10 +500,12 @@ const SBTManagement: React.FC = () => {
     }
   };
 
-  const issueSBT = async (e: React.FormEvent, selectedPaymentId?: string) => {
+  const issueSBT = async (e: React.FormEvent, selectedPaymentId?: string, selectedTemplateId?: string) => {
     e.preventDefault();
 
-    const template = templates.find((t) => t.id === newIssuance.templateId);
+    // テンプレートIDの決定（引数から渡された場合はそれを優先、なければnewIssuanceから）
+    const templateId = selectedTemplateId || newIssuance.templateId;
+    const template = templates.find((t) => t.id === templateId);
     if (!template) {
       toast.error('テンプレートが見つかりません');
       return;
@@ -568,20 +573,17 @@ const SBTManagement: React.FC = () => {
     const mintingToast = toast.loading('🔄 SBT をブロックチェーンに記録中...');
 
     try {
-      // tokenURI は base64 イメージそのもの
-      const tokenURI = template.imageUrl;
+      // tokenURI は IPFS 形式で生成（ダミーハッシュを使用）
+      // 実際の運用では Pinata にメタデータをアップロードして取得
+      const dummyHash = `Qm${Date.now().toString(36)}${Math.random().toString(36).substring(2, 15)}`.padEnd(46, '0');
+      const tokenURI = `ipfs://${dummyHash}`;
 
-      if (!currentChainId) {
-        toast.error('ネットワークを接続してください', { id: mintingToast });
-        return;
-      }
-
-      // SBT mint 実行
+      // SBT mint 実行（選択されたネットワークを使用）
       const result = await mintSBT({
         recipientAddress,
-        shopId: 1, // TODO: 実装で適切な shopId を使用
+        shopId: 1, // shop.ts の DEFAULT_SHOP_INFO に対応
         tokenURI,
-        chainId: currentChainId,
+        chainId: selectedChainForSBT, // ユーザーが選択したネットワーク
       });
 
       if (result.success && result.transactionHash) {
@@ -973,7 +975,7 @@ const SBTManagement: React.FC = () => {
                         onChange={(e) => {
                           if (e.target.value) {
                             const event = new Event('submit') as any;
-                            issueSBT(event, payment.id);
+                            issueSBT(event, payment.id, e.target.value); // テンプレートIDを第3引数として渡す
                             e.target.value = ''; // リセット
                           }
                         }}
@@ -998,13 +1000,27 @@ const SBTManagement: React.FC = () => {
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">SBT発行</h2>
-            <button
-              onClick={() => setShowIssuanceForm(!showIssuanceForm)}
-              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
-            >
-              <Send className="w-5 h-5" />
-              新規発行
-            </button>
+            <div className="flex items-center gap-4">
+              {/* ネットワーク選択 */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">発行先:</label>
+                <select
+                  value={selectedChainForSBT}
+                  onChange={(e) => setSelectedChainForSBT(Number(e.target.value))}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
+                >
+                  <option value={137}>Polygon Mainnet</option>
+                  <option value={80002}>Polygon Amoy (Testnet)</option>
+                </select>
+              </div>
+              <button
+                onClick={() => setShowIssuanceForm(!showIssuanceForm)}
+                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
+              >
+                <Send className="w-5 h-5" />
+                新規発行
+              </button>
+            </div>
           </div>
 
           {/* 統計ダッシュボード */}

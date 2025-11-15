@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { BrowserProvider } from 'ethers';
-import { NETWORKS, JPYC, getContractAddress } from '../config/networks';
+import { NETWORKS, JPYC, getContractAddress, getJpycContracts } from '../config/networks';
 import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
 import { createPaymentPayload, encodePaymentPayload } from '../types/payment';
 import { useWallet } from '../context/WalletContext';
@@ -21,6 +21,7 @@ interface PaymentSession {
   createdAt: string;
   expiresAt: string;
   expiresAtTimestamp: number;
+  createdAtBlockNumber?: number; // セッション作成時のブロック番号
   timeRemainingSeconds?: number;
   transactionHash?: string;
   detectedAt?: string;
@@ -33,6 +34,7 @@ const QRPayment: React.FC = () => {
   const [selectedChainForPayment, setSelectedChainForPayment] = useState(
     Object.values(NETWORKS)[0].chainId
   );
+  const [selectedJpycContract, setSelectedJpycContract] = useState<string>(''); // 選択されたJPYCコントラクトアドレス
   const [paymentSessions, setPaymentSessions] = useState<PaymentSession[]>([]);
   const [expiryTimeMinutes, setExpiryTimeMinutes] = useState(15); // デフォルト15分
   const [selectedSessionForWindow, setSelectedSessionForWindow] = useState<string | null>(null);
@@ -46,10 +48,23 @@ const QRPayment: React.FC = () => {
   const paymentNetwork = Object.values(NETWORKS).find(
     (net) => net.chainId === selectedChainForPayment
   );
-  const paymentContractAddress = getContractAddress(
+  
+  // 利用可能なJPYCコントラクトアドレス
+  const availableJpycContracts = getJpycContracts(selectedChainForPayment);
+  
+  // 選択されたコントラクトまたは最初のコントラクトを使用
+  const paymentContractAddress = selectedJpycContract || availableJpycContracts[0] || getContractAddress(
     selectedChainForPayment,
     JPYC
   );
+  
+  // ネットワーク変更時にJPYCコントラクトを自動選択
+  useEffect(() => {
+    const contracts = getJpycContracts(selectedChainForPayment);
+    if (contracts.length > 0) {
+      setSelectedJpycContract(contracts[0]);
+    }
+  }, [selectedChainForPayment]);
 
   const isNetworkMismatch =
     currentChainId && currentChainId !== selectedChainForPayment;
@@ -170,47 +185,85 @@ const QRPayment: React.FC = () => {
         const provider = new BrowserProvider(window.ethereum);
         const network = await provider.getNetwork();
         const chainId = Number(network.chainId);
+        
+        console.log(`🔍 トランザクション監視中 - 接続ネットワーク: ChainID ${chainId}`);
+        console.log(`   Pendingセッション数: ${pendingSessions.length}`);
 
         // 各 pending セッション向けのトランザクション検索
         for (const session of pendingSessions) {
-          if (session.chainId !== chainId) continue; // ネットワークが一致するもののみ
+          console.log(`   セッション ${session.id.slice(0, 8)}... - 期待ChainID: ${session.chainId}, 現在ChainID: ${chainId}`);
+          if (session.chainId !== chainId) {
+            console.warn(`   ⚠️ ネットワーク不一致: MetaMaskを ${session.chainName} (ChainID: ${session.chainId}) に切り替えてください`);
+            continue; // ネットワークが一致するもののみ
+          }
 
           try {
             // ブロックを取得してトランザクションを検索
             const latestBlockNumber = await provider.getBlockNumber();
-            const searchFromBlock = Math.max(0, latestBlockNumber - 100); // 過去100ブロックを検索
+            // セッション作成時のブロック番号以降のみを検索（過去のトランザクションを除外）
+            const searchFromBlock = session.createdAtBlockNumber || Math.max(0, latestBlockNumber - 10);
 
-            // 店舗ウォレットアドレス宛のトランザクションをフィルター
-            const filter = {
-              to: shopWalletAddress,
-              fromBlock: searchFromBlock,
-              toBlock: 'latest',
-            };
+            // 複数のJPYCコントラクトアドレスに対応
+            const jpycContracts = getJpycContracts(chainId);
+            console.log(`監視中のJPYCコントラクト (${chainId}):`, jpycContracts);
 
-            const logs = await provider.getLogs(filter);
+            // ERC20のTransferイベントシグネチャ: Transfer(address,address,uint256)
+            const transferEventSignature = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+            
+            // 店舗ウォレットアドレスをパディング（32バイト）
+            const paddedShopAddress = '0x' + '0'.repeat(24) + shopWalletAddress.slice(2).toLowerCase();
 
-            // トランザクションが見つかった場合は完了とする
-            if (logs.length > 0) {
-              const txHash = logs[0].transactionHash;
-              
-              // トランザクションの詳細情報を取得
-              const txDetails = await provider.getTransaction(txHash);
-              const payerAddress = txDetails?.from; // トランザクション送信者（支払者）のアドレス
-              
-              setPaymentSessions((prev) =>
-                prev.map((s) =>
-                  s.id === session.id
-                    ? {
-                        ...s,
-                        status: 'completed',
-                        transactionHash: txHash,
-                        detectedAt: new Date().toLocaleString('ja-JP'),
-                        payerAddress: payerAddress, // 支払者アドレスを保存
-                      }
-                    : s
-                )
-              );
-              toast.success(`✓ 決済完了 (Tx: ${txHash.slice(0, 10)}...)`);;
+            let foundTransaction = false;
+
+            // 各JPYCコントラクトについてTransferイベントを検索
+            for (const contractAddress of jpycContracts) {
+              const filter = {
+                address: contractAddress, // JPYCコントラクトアドレス
+                fromBlock: searchFromBlock,
+                toBlock: 'latest',
+                topics: [
+                  transferEventSignature, // Transfer event
+                  null, // from (任意のアドレス)
+                  paddedShopAddress, // to (店舗ウォレットアドレス)
+                ],
+              };
+
+              const logs = await provider.getLogs(filter);
+
+              // トランザクションが見つかった場合は完了とする
+              if (logs.length > 0) {
+                const txHash = logs[0].transactionHash;
+                
+                // トランザクションの詳細情報を取得
+                const txDetails = await provider.getTransaction(txHash);
+                const payerAddress = txDetails?.from; // トランザクション送信者（支払者）のアドレス
+                
+                console.log(`✓ JPYC決済検知: ${contractAddress}`);
+                console.log(`  Tx: ${txHash}`);
+                console.log(`  支払者: ${payerAddress}`);
+                console.log(`  受取: ${shopWalletAddress}`);
+                
+                setPaymentSessions((prev) =>
+                  prev.map((s) =>
+                    s.id === session.id
+                      ? {
+                          ...s,
+                          status: 'completed',
+                          transactionHash: txHash,
+                          detectedAt: new Date().toLocaleString('ja-JP'),
+                          payerAddress: payerAddress, // 支払者アドレスを保存
+                        }
+                      : s
+                  )
+                );
+                toast.success(`✓ 決済完了 (Tx: ${txHash.slice(0, 10)}...)`);
+                foundTransaction = true;
+                break; // 見つかったらループを抜ける
+              }
+            }
+
+            if (!foundTransaction) {
+              console.log(`監視中 (Session: ${session.id.slice(-8)}, Block: ${latestBlockNumber})`);
             }
           } catch (error) {
             console.error(`Transaction monitoring error for ${session.id}:`, error);
@@ -221,11 +274,14 @@ const QRPayment: React.FC = () => {
       }
     };
 
+    // 初回実行（即座に開始）
+    monitorTransactions();
+    
     const monitorInterval = setInterval(monitorTransactions, 5000); // 5秒ごとに監視
     return () => clearInterval(monitorInterval);
   }, [paymentSessions, shopWalletAddress]);
 
-  const generateQRCode = (e: React.FormEvent) => {
+  const generateQRCode = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!amount || parseFloat(amount) <= 0) {
@@ -251,6 +307,18 @@ const QRPayment: React.FC = () => {
     try {
       const paymentId = `PAY${Date.now()}`;
       const expiresAtTimestamp = Math.floor(Date.now() / 1000) + expiryTimeMinutes * 60;
+
+      // 現在のブロック番号を取得
+      let currentBlockNumber: number | undefined;
+      if (window.ethereum) {
+        try {
+          const provider = new BrowserProvider(window.ethereum);
+          currentBlockNumber = await provider.getBlockNumber();
+          console.log(`QRコード生成時のブロック番号: ${currentBlockNumber}`);
+        } catch (error) {
+          console.warn('ブロック番号取得エラー:', error);
+        }
+      }
 
       // Wei単位に変換（18小数点、整数値に変換）
       // JPYCは1JPYCが1円で固定されているため、小数点は不要
@@ -282,6 +350,7 @@ const QRPayment: React.FC = () => {
         createdAt: new Date().toLocaleString('ja-JP'),
         expiresAt: new Date(expiresAtTimestamp * 1000).toLocaleString('ja-JP'),
         expiresAtTimestamp,
+        createdAtBlockNumber: currentBlockNumber, // セッション作成時のブロック番号
         timeRemainingSeconds: expiryTimeMinutes * 60,
         transactionHash: undefined,
         detectedAt: undefined,
@@ -495,6 +564,29 @@ const QRPayment: React.FC = () => {
                     )}
                   </div>
 
+                  {/* JPYCコントラクトアドレス選択（複数ある場合のみ表示） */}
+                  {availableJpycContracts.length > 1 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        JPYCコントラクトアドレス
+                      </label>
+                      <select
+                        value={selectedJpycContract}
+                        onChange={(e) => setSelectedJpycContract(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-mono"
+                      >
+                        {availableJpycContracts.map((contractAddr, index) => (
+                          <option key={contractAddr} value={contractAddr}>
+                            {contractAddr.slice(0, 6)}...{contractAddr.slice(-4)} (Contract {index + 1})
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        選択中: {selectedJpycContract}
+                      </p>
+                    </div>
+                  )}
+
                   {/* ネットワーク不一致警告 */}
                   {isNetworkMismatch && (
                     <div className="p-2 bg-orange-50 border border-orange-200 rounded-lg flex gap-2">
@@ -699,7 +791,7 @@ const QRPayment: React.FC = () => {
                       <tr key={session.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-2 px-2 font-mono text-xs text-gray-600">{session.id.slice(-8)}</td>
                         <td className="py-2 px-2 font-semibold text-gray-900">{session.amount}</td>
-                        <td className="py-2 px-2 text-gray-600">{session.chainName.split(' ')[0]}</td>
+                        <td className="py-2 px-2 text-gray-600">{session.chainName}</td>
                         <td className="py-2 px-2 text-xs text-gray-600">{session.createdAt.split(' ')[1]}</td>
                         <td className="py-2 px-2">{getStatusBadge(session.status)}</td>
                         <td className="py-2 px-2">

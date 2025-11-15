@@ -2,17 +2,16 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 
 /// @title JPYC スタンプカード用 SBT (Soulbound Token)
 /// @notice Shop ID ごとにデザインの異なる SBT を発行できるスタンプカードコントラクト
 /// @dev ERC721ベースだが転送不可（Soulbound）の実装
 contract JpycStampSBT is ERC721URIStorage, Ownable {
-    using Counters for Counters.Counter;
     
     /// @dev 次に発行する tokenId（連番）
-    Counters.Counter private _tokenIds;
+    uint256 private _tokenIds;
     
     /// @dev tokenId => shopId のマッピング
     mapping(uint256 => uint256) private _tokenShopIds;
@@ -63,9 +62,8 @@ contract JpycStampSBT is ERC721URIStorage, Ownable {
     
     /// @notice コンストラクタ
     /// @param owner_ コントラクトオーナー（発行者）
-    constructor(address owner_) ERC721("JPYC Shop Stamp SBT", "JPYC-SBT") {
-        _transferOwnership(owner_);
-        _tokenIds.increment(); // tokenId を 1 から開始
+    constructor(address owner_) ERC721("JPYC Shop Stamp SBT", "JPYC-SBT") Ownable(owner_) {
+        _tokenIds = 1; // tokenId を 1 から開始
     }
     
     // ------------------------------------------------------------
@@ -147,12 +145,12 @@ contract JpycStampSBT is ERC721URIStorage, Ownable {
     /// @param to SBT を受け取るユーザーのアドレス
     /// @param shopId お店を識別する ID
     /// @param tokenURI_ Pinata で生成した metadata の URI (ipfs://...)
-    /// @return tokenId 発行された SBT の tokenId
+    /// @return newTokenId 発行された SBT の tokenId
     function mintSBT(
         address to,
         uint256 shopId,
         string calldata tokenURI_
-    ) external returns (uint256 tokenId) {
+    ) external returns (uint256 newTokenId) {
         require(to != address(0), "Invalid recipient");
         require(_activeShops[shopId], "Shop not active");
         require(
@@ -161,17 +159,16 @@ contract JpycStampSBT is ERC721URIStorage, Ownable {
         );
         require(bytes(tokenURI_).length > 0, "TokenURI required");
         
-        tokenId = _tokenIds.current();
-        _tokenIds.increment();
+        newTokenId = _tokenIds++;
         
-        _safeMint(to, tokenId);
-        _setTokenURI(tokenId, tokenURI_);
+        _safeMint(to, newTokenId);
+        _setTokenURI(newTokenId, tokenURI_);
         
-        _tokenShopIds[tokenId] = shopId;
+        _tokenShopIds[newTokenId] = shopId;
         _shopTokenCounts[shopId]++;
         _userShopTokens[to][shopId]++;
         
-        emit SBTMinted(to, tokenId, shopId, tokenURI_);
+        emit SBTMinted(to, newTokenId, shopId, tokenURI_);
     }
     
     /// @notice 一括でSBTを発行する
@@ -195,8 +192,7 @@ contract JpycStampSBT is ERC721URIStorage, Ownable {
             require(recipients[i] != address(0), "Invalid recipient");
             require(bytes(tokenURIs_[i]).length > 0, "TokenURI required");
             
-            uint256 tokenId = _tokenIds.current();
-            _tokenIds.increment();
+            uint256 tokenId = _tokenIds++;
             
             _safeMint(recipients[i], tokenId);
             _setTokenURI(tokenId, tokenURIs_[i]);
@@ -215,7 +211,7 @@ contract JpycStampSBT is ERC721URIStorage, Ownable {
     
     /// @notice 指定した tokenId に対応する Shop ID を取得
     function shopIdOf(uint256 tokenId) external view returns (uint256) {
-        require(_exists(tokenId), "Query for nonexistent token");
+        require(_ownerOf(tokenId) != address(0), "Query for nonexistent token");
         return _tokenShopIds[tokenId];
     }
     
@@ -241,7 +237,7 @@ contract JpycStampSBT is ERC721URIStorage, Ownable {
     
     /// @notice 総発行数を取得
     function totalSupply() external view returns (uint256) {
-        return _tokenIds.current() - 1; // tokenId は 1 から開始するため
+        return _tokenIds - 1; // tokenId は 1 から開始するため
     }
     
     /// @notice ショップがアクティブかチェック
@@ -255,37 +251,38 @@ contract JpycStampSBT is ERC721URIStorage, Ownable {
     // ------------------------------------------------------------
     
     /// @dev すべてのトークン移転を禁止する（mint/burn を除く）
-    function _beforeTokenTransfer(
-        address from,
+    function _update(
         address to,
         uint256 tokenId,
-        uint256 batchSize
-    ) internal override {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+        address auth
+    ) internal override returns (address) {
+        address from = _ownerOf(tokenId);
         
         // mint (from == 0) と burn (to == 0) は許可
         if (from != address(0) && to != address(0)) {
             revert("SBT: non-transferable");
         }
+        
+        return super._update(to, tokenId, auth);
     }
     
     /// @dev approve を禁止
-    function approve(address, uint256) public pure override {
+    function approve(address, uint256) public pure override(ERC721, IERC721) {
         revert("SBT: approval not allowed");
     }
     
     /// @dev setApprovalForAll を禁止
-    function setApprovalForAll(address, bool) public pure override {
+    function setApprovalForAll(address, bool) public pure override(ERC721, IERC721) {
         revert("SBT: approval not allowed");
     }
     
     /// @dev getApproved は常に address(0) を返す
-    function getApproved(uint256) public pure override returns (address) {
+    function getApproved(uint256) public pure override(ERC721, IERC721) returns (address) {
         return address(0);
     }
     
     /// @dev isApprovedForAll も常に false
-    function isApprovedForAll(address, address) public pure override returns (bool) {
+    function isApprovedForAll(address, address) public pure override(ERC721, IERC721) returns (bool) {
         return false;
     }
     
@@ -296,9 +293,9 @@ contract JpycStampSBT is ERC721URIStorage, Ownable {
     /// @notice SBT を burn する（オーナーのみ）
     /// @dev 誤発行や規約違反など、管理側で取り消したい場合用
     function burn(uint256 tokenId) external onlyOwner {
-        require(_exists(tokenId), "Token does not exist");
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
         
-        address owner = ownerOf(tokenId);
+        address tokenOwner = ownerOf(tokenId);
         uint256 shopId = _tokenShopIds[tokenId];
         
         _burn(tokenId);
@@ -308,21 +305,16 @@ contract JpycStampSBT is ERC721URIStorage, Ownable {
         if (_shopTokenCounts[shopId] > 0) {
             _shopTokenCounts[shopId]--;
         }
-        if (_userShopTokens[owner][shopId] > 0) {
-            _userShopTokens[owner][shopId]--;
+        if (_userShopTokens[tokenOwner][shopId] > 0) {
+            _userShopTokens[tokenOwner][shopId]--;
         }
-    }
-    
-    /// @dev URIStorage + ERC721 の多重継承のための override
-    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
     }
     
     /// @dev tokenURI の override（URIStorage 側を優先）
     function tokenURI(uint256 tokenId)
         public
         view
-        override(ERC721, ERC721URIStorage)
+        override
         returns (string memory)
     {
         return super.tokenURI(tokenId);

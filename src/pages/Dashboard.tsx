@@ -1,5 +1,5 @@
 import React from 'react';
-import { Store } from 'lucide-react';
+import { Store, QrCode, Camera } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   return (
@@ -18,7 +18,8 @@ const Dashboard: React.FC = () => {
               href="/payment"
               className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
             >
-              QR決済
+              <QrCode className="inline-block w-5 h-5 mr-2 mb-1" />
+              QR決済（店舗側）
             </a>
             <a
               href="/sbt"

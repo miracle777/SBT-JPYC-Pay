@@ -100,10 +100,31 @@ export const JPYC: Currency = {
   },
 };
 
+// JPYC開発用コントラクトアドレス（複数対応）
+// Sepoliaでは2つのJPYCコントラクトが存在するため、配列で管理
+export const JPYC_DEV_CONTRACTS: Record<number, string[]> = {
+  // Testnet - 複数のJPYCコントラクトに対応
+  [NETWORKS.ETHEREUM_SEPOLIA.chainId]: [
+    '0xd3eF95d29A198868241FE374A999fc25F6152253',
+    '0x431D5dfF03120AFA4bDf332c61A6e1766eF37BDB',
+  ],
+  // 他のネットワークは単一アドレス
+  [NETWORKS.POLYGON_AMOY.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
+  [NETWORKS.POLYGON_MAINNET.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
+  [NETWORKS.ETHEREUM_MAINNET.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
+  [NETWORKS.AVALANCHE_MAINNET.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
+  [NETWORKS.AVALANCHE_FUJI.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
+};
+
 export const getNetworkByChainId = (chainId: number): Network | undefined => {
   return Object.values(NETWORKS).find((net) => net.chainId === chainId);
 };
 
 export const getContractAddress = (chainId: number, currency: Currency = JPYC): string => {
   return currency.contractAddress[chainId] || '';
+};
+
+// 複数のJPYCコントラクトアドレスを取得（開発用）
+export const getJpycContracts = (chainId: number): string[] => {
+  return JPYC_DEV_CONTRACTS[chainId] || [getContractAddress(chainId, JPYC)];
 };
