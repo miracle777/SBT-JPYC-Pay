@@ -34,6 +34,77 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
       };
     }
 
+    // 自動でウォレットを指定チェーンに切り替える（必要なら追加）
+    const ensureNetwork = async (targetChainId: number): Promise<{ ok: true } | { ok: false; error: string }> => {
+      try {
+        const hex = '0x' + targetChainId.toString(16);
+        // 現在の chainId を確認
+        const currentHex = window.ethereum.chainId;
+        const current = currentHex ? parseInt(currentHex, 16) : undefined;
+        if (current === targetChainId) return { ok: true };
+
+        // 試行: 切替
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: hex }],
+        });
+
+        return { ok: true };
+      } catch (switchError: any) {
+        // 4902: chain not found in wallet -> add chain
+        if (switchError && (switchError.code === 4902 || (switchError.message && switchError.message.includes('Unrecognized chain')))) {
+          try {
+            // 代表的なネットワーク情報（Amoy を想定）。他チェーンは必要に応じて拡張。
+            const chainParams: Record<number, any> = {
+              80002: {
+                chainId: '0x13882',
+                chainName: 'Polygon Amoy (Testnet)',
+                rpcUrls: ['https://rpc-amoy.polygon.technology'],
+                nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
+                blockExplorerUrls: ['https://amoy.polygonscan.com'],
+              },
+              11155111: {
+                chainId: '0xa3d6f7',
+                chainName: 'Sepolia',
+                rpcUrls: ['https://sepolia.infura.io/v3/'],
+                nativeCurrency: { name: 'SepoliaETH', symbol: 'ETH', decimals: 18 },
+                blockExplorerUrls: ['https://sepolia.etherscan.io'],
+              },
+            };
+
+            const params = chainParams[targetChainId];
+            if (!params) {
+              return { ok: false, error: `ウォレットにチェーン ${targetChainId} を追加する情報がありません` };
+            }
+
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [params],
+            });
+
+            // 追加後に切替再試行
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: params.chainId }],
+            });
+
+            return { ok: true };
+          } catch (addError: any) {
+            if (addError && addError.code === 4001) {
+              return { ok: false, error: 'ユーザーがネットワーク追加を拒否しました' };
+            }
+            return { ok: false, error: addError?.message || String(addError) };
+          }
+        }
+
+        if (switchError && switchError.code === 4001) {
+          return { ok: false, error: 'ユーザーがネットワーク切替を拒否しました' };
+        }
+
+        return { ok: false, error: switchError?.message || String(switchError) };
+      }
+    };
+
     const { recipientAddress, shopId, tokenURI, chainId } = params;
 
     // バリデーション
@@ -72,6 +143,12 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
         success: false,
         error: `チェーンID ${chainId} の SBT コントラクトがまだデプロイされていません`,
       };
+    }
+
+    // 自動でウォレットを指定チェーンに切り替え（必要なら追加）
+    const ensure = await ensureNetwork(chainId);
+    if (!ensure.ok) {
+      return { success: false, error: ensure.error };
     }
 
     // Provider と Signer を取得

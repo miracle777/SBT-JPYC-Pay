@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle } from 'lucide-react';
+import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
@@ -107,6 +107,8 @@ const SBTManagement: React.FC = () => {
     templateId: templates[0]?.id || '',
     recipientAddress: '',
   });
+  // completedPayments 各行のテンプレート選択状態（自動発行を防ぐために選択と発行を分離）
+  const [paymentTemplateSelection, setPaymentTemplateSelection] = useState<Record<string, string>>({});
   
   // SBT発行先ネットワーク（Polygon Mainnet または Amoy Testnet）
   const [selectedChainForSBT, setSelectedChainForSBT] = useState(137); // デフォルトはPolygon Mainnet
@@ -122,6 +124,7 @@ const SBTManagement: React.FC = () => {
   const [walletPolBalance, setWalletPolBalance] = useState<bigint | null>(null);
   const [hasInsufficientSBTGas, setHasInsufficientSBTGas] = useState(false);
   const [selectedSBT, setSelectedSBT] = useState<IssuedSBT | null>(null);
+  const [showGuideModal, setShowGuideModal] = useState(false);
 
   // マウント時: IndexedDB + localStorage からデータを読み込み
   useEffect(() => {
@@ -639,6 +642,9 @@ const SBTManagement: React.FC = () => {
 
       toast.loading('🔄 SBT をブロックチェーンに記録中...', { id: mintingToast });
 
+      // ユーザーにネットワーク切替が発生する旨を通知
+      toast('🔁 発行先ネットワークへウォレットを切り替えます。MetaMaskの確認を許可してください', { icon: '🔁' });
+
       // SBT mint 実行（選択されたネットワークを使用）
       const result = await mintSBT({
         recipientAddress,
@@ -696,14 +702,154 @@ const SBTManagement: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
+        {/* MetaMask 接続チェック警告 */}
+        {!window.ethereum ? (
+          <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-red-900">⚠️ MetaMask がインストールされていません</p>
+                <p className="text-sm text-red-800 mt-1">
+                  SBT 発行にはブラウザに MetaMask をインストールし、ウォレットを接続する必要があります。
+                </p>
+                <a 
+                  href="https://metamask.io/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-red-600 underline font-semibold hover:text-red-800 inline-block mt-2"
+                >
+                  MetaMask をインストール →
+                </a>
+              </div>
+            </div>
+          </div>
+        ) : !walletAddress ? (
+          <div className="mb-6 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Wallet className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-yellow-900">🔌 ウォレットが接続されていません</p>
+                <p className="text-sm text-yellow-800 mt-1">
+                  ページ上部の「Connect Wallet」ボタンをクリックして MetaMask を接続してください。
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {/* ヘッダー */}
         <div className="mb-8">
-          <div className="flex items-center space-x-4 mb-6">
-            <Award className="w-8 h-8 text-purple-600" />
-            <h1 className="text-3xl font-bold text-gray-900">SBT管理</h1>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-4">
+              <Award className="w-8 h-8 text-purple-600" />
+              <h1 className="text-3xl font-bold text-gray-900">SBT管理</h1>
+            </div>
+            <button
+              onClick={() => setShowGuideModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition"
+              title="使い方ガイドを表示"
+            >
+              <HelpCircle className="w-5 h-5" />
+              使い方ガイド
+            </button>
           </div>
           <p className="text-gray-600">スタンプカードテンプレートの作成・管理と発行</p>
         </div>
+
+        {/* 使い方ガイドモーダル */}
+        {showGuideModal && (
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="fixed inset-0 bg-black opacity-50 z-40" onClick={() => setShowGuideModal(false)}></div>
+            <div className="bg-white rounded-lg shadow-2xl z-50 p-8 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">📖 SBT発行の使い方</h2>
+                <button 
+                  onClick={() => setShowGuideModal(false)}
+                  className="text-gray-500 hover:text-gray-800 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-6 text-gray-700">
+                <div>
+                  <h3 className="text-lg font-bold text-purple-600 mb-2">📋 基本的な流れ</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex gap-3">
+                      <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">1</span>
+                      <p><span className="font-semibold">テンプレート作成</span> - スタンプカードのデザイン（画像、名前、発行ルール）を作成します。</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">2</span>
+                      <p><span className="font-semibold">支払い完了を待つ</span> - ユーザーが QR コードで支払いを完了します。</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">3</span>
+                      <p><span className="font-semibold">テンプレート選択</span> - 支払い一覧から支払い行を選び、ドロップダウンで「発行するテンプレート」を選択します。</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">4</span>
+                      <p><span className="font-semibold">発行ボタンをクリック</span> - 隣の「発行」ボタンをクリックして、ブロックチェーンに SBT を記録します。</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">5</span>
+                      <p><span className="font-semibold">MetaMask で確認</span> - MetaMask がネットワーク切替とトランザクション署名を求めてきます。「確認」をクリックして完了。</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-bold text-blue-600 mb-2">⚙️ 各セクションの説明</h3>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <p className="font-semibold">📌 テンプレートセクション</p>
+                      <p className="text-gray-600 mt-1">スタンプカードの「デザイン」を作成・編集・削除します。</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">💳 支払い完了一覧</p>
+                      <p className="text-gray-600 mt-1">お客様の支払いが完了した履歴が表示されます。ここで「発行テンプレート」を選んで「発行」ボタンで SBT をミントします。</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">🎖️ SBT発行セクション</p>
+                      <p className="text-gray-600 mt-1">発行済みの SBT 一覧と統計が表示されます。</p>
+                      <p className="text-gray-600 mt-1">「発行先：」ドロップダウンで Polygon Mainnet または Polygon Amoy (Testnet) を選択できます。</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-bold text-green-600 mb-2">✅ トラブルシューティング</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <p className="font-semibold">❌ MetaMask が起動しない</p>
+                      <p className="text-gray-600 mt-1">→ ブラウザに MetaMask がインストールされているか確認してください。メニューボタン から MetaMask アイコンをクリックしてログインしてください。</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">❌ 「ネットワークが違う」エラー</p>
+                      <p className="text-gray-600 mt-1">→ 「発行先」ドロップダウンで選んだネットワークに自動で切り替えます。MetaMask の確認ダイアログで「切り替え」をクリックしてください。</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">❌ ガス代が不足している</p>
+                      <p className="text-gray-600 mt-1">→ Testnet (Amoy) を使用している場合は <a href="https://faucet.polygon.technology/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Polygon Faucet</a> から POL を取得してください。</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded p-3 mt-4">
+                  <p className="text-xs font-semibold text-blue-900 mb-1">💡 ヒント</p>
+                  <p className="text-xs text-blue-800">一度に複数の支払いから SBT を発行する場合は、支払い行ごとにテンプレートを選んで発行ボタンを押してください。</p>
+                </div>
+
+                <button
+                  onClick={() => setShowGuideModal(false)}
+                  className="w-full mt-6 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold transition"
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* テンプレート管理 */}
         <div className="mb-8">
@@ -1031,24 +1177,38 @@ const SBTManagement: React.FC = () => {
                       </div>
                     </div>
                     <div className="ml-4">
-                      <select
-                        defaultValue=""
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            const event = new Event('submit') as any;
-                            issueSBT(event, payment.id, e.target.value); // テンプレートIDを第3引数として渡す
-                            e.target.value = ''; // リセット
-                          }
-                        }}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
-                      >
-                        <option value="">SBT発行...</option>
-                        {templates.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={paymentTemplateSelection[payment.id] || ''}
+                          onChange={(e) => setPaymentTemplateSelection(prev => ({ ...prev, [payment.id]: e.target.value }))}
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
+                        >
+                          <option value="">テンプレートを選択</option>
+                          {templates.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={(e) => {
+                            const selectedTemplateId = paymentTemplateSelection[payment.id];
+                            if (!selectedTemplateId) {
+                              toast.error('発行するテンプレートを選択してください');
+                              return;
+                            }
+                            // issueSBT は form submit ハンドラを期待するため、Event を渡す
+                            const fakeEvent = new Event('submit') as any;
+                            issueSBT(fakeEvent, payment.id, selectedTemplateId);
+                            // 発行後に選択をリセット
+                            setPaymentTemplateSelection(prev => ({ ...prev, [payment.id]: '' }));
+                          }}
+                          className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm"
+                          disabled={!walletAddress}
+                        >
+                          発行
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1061,26 +1221,17 @@ const SBTManagement: React.FC = () => {
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">SBT発行</h2>
-            <div className="flex items-center gap-4">
-              {/* ネットワーク選択 */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">発行先:</label>
-                <select
-                  value={selectedChainForSBT}
-                  onChange={(e) => setSelectedChainForSBT(Number(e.target.value))}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
-                >
-                  <option value={137}>Polygon Mainnet</option>
-                  <option value={80002}>Polygon Amoy (Testnet)</option>
-                </select>
-              </div>
-              <button
-                onClick={() => setShowIssuanceForm(!showIssuanceForm)}
-                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
+            {/* 発行先ネットワーク選択 */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">発行先チェーン:</label>
+              <select
+                value={selectedChainForSBT}
+                onChange={(e) => setSelectedChainForSBT(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
               >
-                <Send className="w-5 h-5" />
-                新規発行
-              </button>
+                <option value={137}>Polygon Mainnet</option>
+                <option value={80002}>Polygon Amoy (Testnet)</option>
+              </select>
             </div>
           </div>
 
