@@ -49,8 +49,15 @@ export class PinataService {
    */
   private getHeaders(): Headers {
     const headers = new Headers();
-    headers.append('pinata_api_key', this.apiKey);
-    headers.append('pinata_api_secret', this.apiSecret);
+    // If a JWT is available in config, prefer Authorization header
+    // (some Pinata setups provide a JWT instead of apiKey/apiSecret)
+    const jwt = (PINATA_CONFIG as any).jwt as string | undefined;
+    if (jwt) {
+      headers.append('Authorization', `Bearer ${jwt}`);
+    } else {
+      headers.append('pinata_api_key', this.apiKey);
+      headers.append('pinata_api_secret', this.apiSecret);
+    }
     return headers;
   }
 

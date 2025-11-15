@@ -80,7 +80,8 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
 
     // 現在のネットワークを確認
     const network = await provider.getNetwork();
-    if (network.chainId !== BigInt(chainId)) {
+    // provider.getNetwork().chainId は number 型なので比較は数値で行う
+    if (network.chainId !== chainId) {
       return {
         success: false,
         error: `ネットワークが一致していません。Chain ID ${chainId} に切り替えてください`,
@@ -94,6 +95,18 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
       signer
     );
 
+    // ABI に期待した関数があるか確認
+    if (typeof (contract as any).mintSBT !== 'function') {
+      console.error('Contract does not expose mintSBT:', {
+        contractAddress,
+        abiFunctions: Object.keys(contract.interface.functions),
+      });
+      return {
+        success: false,
+        error: `コントラクトに 'mintSBT' 関数が見つかりません。アドレス (${contractAddress}) と ABI を確認してください。`,
+      };
+    }
+
     // SBT を mint
     console.log('🎖️ SBT Minting 開始', {
       to: recipientAddress,
@@ -101,11 +114,20 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
       tokenURI,
     });
 
-    const tx = await contract.mintSBT(
-      recipientAddress,
-      shopId,
-      tokenURI
-    );
+    // 事前チェック: provider.call を使って eth_call（静的実行）を行い、revert理由を取得
+    try {
+      const callData = contract.interface.encodeFunctionData('mintSBT', [recipientAddress, shopId, tokenURI]);
+      await provider.call({ to: contractAddress, data: callData });
+    } catch (callError: any) {
+      console.error('provider.call (static) failed (revert reason):', callError);
+      const reason = callError?.reason || callError?.message || JSON.stringify(callError);
+      return {
+        success: false,
+        error: `スマートコントラクトの呼び出しが失敗しました: ${reason}`,
+      };
+    }
+
+    const tx = await contract.mintSBT(recipientAddress, shopId, tokenURI);
 
     console.log('⏳ トランザクション送信:', tx.hash);
     

@@ -131,6 +131,7 @@ export const APP_CONFIG = {
 export const PINATA_CONFIG = {
   apiKey: import.meta.env.VITE_PINATA_API_KEY || '',
   apiSecret: import.meta.env.VITE_PINATA_API_SECRET || '',
+  jwt: import.meta.env.VITE_PINATA_JWT || '',
   baseUrl: 'https://api.pinata.cloud',
   gateway: 'https://gateway.pinata.cloud/ipfs',
   // 日本語ファイル名対応のため代替ゲートウェイも設定
