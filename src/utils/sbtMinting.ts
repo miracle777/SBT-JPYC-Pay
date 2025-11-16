@@ -234,24 +234,47 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
 
     } catch (gasError: any) {
       console.error('ガス推定エラー:', gasError);
-      // ガス推定失敗時はデフォルト値で再試行
-      try {
-        const tx = await contract.mintSBT(recipientAddress, shopId, tokenURI);
-        console.log('⏳ トランザクション送信 (デフォルトガス):', tx.hash);
-        receipt = await tx.wait();
-      } catch (fallbackError: any) {
-        console.error('❌ フォールバック実行エラー:', fallbackError);
-        let errorMessage = 'SBT 発行に失敗しました';
+      
+      // RPCエラーの場合はリトライを試行
+      if (gasError.code === 'UNKNOWN_ERROR' || gasError.message?.includes('Internal JSON-RPC error')) {
+        console.log('🔄 RPC接続エラーを検出、リトライを試行します...');
         
-        if (fallbackError.code === 'ACTION_REJECTED') {
-          errorMessage = 'トランザクションが拒否されました';
-        } else if (fallbackError.code === 'INSUFFICIENT_FUNDS') {
-          errorMessage = 'ガス代が不足しています';
-        } else if (fallbackError.reason) {
-          errorMessage = fallbackError.reason;
+        try {
+          // 1秒待機後にリトライ
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const retryTx = await contract.mintSBT(recipientAddress, shopId, tokenURI, {
+            gasLimit: BigInt(300000), // 安全なガス制限値
+          });
+          console.log('⏳ リトライトランザクション送信:', retryTx.hash);
+          receipt = await retryTx.wait();
+        } catch (retryError: any) {
+          console.error('❌ リトライ実行エラー:', retryError);
+          return {
+            success: false,
+            error: 'RPC接続に問題があります。しばらく時間をおいてから再度お試しください。',
+          };
         }
-        
-        return { success: false, error: errorMessage };
+      } else {
+        // ガス推定失敗時はデフォルト値で再試行
+        try {
+          const tx = await contract.mintSBT(recipientAddress, shopId, tokenURI);
+          console.log('⏳ トランザクション送信 (デフォルトガス):', tx.hash);
+          receipt = await tx.wait();
+        } catch (fallbackError: any) {
+          console.error('❌ フォールバック実行エラー:', fallbackError);
+          let errorMessage = 'SBT 発行に失敗しました';
+          
+          if (fallbackError.code === 'ACTION_REJECTED') {
+            errorMessage = 'トランザクションが拒否されました';
+          } else if (fallbackError.code === 'INSUFFICIENT_FUNDS') {
+            errorMessage = 'ガス代が不足しています';
+          } else if (fallbackError.reason) {
+            errorMessage = fallbackError.reason;
+          }
+          
+          return { success: false, error: errorMessage };
+        }
       }
     }
 

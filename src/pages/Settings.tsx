@@ -76,9 +76,9 @@ const Settings: React.FC = () => {
         pinataService.jwt = config.jwt;
       }
 
-      const isConnected = await pinataService.testAuthentication();
+      const result = await pinataService.testConnection();
       
-      if (isConnected) {
+      if (result.success) {
         setPinataConnectionStatus('success');
         if (!silent) {
           toast.success('✅ Pinata接続成功！');
@@ -86,7 +86,7 @@ const Settings: React.FC = () => {
       } else {
         setPinataConnectionStatus('failed');
         if (!silent) {
-          toast.error('❌ Pinata接続失敗：認証エラー');
+          toast.error(`❌ Pinata接続失敗：${result.message}`);
         }
       }
     } catch (error: any) {

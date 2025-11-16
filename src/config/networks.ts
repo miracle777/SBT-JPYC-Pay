@@ -7,6 +7,7 @@ export interface Network {
   currencySymbol: string;
   blockExplorerUrl: string;
   isTestnet: boolean;
+  backupRpcUrls?: string[];
 }
 
 export interface Currency {
@@ -37,6 +38,12 @@ export const NETWORKS: Record<string, Network> = {
     currencySymbol: 'POL',
     blockExplorerUrl: 'https://amoy.polygonscan.com',
     isTestnet: true,
+    // バックアップRPCエンドポイント
+    backupRpcUrls: [
+      'https://polygon-amoy-bor-rpc.publicnode.com',
+      'https://polygon-amoy.drpc.org',
+      'https://rpc.ankr.com/polygon_amoy'
+    ],
   },
 
   // Ethereum
