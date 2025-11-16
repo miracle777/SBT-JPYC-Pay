@@ -30,18 +30,57 @@ interface PinataListResponse {
 }
 
 export class PinataService {
-  private apiKey: string;
-  private apiSecret: string;
+  public apiKey: string;
+  public secretKey: string;
+  public jwt?: string;
   private baseUrl: string;
 
-  constructor(apiKey?: string, apiSecret?: string) {
-    this.apiKey = apiKey || PINATA_CONFIG.apiKey;
-    this.apiSecret = apiSecret || PINATA_CONFIG.apiSecret;
+  constructor(apiKey?: string, secretKey?: string, jwt?: string) {
+    // ローカルストレージから設定読み込み
+    this.loadFromLocalStorage();
+    
+    // 引数が指定されていれば優先使用
+    this.apiKey = apiKey || this.apiKey || PINATA_CONFIG.apiKey;
+    this.secretKey = secretKey || this.secretKey || PINATA_CONFIG.apiSecret;
+    this.jwt = jwt || this.jwt || PINATA_CONFIG.jwt;
     this.baseUrl = PINATA_CONFIG.baseUrl;
 
-    if (!this.apiKey || !this.apiSecret) {
-      throw new Error('Pinata API credentials are required');
+    console.log('🔧 Pinata初期化:', {
+      hasApiKey: !!this.apiKey,
+      hasSecretKey: !!this.secretKey,
+      hasJwt: !!this.jwt,
+    });
+  }
+
+  /**
+   * ローカルストレージから設定を読み込み
+   */
+  private loadFromLocalStorage(): void {
+    try {
+      const saved = localStorage.getItem('pinata-config');
+      if (saved) {
+        const config = JSON.parse(saved);
+        this.apiKey = config.apiKey || '';
+        this.secretKey = config.secretKey || '';
+        this.jwt = config.jwt || '';
+      }
+    } catch (error) {
+      console.warn('⚠️ Pinataローカル設定読み込みエラー:', error);
+      this.apiKey = '';
+      this.secretKey = '';
     }
+  }
+
+  /**
+   * 設定の動的更新
+   */
+  public updateConfig(apiKey: string, secretKey: string, jwt?: string): void {
+    this.apiKey = apiKey;
+    this.secretKey = secretKey;
+    if (jwt) {
+      this.jwt = jwt;
+    }
+    console.log('🔄 Pinata設定更新完了');
   }
 
   /**
@@ -49,14 +88,18 @@ export class PinataService {
    */
   private getHeaders(): Headers {
     const headers = new Headers();
-    // If a JWT is available in config, prefer Authorization header
-    // (some Pinata setups provide a JWT instead of apiKey/apiSecret)
-    const jwt = (PINATA_CONFIG as any).jwt as string | undefined;
-    if (jwt) {
-      headers.append('Authorization', `Bearer ${jwt}`);
+    
+    // JWTまたはAPI Key/Secretをチェック
+    if (!this.jwt && (!this.apiKey || !this.secretKey)) {
+      throw new Error('Pinata API credentials not configured. Please set up API key and secret in Settings.');
+    }
+
+    // JWTが利用可能であればJWTを優先
+    if (this.jwt) {
+      headers.append('Authorization', `Bearer ${this.jwt}`);
     } else {
       headers.append('pinata_api_key', this.apiKey);
-      headers.append('pinata_api_secret', this.apiSecret);
+      headers.append('pinata_api_secret', this.secretKey);
     }
     return headers;
   }
@@ -352,6 +395,43 @@ export class PinataService {
 
     // すべてのゲートウェイが失敗した場合はデフォルトを返す
     return this.getPublicUrl(ipfsHash);
+  }
+
+  /**
+   * 接続テスト用メソッド
+   */
+  public async testConnection(): Promise<{ success: boolean; message: string }> {
+    try {
+      // JWTまたはAPI Key/Secretをチェック
+      if (!this.jwt && (!this.apiKey || !this.secretKey)) {
+        return {
+          success: false,
+          message: 'API credentials not configured'
+        };
+      }
+
+      const response = await fetch(`${this.baseUrl}/data/testAuthentication`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+
+      if (response.ok) {
+        return {
+          success: true,
+          message: 'Connection successful'
+        };
+      } else {
+        return {
+          success: false,
+          message: `Connection failed: ${response.status} ${response.statusText}`
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `Connection error: ${error}`
+      };
+    }
   }
 
   /**

@@ -7,9 +7,11 @@
 
 // IndexedDB データベース設定
 const DB_NAME = 'SBT_JPYC_PAY';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // 画像ストア追加のためバージョンアップ
 const TEMPLATE_STORE = 'templates';
 const ISSUED_SBT_STORE = 'issued_sbts';
+const IMAGE_STORE = 'images'; // 画像専用ストア
+const EXPORT_DATA_STORE = 'export_data'; // エクスポートデータ用ストア
 
 interface StorageConfig {
   dbName?: string;
@@ -64,6 +66,21 @@ class SBTStorage {
           issuedStore.createIndex('templateId', 'templateId', { unique: false });
           issuedStore.createIndex('issuedAt', 'issuedAt', { unique: false });
           console.log('🎁 Issued SBTs ストア作成');
+        }
+
+        // Images ストア作成
+        if (!db.objectStoreNames.contains(IMAGE_STORE)) {
+          const imageStore = db.createObjectStore(IMAGE_STORE, { keyPath: 'id' });
+          imageStore.createIndex('templateId', 'templateId', { unique: false });
+          imageStore.createIndex('createdAt', 'createdAt', { unique: false });
+          console.log('🖼️ Images ストア作成');
+        }
+
+        // Export Data ストア作成
+        if (!db.objectStoreNames.contains(EXPORT_DATA_STORE)) {
+          const exportStore = db.createObjectStore(EXPORT_DATA_STORE, { keyPath: 'id' });
+          exportStore.createIndex('exportedAt', 'exportedAt', { unique: false });
+          console.log('📦 Export Data ストア作成');
         }
       };
     });
@@ -267,37 +284,222 @@ class SBTStorage {
   }
 
   /**
-   * データベース全体をエクスポート（バックアップ用）
+   * 画像を保存（ローカル完結）
+   */
+  async saveImage(imageData: {
+    id: string;
+    templateId?: string;
+    fileName: string;
+    mimeType: string;
+    base64Data: string;
+    size: number;
+  }): Promise<void> {
+    try {
+      const db = await this.initDB();
+      const transaction = db.transaction([IMAGE_STORE], 'readwrite');
+      const store = transaction.objectStore(IMAGE_STORE);
+      
+      const imageRecord = {
+        ...imageData,
+        createdAt: new Date().toISOString(),
+      };
+
+      await new Promise((resolve, reject) => {
+        const request = store.put(imageRecord);
+        request.onsuccess = () => resolve(undefined);
+        request.onerror = () => reject(request.error);
+      });
+
+      console.log(`🖼️ 画像保存: ${imageData.fileName} (${Math.round(imageData.size / 1024)}KB)`);
+    } catch (error) {
+      console.error('画像保存エラー:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 画像を取得
+   */
+  async getImage(imageId: string): Promise<any | null> {
+    try {
+      const db = await this.initDB();
+      const transaction = db.transaction([IMAGE_STORE], 'readonly');
+      const store = transaction.objectStore(IMAGE_STORE);
+
+      return new Promise((resolve, reject) => {
+        const request = store.get(imageId);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error('画像取得エラー:', error);
+      return null;
+    }
+  }
+
+  /**
+   * すべての画像を取得
+   */
+  async getAllImages(): Promise<any[]> {
+    try {
+      const db = await this.initDB();
+      const transaction = db.transaction([IMAGE_STORE], 'readonly');
+      const store = transaction.objectStore(IMAGE_STORE);
+
+      return new Promise((resolve, reject) => {
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error('画像一覧取得エラー:', error);
+      return [];
+    }
+  }
+
+  /**
+   * データベース全体をエクスポート（画像込み、PWA対応）
    */
   async exportData(): Promise<{
     templates: any[];
     sbts: any[];
+    images: any[];
     exportedAt: string;
+    version: string;
+    appName: string;
   }> {
     const templates = await this.getAllTemplates();
     const sbts = await this.getAllSBTs();
+    const images = await this.getAllImages();
     
-    return {
+    const exportData = {
       templates,
       sbts,
+      images,
       exportedAt: new Date().toISOString(),
+      version: '2.0.0',
+      appName: 'SBT JPYC Pay',
     };
+
+    // エクスポート履歴を保存
+    await this.saveExportHistory(exportData);
+    
+    return exportData;
   }
 
   /**
-   * データをインポート（リストア用）
+   * エクスポート履歴を保存
+   */
+  private async saveExportHistory(exportData: any): Promise<void> {
+    try {
+      const db = await this.initDB();
+      const transaction = db.transaction([EXPORT_DATA_STORE], 'readwrite');
+      const store = transaction.objectStore(EXPORT_DATA_STORE);
+      
+      const historyRecord = {
+        id: `export-${Date.now()}`,
+        exportedAt: exportData.exportedAt,
+        templateCount: exportData.templates.length,
+        sbtCount: exportData.sbts.length,
+        imageCount: exportData.images.length,
+        size: JSON.stringify(exportData).length,
+      };
+
+      await new Promise((resolve, reject) => {
+        const request = store.put(historyRecord);
+        request.onsuccess = () => resolve(undefined);
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.warn('エクスポート履歴保存エラー:', error);
+    }
+  }
+
+  /**
+   * データをインポート（画像込み、PWA対応）
    */
   async importData(data: {
     templates: any[];
     sbts: any[];
+    images?: any[];
+    version?: string;
   }): Promise<void> {
+    // テンプレートをインポート
     for (const template of data.templates) {
       await this.saveTemplate(template);
     }
+    
+    // SBTをインポート
     for (const sbt of data.sbts) {
       await this.saveSBT(sbt);
     }
-    console.log(`✅ ${data.templates.length} テンプレート、${data.sbts.length} SBT をインポート`);
+    
+    // 画像をインポート（v2.0.0以降）
+    if (data.images && Array.isArray(data.images)) {
+      for (const image of data.images) {
+        try {
+          await this.saveImage(image);
+        } catch (error) {
+          console.warn('画像インポートエラー:', error);
+        }
+      }
+    }
+    
+    console.log(`✅ ${data.templates.length} テンプレート、${data.sbts.length} SBT${data.images ? `、${data.images.length} 画像` : ''} をインポート`);
+  }
+
+  /**
+   * JSONファイルとしてエクスポート（ダウンロード）
+   */
+  async downloadExport(filename?: string): Promise<void> {
+    const exportData = await this.exportData();
+    const jsonString = JSON.stringify(exportData, null, 2);
+    
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || `sbt-jpyc-pay-export-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    console.log(`📥 エクスポート完了: ${a.download}`);
+  }
+
+  /**
+   * ファイルからインポート（アップロード）
+   */
+  async uploadImport(file: File): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = async (event) => {
+        try {
+          const jsonString = event.target?.result as string;
+          const data = JSON.parse(jsonString);
+          
+          // バリデーション
+          if (!data.templates || !Array.isArray(data.templates)) {
+            throw new Error('無効なエクスポートファイルです（テンプレートが見つかりません）');
+          }
+          
+          await this.importData(data);
+          resolve();
+        } catch (error: any) {
+          console.error('インポートエラー:', error);
+          reject(new Error(`インポートに失敗しました: ${error.message}`));
+        }
+      };
+      
+      reader.onerror = () => {
+        reject(new Error('ファイルの読み込みに失敗しました'));
+      };
+      
+      reader.readAsText(file);
+    });
   }
 
   /**
@@ -322,15 +524,31 @@ class SBTStorage {
         request.onerror = () => reject(request.error);
       });
 
+      // 画像ストアをクリア
+      const imageTx = db.transaction([IMAGE_STORE], 'readwrite');
+      await new Promise((resolve, reject) => {
+        const request = imageTx.objectStore(IMAGE_STORE).clear();
+        request.onsuccess = () => resolve(undefined);
+        request.onerror = () => reject(request.error);
+      });
+
+      // エクスポートデータストアをクリア
+      const exportTx = db.transaction([EXPORT_DATA_STORE], 'readwrite');
+      await new Promise((resolve, reject) => {
+        const request = exportTx.objectStore(EXPORT_DATA_STORE).clear();
+        request.onsuccess = () => resolve(undefined);
+        request.onerror = () => reject(request.error);
+      });
+
       // localStorage クリア
       const keys = Object.keys(localStorage);
       for (const key of keys) {
-        if (key.startsWith('sbt_template_') || key.startsWith('issued_sbt_')) {
+        if (key.startsWith('sbt_template_') || key.startsWith('issued_sbt_') || key.startsWith('used-shop-ids')) {
           localStorage.removeItem(key);
         }
       }
 
-      console.log('🧹 データベースをクリア');
+      console.log('🧹 データベースをクリア（画像・エクスポート履歴も含む）');
     } catch (error) {
       console.error('データベースクリアエラー:', error);
       throw error;

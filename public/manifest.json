@@ -1,13 +1,15 @@
 {
   "name": "SBT JPYC Pay - 店舗スタンプカード管理",
   "short_name": "SBT Pay",
-  "description": "SBTスタンプカード発行・QR決済管理システム。パソコン・タブレット・スマートフォンで使用可能。データはローカル保存されます。",
+  "description": "SBTスタンプカード発行・QR決済管理システム。PWA対応でオフライン作業、画像ローカル保存、データエクスポート可能。パソコン・タブレット・スマートフォンで使用できます。",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#7c3aed",
   "background_color": "#ffffff",
+  "lang": "ja",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -40,14 +42,14 @@
       "sizes": "540x720",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "SBT管理画面"
+      "label": "SBT管理画面（モバイル）"
     },
     {
       "src": "/icons/screenshot-1280x720.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "SBT管理画面（ワイド）"
+      "label": "SBT管理画面（PC・タブレット）"
     }
   ],
   "shortcuts": [
@@ -76,11 +78,41 @@
           "type": "image/png"
         }
       ]
+    },
+    {
+      "name": "データ管理",
+      "short_name": "データ",
+      "description": "エクスポート・インポート",
+      "url": "/sbt?tab=export",
+      "icons": [
+        {
+          "src": "/icons/shortcut-data-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     }
   ],
   "categories": [
     "business",
-    "productivity"
+    "productivity",
+    "finance"
   ],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+sbtjpycpay",
+      "url": "/?template=%s"
+    }
+  ]
 }

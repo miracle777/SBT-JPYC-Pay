@@ -406,9 +406,15 @@ export async function getContractOwner(
  * ショップ情報を取得する
  */
 export async function getShopInfo(
-  shopId: number,
+  shopId: number, 
   chainId: number
 ): Promise<{
+  success?: boolean;
+  shopInfo?: {
+    name: string;
+    owner: string;
+    active: boolean;
+  };
   name?: string;
   owner?: string;
   active?: boolean;
@@ -442,13 +448,30 @@ export async function getShopInfo(
 
     console.log(`ショップ詳細 (Shop ${shopId}): name=${name}, owner=${owner}, active=${active}`);
 
-    return {
-      name,
-      owner,
-      active,
-    };
+    // ショップが正常に取得できた場合
+    if (name && owner && owner !== '0x0000000000000000000000000000000000000000') {
+      return {
+        success: true,
+        shopInfo: {
+          name,
+          owner,
+          active,
+        },
+        name,
+        owner,
+        active,
+      };
+    } else {
+      return { error: 'Shop not found' };
+    }
   } catch (error: any) {
     console.error('ショップ情報取得エラー:', error);
+    
+    // "Shop not found" エラーの場合は、実際に未登録として扱う
+    if (error.message?.includes('Shop not found')) {
+      return { error: 'Shop not found' };
+    }
+    
     return { error: error.message };
   }
 }

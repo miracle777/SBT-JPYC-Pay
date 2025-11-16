@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { Settings as SettingsIcon, Save, Copy, ExternalLink, Download, Upload } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings as SettingsIcon, Save, Copy, ExternalLink, Download, Upload, Eye, EyeOff, CheckCircle, AlertCircle, Key } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { NETWORKS } from '../config/networks';
 import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
+import { pinataService } from '../utils/pinata';
 
 const Settings: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
@@ -13,8 +14,123 @@ const Settings: React.FC = () => {
     id: DEFAULT_SHOP_INFO.id,
   });
 
+  // 🔐 Pinata設定の状態管理
+  const [pinataConfig, setPinataConfig] = useState({
+    apiKey: '',
+    secretKey: '',
+    jwt: '',
+  });
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showSecretKey, setShowSecretKey] = useState(false);
+  const [showJwt, setShowJwt] = useState(false);
+  const [pinataConnectionStatus, setPinataConnectionStatus] = useState<'unknown' | 'testing' | 'success' | 'failed'>('unknown');
+  const [isTestingPinata, setIsTestingPinata] = useState(false);
+
   const shopWalletAddress = getShopWalletAddress(walletAddress);
   const currentNetwork = Object.values(NETWORKS).find(n => n.chainId === currentChainId);
+
+  // 🔄 Pinata設定をローカルストレージから読み込み
+  useEffect(() => {
+    const loadPinataConfig = () => {
+      try {
+        const saved = localStorage.getItem('pinata-config');
+        if (saved) {
+          const config = JSON.parse(saved);
+          setPinataConfig({
+            apiKey: config.apiKey || '',
+            secretKey: config.secretKey || '',
+            jwt: config.jwt || '',
+          });
+          
+          // 設定があれば自動テスト（静かに）
+          if (config.apiKey && config.secretKey) {
+            testPinataConnection(config, true);
+          }
+        }
+      } catch (error) {
+        console.warn('Pinata設定読み込みエラー:', error);
+      }
+    };
+
+    loadPinataConfig();
+  }, []);
+
+  // 🧪 Pinata接続テスト
+  const testPinataConnection = async (config = pinataConfig, silent = false) => {
+    if (!config.apiKey || !config.secretKey) {
+      if (!silent) {
+        toast.error('APIキーとSecret Keyを入力してください');
+      }
+      return;
+    }
+
+    setIsTestingPinata(true);
+    setPinataConnectionStatus('testing');
+
+    try {
+      // 一時的に設定を更新してテスト
+      const originalConfig = { ...pinataService };
+      pinataService.apiKey = config.apiKey;
+      pinataService.secretKey = config.secretKey;
+      if (config.jwt) {
+        pinataService.jwt = config.jwt;
+      }
+
+      const isConnected = await pinataService.testAuthentication();
+      
+      if (isConnected) {
+        setPinataConnectionStatus('success');
+        if (!silent) {
+          toast.success('✅ Pinata接続成功！');
+        }
+      } else {
+        setPinataConnectionStatus('failed');
+        if (!silent) {
+          toast.error('❌ Pinata接続失敗：認証エラー');
+        }
+      }
+    } catch (error: any) {
+      console.error('Pinata接続テストエラー:', error);
+      setPinataConnectionStatus('failed');
+      if (!silent) {
+        toast.error(`❌ Pinata接続失敗: ${error.message}`);
+      }
+    } finally {
+      setIsTestingPinata(false);
+    }
+  };
+
+  // 💾 Pinata設定保存
+  const savePinataConfig = () => {
+    try {
+      localStorage.setItem('pinata-config', JSON.stringify(pinataConfig));
+      
+      // pinataServiceインスタンスを更新
+      pinataService.apiKey = pinataConfig.apiKey;
+      pinataService.secretKey = pinataConfig.secretKey;
+      if (pinataConfig.jwt) {
+        pinataService.jwt = pinataConfig.jwt;
+      }
+      
+      toast.success('✅ Pinata設定を保存しました');
+      
+      // 保存後、自動テスト
+      if (pinataConfig.apiKey && pinataConfig.secretKey) {
+        setTimeout(() => testPinataConnection(), 500);
+      }
+    } catch (error) {
+      console.error('Pinata設定保存エラー:', error);
+      toast.error('❌ 設定保存に失敗しました');
+    }
+  };
+
+  // 🗑️ Pinata設定クリア
+  const clearPinataConfig = () => {
+    setPinataConfig({ apiKey: '', secretKey: '', jwt: '' });
+    localStorage.removeItem('pinata-config');
+    setPinataConnectionStatus('unknown');
+    toast.success('🧹 Pinata設定をクリアしました');
+  };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -233,6 +349,169 @@ const Settings: React.FC = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 🔐 IPFS/Pinata設定 */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <Key className="w-6 h-6 text-purple-600" />
+            <h2 className="text-lg font-bold text-gray-900">IPFS / Pinata 設定</h2>
+            {pinataConnectionStatus === 'success' && <CheckCircle className="w-5 h-5 text-green-600" />}
+            {pinataConnectionStatus === 'failed' && <AlertCircle className="w-5 h-5 text-red-600" />}
+          </div>
+          
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-yellow-800">
+              <span className="font-semibold">🔒 セキュリティ重要:</span> これらのAPIキーはブラウザのローカルストレージに保存されます。
+              他人と共有しないでください。本番環境では各自でPinataアカウントを作成し、専用のAPIキーを使用してください。
+            </p>
+          </div>
+
+          {/* 接続状態表示 */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">接続状態</label>
+            <div className={`p-3 rounded-lg border ${
+              pinataConnectionStatus === 'success' ? 'bg-green-50 border-green-200' : 
+              pinataConnectionStatus === 'failed' ? 'bg-red-50 border-red-200' :
+              pinataConnectionStatus === 'testing' ? 'bg-blue-50 border-blue-200' :
+              'bg-gray-50 border-gray-200'
+            }`}>
+              <p className={`text-sm font-semibold ${
+                pinataConnectionStatus === 'success' ? 'text-green-800' : 
+                pinataConnectionStatus === 'failed' ? 'text-red-800' :
+                pinataConnectionStatus === 'testing' ? 'text-blue-800' :
+                'text-gray-800'
+              }`}>
+                {pinataConnectionStatus === 'success' && '✅ Pinata接続成功'}
+                {pinataConnectionStatus === 'failed' && '❌ Pinata接続失敗'}
+                {pinataConnectionStatus === 'testing' && '🔄 Pinata接続テスト中...'}
+                {pinataConnectionStatus === 'unknown' && '❓ 接続未確認'}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {/* API Key */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pinata API Key</label>
+              <div className="flex gap-2">
+                <input
+                  type={showApiKey ? 'text' : 'password'}
+                  value={pinataConfig.apiKey}
+                  onChange={(e) => setPinataConfig({ ...pinataConfig, apiKey: e.target.value })}
+                  placeholder="Pinata API Keyを入力"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                >
+                  {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Secret Key */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pinata Secret Key</label>
+              <div className="flex gap-2">
+                <input
+                  type={showSecretKey ? 'text' : 'password'}
+                  value={pinataConfig.secretKey}
+                  onChange={(e) => setPinataConfig({ ...pinataConfig, secretKey: e.target.value })}
+                  placeholder="Pinata Secret Keyを入力"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSecretKey(!showSecretKey)}
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                >
+                  {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* JWT（オプション） */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pinata JWT（オプション）</label>
+              <div className="flex gap-2">
+                <input
+                  type={showJwt ? 'text' : 'password'}
+                  value={pinataConfig.jwt}
+                  onChange={(e) => setPinataConfig({ ...pinataConfig, jwt: e.target.value })}
+                  placeholder="Pinata JWT（高度な機能用）"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowJwt(!showJwt)}
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                >
+                  {showJwt ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                JWTは高度なPinata機能で必要です。通常はAPI Key + Secret Keyで十分です。
+              </p>
+            </div>
+
+            {/* ボタン */}
+            <div className="flex gap-3">
+              <button
+                onClick={savePinataConfig}
+                disabled={!pinataConfig.apiKey || !pinataConfig.secretKey}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                設定を保存
+              </button>
+              <button
+                onClick={() => testPinataConnection()}
+                disabled={isTestingPinata || !pinataConfig.apiKey || !pinataConfig.secretKey}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2"
+              >
+                {isTestingPinata ? (
+                  <>🔄 テスト中...</>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    接続テスト
+                  </>
+                )}
+              </button>
+              <button
+                onClick={clearPinataConfig}
+                className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition duration-200"
+              >
+                クリア
+              </button>
+            </div>
+
+            {/* Pinata情報リンク */}
+            <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <p className="text-sm text-purple-800 mb-2">
+                <span className="font-semibold">💡 Pinata API Key取得方法:</span>
+              </p>
+              <ol className="text-xs text-purple-700 space-y-1 list-decimal list-inside">
+                <li>Pinata.cloud にアカウント登録</li>
+                <li>ダッシュボード → API Keys</li>
+                <li>「New Key」でAPI Key作成</li>
+                <li>Scope: 「pinFileToIPFS」を有効化</li>
+                <li>API KeyとSecret Keyを上記に入力</li>
+              </ol>
+              <a 
+                href="https://app.pinata.cloud/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-800 font-semibold text-sm mt-2"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Pinata.cloud を開く
+              </a>
             </div>
           </div>
         </div>

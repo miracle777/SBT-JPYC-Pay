@@ -149,6 +149,12 @@ const SBTManagement: React.FC = () => {
   const [shopNameForReg, setShopNameForReg] = useState('');
   const [shopDescForReg, setShopDescForReg] = useState('');
   const [isRegisteringShop, setIsRegisteringShop] = useState(false);
+  
+  // 📥📤 エクスポート・インポート関連
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
 
   // マウント時: IndexedDB + localStorage からデータを読み込み
   useEffect(() => {
@@ -161,6 +167,14 @@ const SBTManagement: React.FC = () => {
         if (savedTemplates.length > 0) {
           setTemplates(savedTemplates);
           console.log(`✅ ${savedTemplates.length}個のテンプレートをロード`);
+          
+          // 使用済みショップIDをローカルストレージに記録（重複防止用）
+          try {
+            const usedShopIds = savedTemplates.map(t => t.shopId).filter(Boolean);
+            localStorage.setItem('used-shop-ids', JSON.stringify([...new Set(usedShopIds)]));
+          } catch (error) {
+            console.warn('使用済みショップID保存エラー:', error);
+          }
         }
 
         // 発行済み SBT を読み込み
@@ -388,8 +402,8 @@ const SBTManagement: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // 画像ファイルアップロード処理
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 画像ファイルアップロード処理（ローカル保存対応）
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -407,15 +421,33 @@ const SBTManagement: React.FC = () => {
 
     // Base64 に変換
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const base64String = event.target?.result as string;
+      
+      // 画像をローカルに保存（IndexedDB）
+      const imageId = `image-${Date.now()}`;
+      try {
+        await sbtStorage.saveImage({
+          id: imageId,
+          templateId: editingTemplateId || undefined,
+          fileName: file.name,
+          mimeType: file.type,
+          base64Data: base64String,
+          size: file.size,
+        });
+        
+        console.log(`🖼️ 画像をローカルに保存: ${file.name} (ID: ${imageId})`);
+      } catch (error) {
+        console.warn('画像のローカル保存エラー:', error);
+      }
+      
       setNewTemplate({
         ...newTemplate,
         imageUrl: base64String,
         imageMimeType: file.type,
       });
       setImagePreview(base64String);
-      toast.success('画像をアップロードしました');
+      toast.success(`画像をアップロード・保存しました (${Math.round(file.size / 1024)}KB)`);
     };
     reader.readAsDataURL(file);
   };
@@ -450,7 +482,7 @@ const SBTManagement: React.FC = () => {
         
         if (shopResult.success && shopResult.shopInfo) {
           console.log(`✅ ショップ${shopId} (${templateName})は登録済み:`, shopResult.shopInfo.name);
-        } else {
+        } else if (shopResult.error && shopResult.error.includes('Shop not found')) {
           console.log(`⚠️ ショップ${shopId} (${templateName})が未登録です。自動登録を試みます...`);
           
           // ショップを自動登録
@@ -471,13 +503,21 @@ const SBTManagement: React.FC = () => {
                 toast.success(`ショップ "${template.name}" を自動登録しました (ID: ${shopId})`);
               } else {
                 console.error(`❌ ショップ${shopId}の自動登録失敗:`, registerResult.error);
-                toast.error(`ショップ "${template.name}" の登録に失敗: ${registerResult.error}`);
+                // "Shop already registered" エラーは無視（実際は登録済み）
+                if (!registerResult.error?.includes('Shop already registered')) {
+                  toast.error(`ショップ "${template.name}" の登録に失敗: ${registerResult.error}`);
+                }
               }
-            } catch (error) {
+            } catch (error: any) {
               console.error(`❌ ショップ${shopId}の自動登録エラー:`, error);
-              toast.error(`ショップ "${template.name}" の登録でエラーが発生しました`);
+              // "Shop already registered" エラーは無視（実際は登録済み）
+              if (!error.message?.includes('Shop already registered')) {
+                toast.error(`ショップ "${template.name}" の登録でエラーが発生しました`);
+              }
             }
           }
+        } else {
+          console.warn(`⚠️ ショップ${shopId}の状態が不明です:`, shopResult.error);
         }
       } catch (error) {
         console.error(`❌ ショップ${shopId}の確認エラー:`, error);
@@ -510,6 +550,60 @@ const SBTManagement: React.FC = () => {
     }
 
     handleTemplateFormSubmit(e);
+  };
+
+  // 📥 エクスポート機能
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      await sbtStorage.downloadExport();
+      toast.success('✅ データをエクスポートしました！');
+      setShowExportModal(false);
+    } catch (error: any) {
+      console.error('エクスポートエラー:', error);
+      toast.error(`エクスポートに失敗しました: ${error.message}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // 📤 インポート機能
+  const handleImport = async () => {
+    if (!importFile) {
+      toast.error('インポートファイルを選択してください');
+      return;
+    }
+
+    try {
+      setIsImporting(true);
+      
+      // インポート実行
+      await sbtStorage.uploadImport(importFile);
+      
+      // データを再読み込み
+      const savedTemplates = await sbtStorage.getAllTemplates();
+      const savedSBTs = await sbtStorage.getAllSBTs();
+      
+      setTemplates(savedTemplates);
+      setIssuedSBTs(savedSBTs);
+      
+      // 使用済みショップIDを更新
+      try {
+        const usedShopIds = savedTemplates.map(t => t.shopId).filter(Boolean);
+        localStorage.setItem('used-shop-ids', JSON.stringify([...new Set(usedShopIds)]));
+      } catch (error) {
+        console.warn('使用済みショップID更新エラー:', error);
+      }
+      
+      toast.success('✅ データをインポートしました！');
+      setImportFile(null);
+      setShowExportModal(false);
+    } catch (error: any) {
+      console.error('インポートエラー:', error);
+      toast.error(`インポートに失敗しました: ${error.message}`);
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const deleteTemplate = (id: string) => {
@@ -677,6 +771,15 @@ const SBTManagement: React.FC = () => {
 
       // IndexedDB に保存
       await sbtStorage.saveTemplate(newTemplateData);
+      
+      // ローカルストレージにもショップIDリストを保存（重複防止用）
+      try {
+        const existingShopIds = JSON.parse(localStorage.getItem('used-shop-ids') || '[]');
+        existingShopIds.push(shopId);
+        localStorage.setItem('used-shop-ids', JSON.stringify([...new Set(existingShopIds)]));
+      } catch (error) {
+        console.warn('ショップIDリスト保存エラー:', error);
+      }
 
       // フォームをリセット
       setNewTemplate({
@@ -935,16 +1038,26 @@ const SBTManagement: React.FC = () => {
               <Award className="w-8 h-8 text-purple-600" />
               <h1 className="text-3xl font-bold text-gray-900">SBT管理</h1>
             </div>
-            <button
-              onClick={() => setShowGuideModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition"
-              title="使い方ガイドを表示"
-            >
-              <HelpCircle className="w-5 h-5" />
-              使い方ガイド
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg transition"
+                title="データをエクスポート・インポート"
+              >
+                <ExternalLink className="w-5 h-5" />
+                データ管理
+              </button>
+              <button
+                onClick={() => setShowGuideModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition"
+                title="使い方ガイドを表示"
+              >
+                <HelpCircle className="w-5 h-5" />
+                使い方ガイド
+              </button>
+            </div>
           </div>
-          <p className="text-gray-600">スタンプカードテンプレートの作成・管理と発行</p>
+          <p className="text-gray-600">スタンプカードテンプレートの作成・管理と発行（PWA対応、画像ローカル保存、データエクスポート可能）</p>
         </div>
 
         {/* 使い方ガイドモーダル */}
@@ -2003,6 +2116,99 @@ const SBTManagement: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* エクスポート・インポートモーダル */}
+        {showExportModal && (
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="fixed inset-0 bg-black opacity-50 z-40" onClick={() => setShowExportModal(false)}></div>
+            <div className="bg-white rounded-lg shadow-2xl z-50 p-8 max-w-2xl w-full mx-4">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">📦 データ管理</h2>
+                <button 
+                  onClick={() => setShowExportModal(false)}
+                  className="text-gray-500 hover:text-gray-800 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* エクスポートセクション */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h3 className="text-lg font-bold text-green-900 mb-3">📥 データエクスポート</h3>
+                  <p className="text-sm text-green-800 mb-4">
+                    すべてのテンプレート、SBT、画像データをJSONファイルでダウンロードします。
+                    PWA対応により、他のデバイスやユーザーと共有できます。
+                  </p>
+                  <div className="bg-green-100 rounded p-3 text-xs text-green-800 mb-4">
+                    <p className="font-semibold mb-1">💡 含まれるデータ:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>テンプレート: {templates.length}件</li>
+                      <li>発行済みSBT: {issuedSBTs.length}件</li>
+                      <li>画像データ: ローカル保存済み（Base64形式）</li>
+                      <li>ショップID情報とメタデータ</li>
+                    </ul>
+                  </div>
+                  <button
+                    onClick={handleExport}
+                    disabled={isExporting}
+                    className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition"
+                  >
+                    {isExporting ? '📥 エクスポート中...' : '📥 データをエクスポート'}
+                  </button>
+                </div>
+
+                {/* インポートセクション */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-lg font-bold text-blue-900 mb-3">📤 データインポート</h3>
+                  <p className="text-sm text-blue-800 mb-4">
+                    エクスポートしたJSONファイルを選択してデータを復元します。
+                    既存データは上書きされますのでご注意ください。
+                  </p>
+                  <div className="mb-4">
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                      className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                    {importFile && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        選択ファイル: {importFile.name} ({Math.round(importFile.size / 1024)}KB)
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleImport}
+                    disabled={isImporting || !importFile}
+                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition"
+                  >
+                    {isImporting ? '📤 インポート中...' : '📤 データをインポート'}
+                  </button>
+                </div>
+
+                {/* PWA説明 */}
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <h3 className="text-lg font-bold text-purple-900 mb-2">🚀 PWA（Progressive Web App）対応</h3>
+                  <div className="text-xs text-purple-800 space-y-1">
+                    <p>• <span className="font-semibold">オフライン対応:</span> テンプレート作成・管理は通信不要</p>
+                    <p>• <span className="font-semibold">画像ローカル保存:</span> アップロード画像をブラウザに永続保存</p>
+                    <p>• <span className="font-semibold">データポータブル:</span> エクスポート/インポートで他デバイス移行可能</p>
+                    <p>• <span className="font-semibold">アプリライク:</span> ホーム画面への追加可能</p>
+                    <p className="pt-2 text-purple-600">※ SBT発行時のみブロックチェーン・IPFS通信が必要です</p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="w-full mt-6 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition"
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

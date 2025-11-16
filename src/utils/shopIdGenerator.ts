@@ -71,6 +71,23 @@ export function generateNonConflictingShopId(
   // 既存のショップIDを収集
   const existingIds = new Set<number>();
   
+  // 予約済みのショップID（初期テンプレート用）
+  existingIds.add(1); // スタンプカード
+  existingIds.add(2); // マイルストーン達成
+  existingIds.add(3); // キャンペーン記念
+  
+  // localStorage に保存された使用済みショップIDを確認
+  try {
+    const usedShopIds = JSON.parse(localStorage.getItem('used-shop-ids') || '[]');
+    for (const id of usedShopIds) {
+      if (typeof id === 'number') {
+        existingIds.add(id);
+      }
+    }
+  } catch (error) {
+    console.warn('使用済みショップID取得エラー:', error);
+  }
+  
   // localStorage に保存されたテンプレートのショップID を確認
   try {
     const saved = localStorage.getItem('sbt-templates');
@@ -109,6 +126,7 @@ export function generateNonConflictingShopId(
     }
   } while (existingIds.has(shopId));
 
+  console.log(`🆔 新規ショップID生成: ${shopId} (既存ID数: ${existingIds.size})`);
   return shopId;
 }
 
