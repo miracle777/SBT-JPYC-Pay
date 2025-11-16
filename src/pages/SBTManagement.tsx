@@ -285,6 +285,57 @@ const SBTManagement: React.FC = () => {
     fetchSBTGasPrice();
   }, [currentChainId, walletAddress]);
 
+  // チェーンが変更された時、コントラクト所有者・ショップ情報を確認
+  useEffect(() => {
+    const checkContractOwnership = async () => {
+      if (!selectedChainForSBT) return;
+
+      console.log(`🔍 コントラクト所有者情報を確認中: Chain ${selectedChainForSBT}, Wallet: ${walletAddress}`);
+
+      try {
+        const ownerResult = await getContractOwner(selectedChainForSBT);
+        if (ownerResult.owner) {
+          setContractOwner(ownerResult.owner);
+          console.log(`📋 コントラクトオーナー: ${ownerResult.owner}`);
+          
+          if (walletAddress && ownerResult.owner.toLowerCase() === walletAddress.toLowerCase()) {
+            setIsContractOwner(true);
+            console.log('✅ 現在のウォレットはコントラクトオーナーです');
+          } else {
+            setIsContractOwner(false);
+            console.log('❌ 現在のウォレットはコントラクトオーナーではありません');
+          }
+
+          // ショップ情報を取得
+          const shopResult = await getShopInfo(1, selectedChainForSBT);
+          if (shopResult.owner) {
+            setShopInfo(shopResult);
+            console.log(`📋 ショップオーナー (ID:1): ${shopResult.owner}`);
+            if (walletAddress && shopResult.owner.toLowerCase() === walletAddress.toLowerCase()) {
+              setIsShopOwner(true);
+              console.log('✅ 現在のウォレットはショップオーナー (ID:1) です');
+            } else {
+              setIsShopOwner(false);
+              console.log('❌ 現在のウォレットはショップオーナー (ID:1) ではありません');
+            }
+          } else {
+            setShopInfo(null);
+            setIsShopOwner(false);
+            if (shopResult.error) {
+              console.warn(`⚠️ ショップ情報取得エラー: ${shopResult.error}`);
+            }
+          }
+        } else if (ownerResult.error) {
+          console.warn(`⚠️ コントラクトオーナー取得エラー: ${ownerResult.error}`);
+        }
+      } catch (error) {
+        console.error('❌ コントラクト所有者確認エラー:', error);
+      }
+    };
+
+    checkContractOwnership();
+  }, [selectedChainForSBT, walletAddress]);
+
   // LocalStorage から完了した支払いセッションを読み込み
   useEffect(() => {
     const saved = localStorage.getItem('completedPaymentSessions');

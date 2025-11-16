@@ -198,10 +198,14 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
       tokenURI,
     });
 
+    // Signer のアドレスを取得（現在の呼び出し者）
+    const signerAddress = await signer.getAddress();
+    console.log(`👤 現在の Signer アドレス: ${signerAddress}`);
+
     // 事前チェック: provider.call を使って eth_call（静的実行）を行い、revert理由を取得
     try {
       const callData = contract.interface.encodeFunctionData('mintSBT', [recipientAddress, shopId, tokenURI]);
-      await provider.call({ to: contractAddress, data: callData });
+      await provider.call({ to: contractAddress, data: callData, from: signerAddress });
     } catch (callError: any) {
       console.error('provider.call (static) failed (revert reason):', callError);
       const reason = callError?.reason || callError?.message || JSON.stringify(callError);
@@ -396,10 +400,17 @@ export async function getShopInfo(
     const shopInfo = await contract.getShopInfo(shopId);
     console.log(`✅ ショップ情報 (Shop ${shopId}):`, shopInfo);
 
+    // ethers.js v6の構造体は配列型でもアクセス可能なため、プロパティ名でアクセス
+    const name = typeof shopInfo.name === 'string' ? shopInfo.name : (shopInfo[0] || '');
+    const owner = shopInfo.owner && shopInfo.owner.toString ? shopInfo.owner.toString() : (shopInfo[2] || '');
+    const active = typeof shopInfo.active === 'boolean' ? shopInfo.active : (shopInfo[4] || false);
+
+    console.log(`ショップ詳細 (Shop ${shopId}): name=${name}, owner=${owner}, active=${active}`);
+
     return {
-      name: shopInfo.name,
-      owner: shopInfo.owner,
-      active: shopInfo.active,
+      name,
+      owner,
+      active,
     };
   } catch (error: any) {
     console.error('ショップ情報取得エラー:', error);
