@@ -4,18 +4,18 @@ import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
 import { mintSBT, getBlockExplorerUrl, getContractOwner, getShopInfo, registerShop } from '../utils/sbtMinting';
+import { generateNonConflictingShopId, formatShopIdAsHex } from '../utils/shopIdGenerator';
 import { NETWORKS } from '../config/networks';
 import { BrowserProvider } from 'ethers';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
 import SBTCard from '../components/SBTCard';
 import { pinataService } from '../utils/pinata';
-import { formatShopIdAsHex, generateNonConflictingShopId, generateUniqueShopId } from '../utils/shopIdGenerator';
 
 type IssuePattern = 'per_payment' | 'after_count' | 'time_period' | 'period_range';
 
 interface SBTTemplate {
   id: string;
-  shopId: number;
+  shopId: number; // ⭐ 新規: ショップID（ランダム生成）
   name: string;
   description: string;
   issuePattern: IssuePattern; // 'per_payment': 毎回発行 | 'after_count': N回後に発行 | 'time_period': 期間内に発行 | 'period_range': 期間指定
@@ -49,18 +49,9 @@ interface IssuedSBT {
 
 const SBTManagement: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
-  
-  // 初期テンプレート用のショップIDを生成
-  const initialShopIds = {
-    stampCard: generateUniqueShopId(),
-    milestone: generateUniqueShopId(),
-    campaign: generateUniqueShopId(),
-  };
-  
   const [templates, setTemplates] = useState<SBTTemplate[]>([
     {
       id: 'template-stamp-card',
-      shopId: initialShopIds.stampCard,
       name: 'スタンプカード',
       description: '毎回の支払いでスタンプを1つ獲得',
       issuePattern: 'per_payment',
@@ -73,7 +64,6 @@ const SBTManagement: React.FC = () => {
     },
     {
       id: 'template-milestone',
-      shopId: initialShopIds.milestone,
       name: 'マイルストーン達成',
       description: '10回の支払い達成時にバッジを授与',
       issuePattern: 'after_count',
@@ -86,7 +76,6 @@ const SBTManagement: React.FC = () => {
     },
     {
       id: 'template-campaign',
-      shopId: initialShopIds.campaign,
       name: 'キャンペーン記念',
       description: 'キャンペーン期間内（30日）の支払いで期間限定メダルを取得',
       issuePattern: 'time_period',
@@ -124,7 +113,7 @@ const SBTManagement: React.FC = () => {
   const [paymentTemplateSelection, setPaymentTemplateSelection] = useState<Record<string, string>>({});
   
   // SBT発行先ネットワーク（Polygon Mainnet または Amoy Testnet）
-  const [selectedChainForSBT, setSelectedChainForSBT] = useState(80002); // デフォルトはPolygon Amoy（テストネット）
+  const [selectedChainForSBT, setSelectedChainForSBT] = useState(137); // デフォルトはPolygon Mainnet
 
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [showIssuanceForm, setShowIssuanceForm] = useState(false);
@@ -596,9 +585,10 @@ const SBTManagement: React.FC = () => {
     } else {
       // 新規作成（コピーも含む）
       const shopId = generateNonConflictingShopId(templates);
+      
       const newTemplateData: SBTTemplate = {
         id: `template-${Date.now()}`,
-        shopId,
+        shopId, // ⭐ 新規: ランダムショップIDを割り当て
         name: newTemplate.name,
         description: newTemplate.description,
         issuePattern: newTemplate.issuePattern,
@@ -613,30 +603,15 @@ const SBTManagement: React.FC = () => {
         status: 'active',
       };
 
-      console.log('新しいショップID:', shopId, formatShopIdAsHex(shopId));
       const updatedTemplates = [newTemplateData, ...templates];
       setTemplates(updatedTemplates);
 
       // IndexedDB に保存
       await sbtStorage.saveTemplate(newTemplateData);
 
-      // フォームをリセット
-      setNewTemplate({
-        name: '',
-        description: '',
-        issuePattern: 'per_payment' as IssuePattern,
-        maxStamps: 10,
-        timePeriodDays: 30,
-        periodStartDate: '',
-        periodEndDate: '',
-        rewardDescription: '',
-        imageUrl: '',
-        imageMimeType: 'image/jpeg',
-      });
-      setImagePreview('');
-      setShowTemplateForm(false);
-      toast.success(editingTemplateId ? 'テンプレートを更新しました' : `テンプレートを作成しました\n🆔 ショップID: ${shopId}`);
-    }
+      // ショップID を通知
+      console.log(`✅ 新規テンプレート作成: ショップID ${shopId} (${formatShopIdAsHex(shopId)})`);
+      toast.success(`テンプレートを作成しました\n🆔 ショップID: ${shopId}`, { duration: 4000 });
   };
 
   const issueSBT = async (e: React.FormEvent, selectedPaymentId?: string, selectedTemplateId?: string) => {

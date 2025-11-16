@@ -215,12 +215,44 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
       };
     }
 
-    const tx = await contract.mintSBT(recipientAddress, shopId, tokenURI);
+    // ガス推定とトランザクション実行
+    let receipt: any = null;
+    try {
+      const gasEstimate = await contract.mintSBT.estimateGas(recipientAddress, shopId, tokenURI);
+      const gasLimit = gasEstimate * 120n / 100n; // 20% マージン追加
+      
+      console.log('💡 ガス推定:', gasEstimate.toString(), '→ 制限:', gasLimit.toString());
 
-    console.log('⏳ トランザクション送信:', tx.hash);
-    
-    // トランザクション完了を待機
-    const receipt = await tx.wait();
+      const tx = await contract.mintSBT(recipientAddress, shopId, tokenURI, {
+        gasLimit: gasLimit,
+      });
+
+      console.log('⏳ トランザクション送信:', tx.hash);
+      
+      // トランザクション完了を待機
+      receipt = await tx.wait();
+
+    } catch (gasError: any) {
+      console.error('ガス推定エラー:', gasError);
+      // ガス推定失敗時はデフォルト値で再試行
+      const tx = await contract.mintSBT(recipientAddress, shopId, tokenURI);
+      console.log('⏳ トランザクション送信 (デフォルトガス):', tx.hash);
+      receipt = await tx.wait();
+      
+      if (receipt?.status === 0) {
+        return {
+          success: false,
+          error: 'トランザクションが失敗しました',
+        };
+      }
+      
+      console.log('✅ SBT Minting 完了', receipt?.transactionHash);
+      return {
+        success: true,
+        transactionHash: receipt?.transactionHash || tx.hash,
+        tokenId: receipt?.logs?.[0]?.topics?.[3] ? parseInt(receipt.logs[0].topics[3], 16).toString() : undefined,
+      };
+    }
 
     if (receipt?.status === 0) {
       return {
@@ -233,8 +265,8 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
 
     return {
       success: true,
-      transactionHash: receipt?.transactionHash || tx.hash,
-      tokenId: receipt?.events?.[0]?.args?.tokenId?.toString(),
+      transactionHash: receipt?.transactionHash || receipt?.hash,
+      tokenId: receipt?.logs?.[0]?.topics?.[3] ? parseInt(receipt.logs[0].topics[3], 16).toString() : undefined,
     };
   } catch (error: any) {
     console.error('❌ SBT Minting エラー:', error);
@@ -245,6 +277,8 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
       errorMessage = 'トランザクションが拒否されました';
     } else if (error.code === 'INSUFFICIENT_FUNDS') {
       errorMessage = 'ガス代が不足しています';
+    } else if (error.code === 'UNKNOWN_ERROR' && error.message?.includes('Internal JSON-RPC error')) {
+      errorMessage = 'ネットワークエラーが発生しました。再度お試しください。';
     } else if (error.reason) {
       errorMessage = error.reason;
     } else if (error.message) {
