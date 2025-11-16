@@ -50,11 +50,12 @@ interface IssuedSBT {
 const SBTManagement: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
   
-  // 初期テンプレート用のショップIDを生成
+  // 初期テンプレート用のショップID（固定値）
+  // 毎回変わらないように固定値を使用
   const initialShopIds = {
-    stampCard: generateUniqueShopId(),
-    milestone: generateUniqueShopId(),
-    campaign: generateUniqueShopId(),
+    stampCard: 1, // ショップID: 1
+    milestone: 2, // ショップID: 2 
+    campaign: 3,  // ショップID: 3
   };
   
   const [templates, setTemplates] = useState<SBTTemplate[]>([
@@ -220,6 +221,10 @@ const SBTManagement: React.FC = () => {
             console.warn('⚠️ コントラクト所有者確認エラー:', ownerError);
           }
         }
+
+        // ショップ登録状況を確認（データロード後）
+        setTimeout(() => checkAndRegisterInitialShops(), 1000); // 1秒後に実行
+
       } catch (error) {
         console.error('データロードエラー:', error);
         toast.error('データの読み込みに失敗しました');
@@ -347,6 +352,11 @@ const SBTManagement: React.FC = () => {
     };
 
     checkContractOwnership();
+    
+    // ウォレットアドレスとチェーンの両方が設定されたらショップ確認
+    if (walletAddress && selectedChainForSBT) {
+      setTimeout(() => checkAndRegisterInitialShops(), 500); // 0.5秒後に実行
+    }
   }, [selectedChainForSBT, walletAddress]);
 
   // LocalStorage から完了した支払いセッションを読み込み
@@ -426,6 +436,54 @@ const SBTManagement: React.FC = () => {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  // ショップ登録状況を確認して自動登録する関数
+  const checkAndRegisterInitialShops = async () => {
+    if (!selectedChainForSBT || !walletAddress) return;
+    
+    console.log(`🔍 初期ショップの登録状況を確認中: Chain ${selectedChainForSBT}`);
+    
+    // 初期テンプレートのショップIDが登録されているか確認
+    for (const [templateName, shopId] of Object.entries(initialShopIds)) {
+      try {
+        const shopResult = await getShopInfo(shopId, selectedChainForSBT);
+        
+        if (shopResult.success && shopResult.shopInfo) {
+          console.log(`✅ ショップ${shopId} (${templateName})は登録済み:`, shopResult.shopInfo.name);
+        } else {
+          console.log(`⚠️ ショップ${shopId} (${templateName})が未登録です。自動登録を試みます...`);
+          
+          // ショップを自動登録
+          const template = templates.find(t => t.shopId === shopId);
+          if (template) {
+            try {
+              const registerResult = await registerShop(
+                shopId,
+                template.name,
+                template.description,
+                walletAddress,
+                template.maxStamps,
+                selectedChainForSBT
+              );
+              
+              if (registerResult.success) {
+                console.log(`✅ ショップ${shopId}の自動登録完了`);
+                toast.success(`ショップ "${template.name}" を自動登録しました (ID: ${shopId})`);
+              } else {
+                console.error(`❌ ショップ${shopId}の自動登録失敗:`, registerResult.error);
+                toast.error(`ショップ "${template.name}" の登録に失敗: ${registerResult.error}`);
+              }
+            } catch (error) {
+              console.error(`❌ ショップ${shopId}の自動登録エラー:`, error);
+              toast.error(`ショップ "${template.name}" の登録でエラーが発生しました`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`❌ ショップ${shopId}の確認エラー:`, error);
+      }
+    }
+  };
 
   const addTemplate = (e: React.FormEvent) => {
     e.preventDefault();

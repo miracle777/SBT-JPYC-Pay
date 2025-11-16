@@ -763,24 +763,26 @@ export const JPYC_STAMP_SBT_ABI = [
 ] as const;
 
 // JPYC Prepaid トークンコントラクトアドレス（ERC20）
+// 最新の公式アドレス（全チェーン共通）
 export const JPYC_TOKEN_ADDRESS: Record<number, string> = {
-  // Mainnet
-  137: '0x431D5dfF03120AFA4bDf332c61A6e1766eF37BDB', // Polygon Mainnet
-  1: '0x431D5dfF03120AFA4bDf332c61A6e1766eF37BDB',   // Ethereum Mainnet
-  43114: '0x431D5dfF03120AFA4bDf332c61A6e1766eF37BDB', // Avalanche
-  // Testnet
-  80002: '0x0000000000000000000000000000000000000000', // Polygon Amoy - テストネットにはデプロイなし
-  11155111: '0x0000000000000000000000000000000000000000', // Ethereum Sepolia - テストネットにはデプロイなし
-  43113: '0x0000000000000000000000000000000000000000', // Avalanche Fuji - テストネットにはデプロイなし
+  // Mainnet - 公式デプロイ済み
+  137: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29',   // Polygon Mainnet
+  1: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29',     // Ethereum Mainnet
+  43114: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29', // Avalanche C-Chain
+  // Testnet - テストネットは現在使用中のアドレスを維持
+  80002: '0x431D5dfF03120AFA4bDf332c61A6e1766eF37BDB', // Polygon Amoy - 使用中のテスト用アドレス
+  11155111: '0x0000000000000000000000000000000000000000', // Ethereum Sepolia
+  43113: '0x0000000000000000000000000000000000000000', // Avalanche Fuji
 };
 
-// SBT コントラクトアドレス（デプロイ後に更新）
+// SBT スタンプシステムコントラクトアドレス
+// 本畫デプロイ後に更新が必要
 export const SBT_CONTRACT_ADDRESS: Record<number, string> = {
   // Mainnet - 本番環境用（未デプロイ）
   137: '0x0000000000000000000000000000000000000000', // Polygon Mainnet - デプロイ待ち（本番用）
   1: '0x0000000000000000000000000000000000000000',   // Ethereum Mainnet - デプロイ待ち
   43114: '0x0000000000000000000000000000000000000000', // Avalanche - デプロイ待ち
-  // Testnet - テスト環境用
+  // Testnet - テスト環境用（デプロイ済み）
   80002: '0x6b39d1F8a9799aB3E1Ea047052e831186106DD8E', // Polygon Amoy - テスト用デプロイ済み
   11155111: '0x96FFdC8495742e1F0b0819dc1cB4548Bf3AD23A4', // Ethereum Sepolia - テスト用デプロイ済み
   43113: '0x0000000000000000000000000000000000000000', // Avalanche Fuji - デプロイ待ち

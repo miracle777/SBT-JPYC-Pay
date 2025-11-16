@@ -3,7 +3,9 @@
 ## 現在の設定状況
 
 ### ✅ JPYC Prepaid トークン（既存デプロイ済み）
-- **Polygon Mainnet**: `0x431D5dfF03120AFA4bDf332c61A6e1766eF37BDB`
+- **Ethereum Mainnet (ChainID: 1)**: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
+- **Polygon Mainnet (ChainID: 137)**: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
+- **Avalanche C-Chain (ChainID: 43114)**: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
 - **ステータス**: 公式デプロイ済み・決済システム連携可能
 
 ### ✅ テストネット環境（正常動作中）
