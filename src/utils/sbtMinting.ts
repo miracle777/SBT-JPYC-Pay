@@ -39,12 +39,12 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
       try {
         const hex = '0x' + targetChainId.toString(16);
         // 現在の chainId を確認
-        const currentHex = window.ethereum.chainId;
+        const currentHex = (window.ethereum as any)?.chainId as string | undefined;
         const current = currentHex ? parseInt(currentHex, 16) : undefined;
         if (current === targetChainId) return { ok: true };
 
         // 試行: 切替
-        await window.ethereum.request({
+        await (window.ethereum as any).request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: hex }],
         });
@@ -77,13 +77,13 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
               return { ok: false, error: `ウォレットにチェーン ${targetChainId} を追加する情報がありません` };
             }
 
-            await window.ethereum.request({
+            await (window.ethereum as any).request({
               method: 'wallet_addEthereumChain',
               params: [params],
             });
 
             // 追加後に切替再試行
-            await window.ethereum.request({
+            await (window.ethereum as any).request({
               method: 'wallet_switchEthereumChain',
               params: [{ chainId: params.chainId }],
             });
@@ -164,8 +164,8 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
       // network 取得失敗した場合は続行（後で検証）
     }
 
-    // provider.getNetwork().chainId は number 型なので比較は数値で行う
-    if (network && network.chainId !== chainId) {
+    // provider.getNetwork().chainId は number または bigint 型なので比較は慎重に行う
+    if (network && Number(network.chainId) !== chainId) {
       return {
         success: false,
         error: `ネットワークが一致していません。Chain ID ${chainId} に切り替えてください`,
@@ -183,7 +183,7 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
     if (typeof (contract as any).mintSBT !== 'function') {
       console.error('Contract does not expose mintSBT:', {
         contractAddress,
-        abiFunctions: Object.keys(contract.interface.functions),
+        abiFunctions: Object.keys((contract.interface as any).functions || {}),
       });
       return {
         success: false,
@@ -327,4 +327,199 @@ export function getBlockExplorerUrl(
 
   const baseUrl = explorers[chainId] || 'https://polygonscan.com/tx/';
   return baseUrl + transactionHash;
+}
+
+/**
+ * コントラクトオーナーを取得する
+ */
+export async function getContractOwner(
+  chainId: number
+): Promise<{ owner: string; error?: string }> {
+  try {
+    if (!window.ethereum) {
+      return { owner: '', error: 'MetaMask がインストールされていません' };
+    }
+
+    const provider = new BrowserProvider(window.ethereum);
+    const contractAddress = SBT_CONTRACT_ADDRESS[chainId];
+
+    if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
+      return { owner: '', error: `チェーンID ${chainId} のコントラクトが見つかりません` };
+    }
+
+    const contract = new Contract(
+      contractAddress,
+      JPYC_STAMP_SBT_ABI,
+      provider
+    );
+
+    const owner = await contract.owner();
+    console.log(`✅ コントラクトオーナー (Chain ${chainId}):`, owner);
+
+    return { owner };
+  } catch (error: any) {
+    console.error('コントラクトオーナー取得エラー:', error);
+    return { owner: '', error: error.message };
+  }
+}
+
+/**
+ * ショップ情報を取得する
+ */
+export async function getShopInfo(
+  shopId: number,
+  chainId: number
+): Promise<{
+  name?: string;
+  owner?: string;
+  active?: boolean;
+  error?: string;
+}> {
+  try {
+    if (!window.ethereum) {
+      return { error: 'MetaMask がインストールされていません' };
+    }
+
+    const provider = new BrowserProvider(window.ethereum);
+    const contractAddress = SBT_CONTRACT_ADDRESS[chainId];
+
+    if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
+      return { error: `チェーンID ${chainId} のコントラクトが見つかりません` };
+    }
+
+    const contract = new Contract(
+      contractAddress,
+      JPYC_STAMP_SBT_ABI,
+      provider
+    );
+
+    const shopInfo = await contract.getShopInfo(shopId);
+    console.log(`✅ ショップ情報 (Shop ${shopId}):`, shopInfo);
+
+    return {
+      name: shopInfo.name,
+      owner: shopInfo.owner,
+      active: shopInfo.active,
+    };
+  } catch (error: any) {
+    console.error('ショップ情報取得エラー:', error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * ショップを登録する（コントラクトオーナー権限で実行）
+ */
+export async function registerShop(params: {
+  shopId: number;
+  shopName: string;
+  description: string;
+  shopOwnerAddress: string;
+  requiredVisits?: number;
+  chainId: number;
+}): Promise<{
+  success: boolean;
+  transactionHash?: string;
+  error?: string;
+}> {
+  try {
+    if (!window.ethereum) {
+      return {
+        success: false,
+        error: 'MetaMask がインストールされていません',
+      };
+    }
+
+    const { shopId, shopName, description, shopOwnerAddress, requiredVisits = 1, chainId } = params;
+
+    // バリデーション
+    if (!shopOwnerAddress.startsWith('0x') || shopOwnerAddress.length !== 42) {
+      return {
+        success: false,
+        error: 'ショップオーナーアドレスの形式が不正です',
+      };
+    }
+
+    // Provider と Signer を取得
+    const provider = new BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const signerAddress = await signer.getAddress();
+
+    // コントラクトアドレスを取得
+    const contractAddress = SBT_CONTRACT_ADDRESS[chainId];
+    if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
+      return {
+        success: false,
+        error: `チェーンID ${chainId} のコントラクトが見つかりません`,
+      };
+    }
+
+    // コントラクトインスタンスを作成
+    const contract = new Contract(
+      contractAddress,
+      JPYC_STAMP_SBT_ABI,
+      signer
+    );
+
+    // オーナーであるか確認
+    const owner = await contract.owner();
+    if (owner.toLowerCase() !== signerAddress.toLowerCase()) {
+      return {
+        success: false,
+        error: `ショップ登録権限がありません。現在のアカウント: ${signerAddress}、コントラクトオーナー: ${owner}`,
+      };
+    }
+
+    console.log('📝 ショップ登録開始:', {
+      shopId,
+      shopName,
+      shopOwnerAddress,
+      requiredVisits,
+    });
+
+    // ショップを登録
+    const tx = await contract.registerShop(
+      shopId,
+      shopName,
+      description,
+      shopOwnerAddress,
+      requiredVisits
+    );
+
+    console.log('⏳ トランザクション送信:', tx.hash);
+
+    // トランザクション完了を待機
+    const receipt = await tx.wait();
+
+    if (receipt?.status === 0) {
+      return {
+        success: false,
+        error: 'ショップ登録トランザクションが失敗しました',
+      };
+    }
+
+    console.log('✅ ショップ登録完了:', receipt?.transactionHash);
+
+    return {
+      success: true,
+      transactionHash: receipt?.transactionHash || tx.hash,
+    };
+  } catch (error: any) {
+    console.error('❌ ショップ登録エラー:', error);
+
+    let errorMessage = 'ショップ登録に失敗しました';
+
+    if (error.code === 'ACTION_REJECTED') {
+      errorMessage = 'トランザクションが拒否されました';
+    } else if (error.reason) {
+      errorMessage = error.reason;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
 }

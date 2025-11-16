@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet } from 'lucide-react';
+import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
-import { mintSBT, getBlockExplorerUrl } from '../utils/sbtMinting';
+import { mintSBT, getBlockExplorerUrl, getContractOwner, getShopInfo, registerShop } from '../utils/sbtMinting';
 import { NETWORKS } from '../config/networks';
 import { BrowserProvider } from 'ethers';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
@@ -125,6 +125,16 @@ const SBTManagement: React.FC = () => {
   const [hasInsufficientSBTGas, setHasInsufficientSBTGas] = useState(false);
   const [selectedSBT, setSelectedSBT] = useState<IssuedSBT | null>(null);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  
+  // コントラクト所有者・ショップ登録情報
+  const [contractOwner, setContractOwner] = useState<string | null>(null);
+  const [isContractOwner, setIsContractOwner] = useState(false);
+  const [shopInfo, setShopInfo] = useState<any>(null);
+  const [isShopOwner, setIsShopOwner] = useState(false);
+  const [showRegisterShopModal, setShowRegisterShopModal] = useState(false);
+  const [shopNameForReg, setShopNameForReg] = useState('');
+  const [shopDescForReg, setShopDescForReg] = useState('');
+  const [isRegisteringShop, setIsRegisteringShop] = useState(false);
 
   // マウント時: IndexedDB + localStorage からデータを読み込み
   useEffect(() => {
@@ -150,6 +160,52 @@ const SBTManagement: React.FC = () => {
         const completedPayments = localStorage.getItem('completedPaymentSessions');
         if (completedPayments) {
           setCompletedPayments(JSON.parse(completedPayments));
+        }
+
+        // Pinata 接続テスト（デバッグ用）
+        try {
+          const isConnected = await pinataService.testAuthentication();
+          if (isConnected) {
+            console.log('✅ Pinata 接続成功');
+          } else {
+            console.warn('⚠️ Pinata 接続テスト失敗（認証エラーの可能性）');
+          }
+        } catch (pinataError) {
+          console.warn('⚠️ Pinata 接続テストエラー:', pinataError);
+        }
+
+        // コントラクト所有者を確認（Polygon Amoy testnet を確認）
+        if (selectedChainForSBT) {
+          try {
+            const ownerResult = await getContractOwner(selectedChainForSBT);
+            if (ownerResult.owner) {
+              setContractOwner(ownerResult.owner);
+              
+              // 現在のウォレットがオーナーか確認
+              if (walletAddress && ownerResult.owner.toLowerCase() === walletAddress.toLowerCase()) {
+                setIsContractOwner(true);
+                console.log('✅ 現在のウォレットはコントラクトオーナーです');
+              } else {
+                setIsContractOwner(false);
+              }
+
+              // ショップ情報を取得（shopId = 1 を確認）
+              const shopResult = await getShopInfo(1, selectedChainForSBT);
+              if (shopResult.owner) {
+                setShopInfo(shopResult);
+                if (walletAddress && shopResult.owner.toLowerCase() === walletAddress.toLowerCase()) {
+                  setIsShopOwner(true);
+                  console.log('✅ 現在のウォレットはショップオーナー（ID: 1）です');
+                } else {
+                  setIsShopOwner(false);
+                }
+              }
+            } else if (ownerResult.error) {
+              console.warn('⚠️ コントラクト所有者取得エラー:', ownerResult.error);
+            }
+          } catch (ownerError) {
+            console.warn('⚠️ コントラクト所有者確認エラー:', ownerError);
+          }
         }
       } catch (error) {
         console.error('データロードエラー:', error);
@@ -1245,6 +1301,56 @@ const SBTManagement: React.FC = () => {
             </div>
           </div>
 
+          {/* ⚠️ コントラクト認可警告 */}
+          {!isContractOwner && !isShopOwner && (
+            <div className="mb-6 bg-red-50 border-2 border-red-300 rounded-lg p-4">
+              <div className="flex gap-3">
+                <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-bold text-red-900 mb-2">⚠️ SBT発行権限がありません</h3>
+                  <p className="text-sm text-red-800 mb-3">
+                    スマートコントラクトへのミント権限がありません。以下のいずれかが必要です：
+                  </p>
+                  <ul className="text-sm text-red-800 space-y-1 mb-3">
+                    <li>✓ コントラクトオーナーアカウント</li>
+                    <li>✓ ショップID 1のオーナーアカウント</li>
+                  </ul>
+                  <div className="bg-white rounded p-3 text-xs font-mono space-y-1 mb-3">
+                    <p><span className="text-gray-600">コントラクトオーナー:</span> <span className="text-gray-900">{contractOwner?.slice(0, 12)}...{contractOwner?.slice(-8)}</span></p>
+                    <p><span className="text-gray-600">ショップオーナー (ID:1):</span> <span className="text-gray-900">{shopInfo?.owner?.slice(0, 12)}...{shopInfo?.owner?.slice(-8)}</span></p>
+                    <p><span className="text-gray-600">現在のウォレット:</span> <span className="text-gray-900">{walletAddress?.slice(0, 12)}...{walletAddress?.slice(-8)}</span></p>
+                  </div>
+                  
+                  {isContractOwner && !isShopOwner && (
+                    <button
+                      onClick={() => setShowRegisterShopModal(true)}
+                      className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-semibold text-sm transition"
+                    >
+                      ショップを登録する
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ✅ コントラクト認可成功 */}
+          {(isContractOwner || isShopOwner) && (
+            <div className="mb-6 bg-green-50 border-2 border-green-300 rounded-lg p-4">
+              <div className="flex gap-3">
+                <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-bold text-green-900">✅ SBT発行権限OK</h3>
+                  <p className="text-sm text-green-800 mt-1">
+                    {isContractOwner 
+                      ? 'コントラクトオーナーとしてSBTをミントできます' 
+                      : 'ショップオーナーとしてSBTをミントできます'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 統計ダッシュボード */}
           {issuedSBTs.length > 0 && (
             <div className="mb-8">
@@ -1600,6 +1706,93 @@ const SBTManagement: React.FC = () => {
                   </div>
                 </div>
 
+                {/* ショップ登録モーダル */}
+                {showRegisterShopModal && (
+                  <div className="fixed inset-0 flex items-center justify-center">
+                    <div className="fixed inset-0 bg-black opacity-40 z-40" onClick={() => setShowRegisterShopModal(false)}></div>
+                    <div className="bg-white rounded-lg shadow-lg z-50 p-6 max-w-lg w-full mx-4 relative">
+                      <div className="flex items-start justify-between mb-4">
+                        <h3 className="text-lg font-bold">ショップを登録する</h3>
+                        <button onClick={() => setShowRegisterShopModal(false)} className="text-gray-500 hover:text-gray-800">✕</button>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-4">
+                        現在のウォレットをショップID 1 のオーナーとして登録します。登録後、このウォレットでSBTをミントできるようになります。
+                      </p>
+                      <form
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          if (!shopNameForReg || !shopDescForReg) {
+                            toast.error('ショップ名と説明を入力してください');
+                            return;
+                          }
+                          
+                          setIsRegisteringShop(true);
+                          const result = await registerShop({
+                            shopId: 1,
+                            shopName: shopNameForReg,
+                            description: shopDescForReg,
+                            shopOwnerAddress: walletAddress || '',
+                            requiredVisits: 1,
+                            chainId: selectedChainForSBT,
+                          });
+                          
+                          if (result.success) {
+                            toast.success('ショップが登録されました！');
+                            setShowRegisterShopModal(false);
+                            setShopNameForReg('');
+                            setShopDescForReg('');
+                            // ショップ情報を再度取得
+                            const shopInfo = await getShopInfo(1, selectedChainForSBT);
+                            setShopInfo(shopInfo);
+                            setIsShopOwner(true);
+                          } else {
+                            toast.error(result.error || 'ショップ登録に失敗しました');
+                          }
+                          setIsRegisteringShop(false);
+                        }}
+                        className="space-y-4"
+                      >
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">ショップ名</label>
+                          <input
+                            type="text"
+                            value={shopNameForReg}
+                            onChange={(e) => setShopNameForReg(e.target.value)}
+                            placeholder="例: Coffee Shop XYZ"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">説明</label>
+                          <input
+                            type="text"
+                            value={shopDescForReg}
+                            onChange={(e) => setShopDescForReg(e.target.value)}
+                            placeholder="例: 人気のコーヒーショップ"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setShowRegisterShopModal(false)}
+                            className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition"
+                          >
+                            キャンセル
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isRegisteringShop}
+                            className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition"
+                          >
+                            {isRegisteringShop ? '登録中...' : 'ショップを登録'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+
                 {/* SBT詳細モーダル */}
                 {selectedSBT && (
                   <div className="fixed inset-0 flex items-center justify-center">
@@ -1618,7 +1811,7 @@ const SBTManagement: React.FC = () => {
                         {selectedSBT.transactionHash && (
                           <p>
                             <span className="font-semibold">支払い Tx:</span>{' '}
-                            <a href={getBlockExplorerUrl(selectedSBT.chainId || selectedChainForSBT, selectedSBT.transactionHash)} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all">
+                            <a href={getBlockExplorerUrl(selectedSBT.transactionHash, selectedSBT.chainId || selectedChainForSBT)} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all">
                               {selectedSBT.transactionHash}
                             </a>
                           </p>
@@ -1626,7 +1819,7 @@ const SBTManagement: React.FC = () => {
                         {selectedSBT.sbtTransactionHash && (
                           <p>
                             <span className="font-semibold">SBT発行 Tx:</span>{' '}
-                            <a href={getBlockExplorerUrl(selectedSBT.chainId || selectedChainForSBT, selectedSBT.sbtTransactionHash)} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all">
+                            <a href={getBlockExplorerUrl(selectedSBT.sbtTransactionHash, selectedSBT.chainId || selectedChainForSBT)} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all">
                               {selectedSBT.sbtTransactionHash}
                             </a>
                           </p>
