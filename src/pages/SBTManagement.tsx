@@ -972,10 +972,23 @@ const SBTManagement: React.FC = () => {
           prev.map(s => (s.id === sbt.id ? sbt : s))
         );
 
-        toast.error(
-          `❌ SBT 記録失敗: ${result.error || 'Unknown error'}`,
-          { id: mintingToast }
-        );
+        // ネットワーク問題かどうかを判定
+        const isNetworkIssue = result.error?.includes('RPC接続') || result.error?.includes('Internal JSON-RPC error');
+        
+        if (isNetworkIssue) {
+          toast.error(
+            `🌐 ネットワーク接続に問題があります\n💾 SBTデータはローカルに保存済み\n🔧 MetaMaskのネットワーク設定を確認してください`,
+            { 
+              id: mintingToast,
+              duration: 8000 // 長めに表示
+            }
+          );
+        } else {
+          toast.error(
+            `❌ SBT 記録失敗: ${result.error || 'Unknown error'}\n💾 データはローカルに保存されています`,
+            { id: mintingToast }
+          );
+        }
       }
     } catch (error: any) {
       // エラーハンドリング

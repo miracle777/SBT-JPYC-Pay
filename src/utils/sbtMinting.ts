@@ -235,24 +235,40 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
     } catch (gasError: any) {
       console.error('ガス推定エラー:', gasError);
       
-      // RPCエラーの場合はリトライを試行
+    // RPC接続エラーの場合はリトライを試行
       if (gasError.code === 'UNKNOWN_ERROR' || gasError.message?.includes('Internal JSON-RPC error')) {
         console.log('🔄 RPC接続エラーを検出、リトライを試行します...');
         
+        // 最初に簡易トランザクションでネットワーク接続をテスト
         try {
-          // 1秒待機後にリトライ
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          const balance = await provider.getBalance(signerAddress);
+          console.log('💰 ウォレット残高確認:', balance.toString());
+        } catch (networkError) {
+          console.error('⚠️ ネットワーク接続に問題があります:', networkError);
+          return {
+            success: false,
+            error: 'Polygon Amoyネットワークへの接続に問題があります。MetaMaskのネットワーク設定を確認してください。',
+          };
+        }
+        
+        try {
+          // 3秒待機後にリトライ（より長い待機時間）
+          await new Promise(resolve => setTimeout(resolve, 3000));
           
+          // より低いガス制限でリトライ
           const retryTx = await contract.mintSBT(recipientAddress, shopId, tokenURI, {
-            gasLimit: BigInt(300000), // 安全なガス制限値
+            gasLimit: BigInt(250000), // さらに低いガス制限
+            gasPrice: undefined, // ガス価格を自動設定に
           });
           console.log('⏳ リトライトランザクション送信:', retryTx.hash);
           receipt = await retryTx.wait();
         } catch (retryError: any) {
           console.error('❌ リトライ実行エラー:', retryError);
+          
+          // 最後の手段: ユーザー手動でのトランザクション実行を推奨
           return {
             success: false,
-            error: 'RPC接続に問題があります。しばらく時間をおいてから再度お試しください。',
+            error: 'RPC接続が不安定です。○ MetaMaskで手動でトランザクションを送信するか、○ 数分後に再度お試しください。SBTデータはローカルに保存されています。',
           };
         }
       } else {
