@@ -359,8 +359,6 @@ const SBTManagement: React.FC = () => {
               console.log('❌ 現在のウォレットはショップオーナー (ID:1) ではありません');
               console.log(`🔍 ショップ権限確認 - Shop: ${shopResult.owner.toLowerCase()} != Wallet: ${walletAddress?.toLowerCase() || 'null'}`);
             }
-              console.log('❌ 現在のウォレットはショップオーナー (ID:1) ではありません');
-            }
           } else {
             setShopInfo(null);
             setIsShopOwner(false);
@@ -1606,10 +1604,18 @@ const SBTManagement: React.FC = () => {
                     <p>Contract Owner: {isContractOwner ? 'true' : 'false'}</p>
                     <p>Shop Owner: {isShopOwner ? 'true' : 'false'}</p>
                     <p>Wallet Connected: {walletAddress ? 'true' : 'false'}</p>
+                    <p>Contract Address: {contractOwner?.toLowerCase()}</p>
+                    <p>Wallet Address: {walletAddress?.toLowerCase()}</p>
+                    <p>Shop Owner Address: {shopInfo?.owner?.toLowerCase()}</p>
                   </div>
                   
                   <button
-                    onClick={() => window.location.reload()}
+                    onClick={() => {
+                      console.log('🔄 手動権限再チェック開始');
+                      console.log('Contract Owner State:', isContractOwner);
+                      console.log('Shop Owner State:', isShopOwner);
+                      window.location.reload();
+                    }}
                     className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold text-sm transition mb-2"
                   >
                     🔄 権限情報を再読み込み
@@ -2094,7 +2100,13 @@ const SBTManagement: React.FC = () => {
                     <div className="bg-white rounded-lg shadow-lg z-50 p-6 max-w-lg w-full mx-4 relative">
                       <div className="flex items-start justify-between">
                         <h3 className="text-lg font-bold">SBT 詳細</h3>
-                        <button onClick={() => setSelectedSBT(null)} className="text-gray-500 hover:text-gray-800">閉じる</button>
+                        <button 
+                          onClick={() => setSelectedSBT(null)} 
+                          className="text-gray-400 hover:text-gray-600 text-xl font-bold w-6 h-6 flex items-center justify-center"
+                          title="閉じる"
+                        >
+                          ×
+                        </button>
                       </div>
                       <div className="mt-4 text-sm space-y-2">
                         <p><span className="font-semibold">配布先:</span> <span className="font-mono">{selectedSBT.recipientAddress}</span></p>
