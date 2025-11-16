@@ -17,9 +17,9 @@ const FAQ_ITEMS: FAQItem[] = [
     answer: (
       <div className="space-y-3 text-sm">
         <p><strong>📍 保存場所：</strong> あなたのパソコン/タブレット/スマートフォンのローカルストレージ</p>
-        <div className="bg-blue-50 border border-blue-200 rounded p-3">
-          <p className="font-semibold text-blue-900 mb-2">🗄️ 具体的には：</p>
-          <ul className="space-y-1 text-blue-800">
+        <div className="bg-blue-50 border border-blue-200 rounded p-2 sm:p-3">
+          <p className="font-semibold text-blue-900">📍 保存場所：</p>
+          <ul className="space-y-1 text-blue-800 text-xs">
             <li>• <strong>IndexedDB</strong>：テンプレート・SBT発行データ（主要）</li>
             <li>• <strong>localStorage</strong>：バックアップ・設定情報</li>
             <li>• 容量：50MB～数GB（デバイス依存）</li>
@@ -38,9 +38,9 @@ const FAQ_ITEMS: FAQItem[] = [
     answer: (
       <div className="space-y-3 text-sm">
         <p><strong>✅ はい、完全に保存されます</strong></p>
-        <div className="bg-green-50 border border-green-200 rounded p-3 space-y-2">
-          <p className="font-semibold text-green-900">🟢 オフライン動作対応：</p>
-          <ul className="text-green-800 space-y-1">
+        <div className="bg-green-50 border border-green-200 rounded p-2 sm:p-3 space-y-2">
+          <p className="font-semibold text-green-900 text-sm">🟢 オフライン動作対応：</p>
+          <ul className="text-green-800 space-y-1 text-xs">
             <li>• テンプレート作成 ✓</li>
             <li>• SBT 発行・管理 ✓</li>
             <li>• QR コード生成 ✓</li>
@@ -116,13 +116,13 @@ const FAQ_ITEMS: FAQItem[] = [
     answer: (
       <div className="space-y-3 text-sm">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="bg-green-50 border border-green-200 rounded p-3">
-            <p className="font-semibold text-green-900">🟢 有効（Active）</p>
+          <div className="bg-green-50 border border-green-200 rounded p-2 sm:p-3">
+            <p className="font-semibold text-green-900 text-sm">🟢 有効（Active）</p>
             <p className="text-green-800 text-xs mt-1">スタンプを集め中の状態</p>
             <p className="text-green-700 text-xs mt-2">例：スタンプ 3/10 進行中</p>
           </div>
-          <div className="bg-blue-50 border border-blue-200 rounded p-3">
-            <p className="font-semibold text-blue-900">🔵 報酬獲得（Redeemed）</p>
+          <div className="bg-blue-50 border border-blue-200 rounded p-2 sm:p-3">
+            <p className="font-semibold text-blue-900 text-sm">🔵 報酬獲得（Redeemed）</p>
             <p className="text-blue-800 text-xs mt-1">スタンプが満杯になった状態</p>
             <p className="text-blue-700 text-xs mt-2">例：スタンプ 10/10 完了 → 報酬獲得</p>
           </div>
@@ -297,28 +297,28 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
     : FAQ_ITEMS;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col mx-2 sm:mx-0">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <HelpCircle className="w-6 h-6 text-white" />
-            <h2 className="text-white text-xl font-bold">よくある質問（FAQ）</h2>
+        <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <h2 className="text-white text-lg sm:text-xl font-bold">よくある質問（FAQ）</h2>
           </div>
           <button
             onClick={onClose}
-            className="text-white hover:bg-purple-800 rounded-lg p-2 transition"
+            className="text-white hover:bg-purple-800 rounded-lg p-1 sm:p-2 transition text-lg sm:text-base"
           >
             ✕
           </button>
         </div>
 
         {/* Category Filter */}
-        <div className="border-b px-6 py-3 bg-gray-50">
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6">
+        <div className="border-b px-3 sm:px-6 py-2 sm:py-3 bg-gray-50">
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 sm:-mx-6 px-3 sm:px-6 scrollbar-thin scrollbar-thumb-gray-300">
             <button
               onClick={() => setSelectedCategory(null)}
-              className={`px-4 py-2 rounded-full whitespace-nowrap font-semibold text-sm transition flex-shrink-0 ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full whitespace-nowrap font-semibold text-xs sm:text-sm transition flex-shrink-0 ${
                 selectedCategory === null
                   ? 'bg-purple-600 text-white'
                   : 'bg-white border border-gray-300 text-gray-700 hover:border-purple-400'
@@ -330,7 +330,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full whitespace-nowrap font-semibold text-sm transition flex-shrink-0 ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full whitespace-nowrap font-semibold text-xs sm:text-sm transition flex-shrink-0 ${
                   selectedCategory === category
                     ? 'bg-purple-600 text-white'
                     : 'bg-white border border-gray-300 text-gray-700 hover:border-purple-400'
@@ -343,7 +343,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-2">
+        <div className="overflow-y-auto flex-1 px-3 sm:px-6 py-2 sm:py-4 space-y-2">
           {filteredItems.map((item) => (
             <div
               key={item.id}
@@ -351,22 +351,22 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
             >
               <button
                 onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                className="w-full px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition text-left"
+                className="w-full px-3 sm:px-4 py-3 flex items-start gap-2 sm:gap-3 hover:bg-gray-50 transition text-left"
               >
-                <div className="text-purple-600 mt-1">{item.icon}</div>
+                <div className="text-purple-600 mt-1 flex-shrink-0">{item.icon}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900">{item.question}</p>
+                  <p className="font-semibold text-gray-900 text-sm sm:text-base break-words">{item.question}</p>
                   <p className="text-xs text-gray-500 mt-1">{item.category}</p>
                 </div>
                 <ChevronDown
-                  className={`w-5 h-5 text-gray-400 flex-shrink-0 transition ${
+                  className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0 transition ${
                     expandedId === item.id ? 'rotate-180' : ''
                   }`}
                 />
               </button>
 
               {expandedId === item.id && (
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                <div className="px-3 sm:px-4 py-3 bg-gray-50 border-t border-gray-200 text-sm">
                   {item.answer}
                 </div>
               )}
@@ -375,10 +375,10 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="border-t bg-gray-50 px-6 py-3 flex justify-end">
+        <div className="border-t bg-gray-50 px-3 sm:px-6 py-3 flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition"
+            className="px-4 sm:px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition text-sm sm:text-base"
           >
             閉じる
           </button>
