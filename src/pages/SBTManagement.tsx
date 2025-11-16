@@ -457,14 +457,14 @@ const SBTManagement: React.FC = () => {
           const template = templates.find(t => t.shopId === shopId);
           if (template) {
             try {
-              const registerResult = await registerShop(
+              const registerResult = await registerShop({
                 shopId,
-                template.name,
-                template.description,
-                walletAddress,
-                template.maxStamps,
-                selectedChainForSBT
-              );
+                shopName: template.name,
+                description: template.description,
+                shopOwnerAddress: walletAddress,
+                requiredVisits: template.maxStamps,
+                chainId: selectedChainForSBT,
+              });
               
               if (registerResult.success) {
                 console.log(`✅ ショップ${shopId}の自動登録完了`);

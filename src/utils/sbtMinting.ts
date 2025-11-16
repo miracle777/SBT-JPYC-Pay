@@ -235,23 +235,24 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
     } catch (gasError: any) {
       console.error('ガス推定エラー:', gasError);
       // ガス推定失敗時はデフォルト値で再試行
-      const tx = await contract.mintSBT(recipientAddress, shopId, tokenURI);
-      console.log('⏳ トランザクション送信 (デフォルトガス):', tx.hash);
-      receipt = await tx.wait();
-      
-      if (receipt?.status === 0) {
-        return {
-          success: false,
-          error: 'トランザクションが失敗しました',
-        };
+      try {
+        const tx = await contract.mintSBT(recipientAddress, shopId, tokenURI);
+        console.log('⏳ トランザクション送信 (デフォルトガス):', tx.hash);
+        receipt = await tx.wait();
+      } catch (fallbackError: any) {
+        console.error('❌ フォールバック実行エラー:', fallbackError);
+        let errorMessage = 'SBT 発行に失敗しました';
+        
+        if (fallbackError.code === 'ACTION_REJECTED') {
+          errorMessage = 'トランザクションが拒否されました';
+        } else if (fallbackError.code === 'INSUFFICIENT_FUNDS') {
+          errorMessage = 'ガス代が不足しています';
+        } else if (fallbackError.reason) {
+          errorMessage = fallbackError.reason;
+        }
+        
+        return { success: false, error: errorMessage };
       }
-      
-      console.log('✅ SBT Minting 完了', receipt?.transactionHash);
-      return {
-        success: true,
-        transactionHash: receipt?.transactionHash || tx.hash,
-        tokenId: receipt?.logs?.[0]?.topics?.[3] ? parseInt(receipt.logs[0].topics[3], 16).toString() : undefined,
-      };
     }
 
     if (receipt?.status === 0) {
