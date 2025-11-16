@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor, Zap } from 'lucide-react';
+import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor, Zap, User, Award, Hash } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { BrowserProvider } from 'ethers';
 import { NETWORKS, JPYC, getContractAddress, getJpycContracts } from '../config/networks';
@@ -43,6 +43,7 @@ const QRPayment: React.FC = () => {
   const [loadingGasEstimate, setLoadingGasEstimate] = useState(false);
   const [walletPolBalance, setWalletPolBalance] = useState<bigint | null>(null);
   const [hasInsufficientGas, setHasInsufficientGas] = useState(false);
+  const [customerPaymentStats, setCustomerPaymentStats] = useState<Map<string, number>>(new Map());
 
   const shopWalletAddress = getShopWalletAddress(walletAddress);
   const paymentNetwork = Object.values(NETWORKS).find(
@@ -161,13 +162,43 @@ const QRPayment: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // 完了したセッション情報を LocalStorage に保存
+  // 完了したセッション情報を LocalStorage に保存と顧客統計の更新
   useEffect(() => {
     const completedSessions = paymentSessions.filter(s => s.status === 'completed' && s.payerAddress);
     if (completedSessions.length > 0) {
       localStorage.setItem('completedPaymentSessions', JSON.stringify(completedSessions));
+      
+      // 顧客別支払い回数を計算
+      const stats = new Map<string, number>();
+      completedSessions.forEach(session => {
+        if (session.payerAddress) {
+          const currentCount = stats.get(session.payerAddress) || 0;
+          stats.set(session.payerAddress, currentCount + 1);
+        }
+      });
+      setCustomerPaymentStats(stats);
     }
   }, [paymentSessions]);
+  
+  // ページロード時に保存された完了セッションから統計を復元
+  useEffect(() => {
+    const savedSessions = localStorage.getItem('completedPaymentSessions');
+    if (savedSessions) {
+      try {
+        const sessions: PaymentSession[] = JSON.parse(savedSessions);
+        const stats = new Map<string, number>();
+        sessions.forEach(session => {
+          if (session.payerAddress) {
+            const currentCount = stats.get(session.payerAddress) || 0;
+            stats.set(session.payerAddress, currentCount + 1);
+          }
+        });
+        setCustomerPaymentStats(stats);
+      } catch (error) {
+        console.error('顧客統計の復元に失敗:', error);
+      }
+    }
+  }, []);
 
   // トランザクション監視 - pending セッションのトランザクションを検知
   useEffect(() => {
@@ -395,6 +426,41 @@ const QRPayment: React.FC = () => {
     };
     const s = statusMap[status as keyof typeof statusMap];
     return <span className={`px-3 py-1 rounded-full text-sm font-medium ${s.bg} ${s.text}`}>{s.label}</span>;
+  };
+
+  // SBT発行推奨を判定する関数
+  const getSBTRecommendation = (paymentCount: number) => {
+    const milestones = [10, 20, 30, 50, 100]; // スタンプカードのマイルストーン
+    const nextMilestone = milestones.find(m => m === paymentCount);
+    
+    if (nextMilestone) {
+      return {
+        shouldIssue: true,
+        milestone: nextMilestone,
+        message: `🎊 ${nextMilestone}回目達成！SBT発行推奨`
+      };
+    }
+    
+    const upcoming = milestones.find(m => m > paymentCount);
+    if (upcoming) {
+      const remaining = upcoming - paymentCount;
+      return {
+        shouldIssue: false,
+        milestone: upcoming,
+        message: `次回SBT: ${remaining}回後（${upcoming}回目）`
+      };
+    }
+    
+    return {
+      shouldIssue: false,
+      milestone: null,
+      message: '🏆 全マイルストーン達成済み'
+    };
+  };
+
+  // 顧客アドレスの短縮表示
+  const formatCustomerAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
   const networkList = Object.values(NETWORKS);
@@ -770,50 +836,207 @@ const QRPayment: React.FC = () => {
 
           {/* セッション履歴 */}
           <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">セッション履歴</h2>
-            {paymentSessions.length === 0 ? (
-              <p className="text-gray-500 text-sm">セッションはまだありません</p>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">💳 支払い完了一覧</h2>
+            {paymentSessions.filter(s => s.status === 'completed').length === 0 ? (
+              <p className="text-gray-500 text-sm">完了した支払いはまだありません</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="border-b border-gray-200">
-                    <tr>
-                      <th className="text-left py-2 px-2 font-semibold text-gray-700">ID</th>
-                      <th className="text-left py-2 px-2 font-semibold text-gray-700">金額</th>
-                      <th className="text-left py-2 px-2 font-semibold text-gray-700">ネットワーク</th>
-                      <th className="text-left py-2 px-2 font-semibold text-gray-700">作成時刻</th>
-                      <th className="text-left py-2 px-2 font-semibold text-gray-700">状態</th>
-                      <th className="text-left py-2 px-2 font-semibold text-gray-700">トランザクション</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paymentSessions.map((session) => (
-                      <tr key={session.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-2 px-2 font-mono text-xs text-gray-600">{session.id.slice(-8)}</td>
-                        <td className="py-2 px-2 font-semibold text-gray-900">{session.amount}</td>
-                        <td className="py-2 px-2 text-gray-600">{session.chainName}</td>
-                        <td className="py-2 px-2 text-xs text-gray-600">{session.createdAt.split(' ')[1]}</td>
-                        <td className="py-2 px-2">{getStatusBadge(session.status)}</td>
-                        <td className="py-2 px-2">
-                          {session.status === 'completed' && session.transactionHash ? (
-                            <div className="flex items-center gap-1">
-                              <CheckCircle className="w-4 h-4 text-green-600" />
-                              <span className="text-xs font-mono text-green-600">
-                                {session.transactionHash.slice(0, 8)}...
-                              </span>
+              <div className="space-y-4">
+                {/* 顧客別統計サマリー */}
+                {customerPaymentStats.size > 0 && (
+                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+                    <h3 className="flex items-center gap-2 font-semibold text-gray-900 mb-3">
+                      <User className="w-4 h-4 text-purple-600" />
+                      顧客別支払い統計
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {Array.from(customerPaymentStats.entries())
+                        .sort(([,a], [,b]) => b - a) // 支払い回数の多い順
+                        .slice(0, 6) // 上位6件まで表示
+                        .map(([address, count]) => {
+                          const recommendation = getSBTRecommendation(count);
+                          return (
+                            <div key={address} className={`p-3 rounded-lg border-2 ${
+                              recommendation.shouldIssue 
+                                ? 'bg-green-50 border-green-200' 
+                                : 'bg-white border-gray-200'
+                            }`}>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-mono text-gray-600">
+                                  {formatCustomerAddress(address)}
+                                </span>
+                                {recommendation.shouldIssue && (
+                                  <Award className="w-4 h-4 text-green-600" />
+                                )}
+                              </div>
+                              <div className="text-lg font-bold text-gray-900 mb-1">
+                                {count}回
+                              </div>
+                              <div className={`text-xs font-semibold ${
+                                recommendation.shouldIssue 
+                                  ? 'text-green-700' 
+                                  : 'text-gray-600'
+                              }`}>
+                                {recommendation.message}
+                              </div>
                             </div>
-                          ) : session.status === 'pending' ? (
-                            <span className="text-xs text-blue-600 font-semibold">監視中...</span>
-                          ) : session.status === 'expired' ? (
-                            <span className="text-xs text-red-600">期限切れ</span>
-                          ) : (
-                            <span className="text-xs text-gray-500">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          );
+                        })
+                      }
+                    </div>
+                    {customerPaymentStats.size > 6 && (
+                      <p className="text-xs text-gray-600 mt-3 text-center">
+                        他 {customerPaymentStats.size - 6} 名の顧客
+                      </p>
+                    )}
+                  </div>
+                )}
+                
+                {/* 詳細な支払い履歴テーブル */}
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <h3 className="bg-gray-50 px-4 py-3 font-semibold text-gray-900 border-b border-gray-200">
+                    詳細履歴
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="text-left py-3 px-3 font-semibold text-gray-700">
+                            <Hash className="w-4 h-4 inline mr-1" />ID
+                          </th>
+                          <th className="text-left py-3 px-3 font-semibold text-gray-700">金額</th>
+                          <th className="text-left py-3 px-3 font-semibold text-gray-700">
+                            <User className="w-4 h-4 inline mr-1" />顧客
+                          </th>
+                          <th className="text-left py-3 px-3 font-semibold text-gray-700">支払回数</th>
+                          <th className="text-left py-3 px-3 font-semibold text-gray-700">SBT推奨</th>
+                          <th className="text-left py-3 px-3 font-semibold text-gray-700">完了時刻</th>
+                          <th className="text-left py-3 px-3 font-semibold text-gray-700">Tx</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paymentSessions
+                          .filter(s => s.status === 'completed' && s.payerAddress)
+                          .sort((a, b) => new Date(b.detectedAt || '').getTime() - new Date(a.detectedAt || '').getTime())
+                          .map((session) => {
+                            const paymentCount = customerPaymentStats.get(session.payerAddress!) || 0;
+                            const recommendation = getSBTRecommendation(paymentCount);
+                            
+                            return (
+                              <tr key={session.id} className={`border-b border-gray-100 hover:bg-gray-50 ${
+                                recommendation.shouldIssue ? 'bg-green-50' : ''
+                              }`}>
+                                <td className="py-3 px-3 font-mono text-xs text-gray-600">
+                                  {session.id.slice(-8)}
+                                </td>
+                                <td className="py-3 px-3 font-semibold text-gray-900">
+                                  {session.amount} JPYC
+                                </td>
+                                <td className="py-3 px-3">
+                                  <div className="font-mono text-xs text-gray-700">
+                                    {formatCustomerAddress(session.payerAddress!)}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-lg font-bold ${
+                                      recommendation.shouldIssue ? 'text-green-600' : 'text-gray-900'
+                                    }`}>
+                                      {paymentCount}
+                                    </span>
+                                    <span className="text-xs text-gray-600">回目</span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-3">
+                                  {recommendation.shouldIssue ? (
+                                    <div className="flex items-center gap-1">
+                                      <Award className="w-4 h-4 text-green-600" />
+                                      <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-full">
+                                        {recommendation.milestone}回達成！
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-gray-500">
+                                      {recommendation.message.replace('次回SBT: ', '').replace('🏆 ', '')}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-3 text-xs text-gray-600">
+                                  {session.detectedAt ? session.detectedAt.split(' ')[1] : session.createdAt.split(' ')[1]}
+                                </td>
+                                <td className="py-3 px-3">
+                                  {session.transactionHash ? (
+                                    <a
+                                      href={`${paymentSessions.find(s => s.chainId === session.chainId) ? 
+                                        Object.values(NETWORKS).find(n => n.chainId === session.chainId)?.blockExplorer : 
+                                        '#'
+                                      }/tx/${session.transactionHash}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
+                                    >
+                                      <CheckCircle className="w-3 h-3" />
+                                      {session.transactionHash.slice(0, 6)}...
+                                    </a>
+                                  ) : (
+                                    <span className="text-xs text-gray-500">-</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                {/* セッション履歴（全ステータス） */}
+                <details className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <summary className="bg-gray-50 px-4 py-3 font-semibold text-gray-900 cursor-pointer hover:bg-gray-100">
+                    全セッション履歴 ({paymentSessions.length}件)
+                  </summary>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="border-b border-gray-200">
+                        <tr>
+                          <th className="text-left py-2 px-2 font-semibold text-gray-700">ID</th>
+                          <th className="text-left py-2 px-2 font-semibold text-gray-700">金額</th>
+                          <th className="text-left py-2 px-2 font-semibold text-gray-700">ネットワーク</th>
+                          <th className="text-left py-2 px-2 font-semibold text-gray-700">作成時刻</th>
+                          <th className="text-left py-2 px-2 font-semibold text-gray-700">状態</th>
+                          <th className="text-left py-2 px-2 font-semibold text-gray-700">トランザクション</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paymentSessions.map((session) => (
+                          <tr key={session.id} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-2 px-2 font-mono text-xs text-gray-600">{session.id.slice(-8)}</td>
+                            <td className="py-2 px-2 font-semibold text-gray-900">{session.amount}</td>
+                            <td className="py-2 px-2 text-gray-600">{session.chainName}</td>
+                            <td className="py-2 px-2 text-xs text-gray-600">{session.createdAt.split(' ')[1]}</td>
+                            <td className="py-2 px-2">{getStatusBadge(session.status)}</td>
+                            <td className="py-2 px-2">
+                              {session.status === 'completed' && session.transactionHash ? (
+                                <div className="flex items-center gap-1">
+                                  <CheckCircle className="w-4 h-4 text-green-600" />
+                                  <span className="text-xs font-mono text-green-600">
+                                    {session.transactionHash.slice(0, 8)}...
+                                  </span>
+                                </div>
+                              ) : session.status === 'pending' ? (
+                                <span className="text-xs text-blue-600 font-semibold">監視中...</span>
+                              ) : session.status === 'expired' ? (
+                                <span className="text-xs text-red-600">期限切れ</span>
+                              ) : (
+                                <span className="text-xs text-gray-500">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
               </div>
             )}
           </div>
