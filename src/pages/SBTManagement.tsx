@@ -320,7 +320,12 @@ const SBTManagement: React.FC = () => {
   // チェーンが変更された時、コントラクト所有者・ショップ情報を確認
   useEffect(() => {
     const checkContractOwnership = async () => {
-      if (!selectedChainForSBT) return;
+      if (!selectedChainForSBT || !walletAddress) {
+        // ウォレットが接続されていない場合は権限を無効化
+        setIsContractOwner(false);
+        setIsShopOwner(false);
+        return;
+      }
 
       console.log(`🔍 コントラクト所有者情報を確認中: Chain ${selectedChainForSBT}, Wallet: ${walletAddress}`);
 
@@ -333,9 +338,11 @@ const SBTManagement: React.FC = () => {
           if (walletAddress && ownerResult.owner.toLowerCase() === walletAddress.toLowerCase()) {
             setIsContractOwner(true);
             console.log('✅ 現在のウォレットはコントラクトオーナーです');
+            console.log(`🔍 権限確認 - Contract: ${ownerResult.owner.toLowerCase()} == Wallet: ${walletAddress.toLowerCase()}`);
           } else {
             setIsContractOwner(false);
             console.log('❌ 現在のウォレットはコントラクトオーナーではありません');
+            console.log(`🔍 権限確認 - Contract: ${ownerResult.owner.toLowerCase()} != Wallet: ${walletAddress?.toLowerCase() || 'null'}`);
           }
 
           // ショップ情報を取得
@@ -346,8 +353,12 @@ const SBTManagement: React.FC = () => {
             if (walletAddress && shopResult.owner.toLowerCase() === walletAddress.toLowerCase()) {
               setIsShopOwner(true);
               console.log('✅ 現在のウォレットはショップオーナー (ID:1) です');
+              console.log(`🔍 ショップ権限確認 - Shop: ${shopResult.owner.toLowerCase()} == Wallet: ${walletAddress.toLowerCase()}`);
             } else {
               setIsShopOwner(false);
+              console.log('❌ 現在のウォレットはショップオーナー (ID:1) ではありません');
+              console.log(`🔍 ショップ権限確認 - Shop: ${shopResult.owner.toLowerCase()} != Wallet: ${walletAddress?.toLowerCase() || 'null'}`);
+            }
               console.log('❌ 現在のウォレットはショップオーナー (ID:1) ではありません');
             }
           } else {
@@ -1570,7 +1581,7 @@ const SBTManagement: React.FC = () => {
           </div>
 
           {/* ⚠️ コントラクト認可警告 */}
-          {!isContractOwner && !isShopOwner && (
+          {!isContractOwner && !isShopOwner && walletAddress && (
             <div className="mb-6 bg-red-50 border-2 border-red-300 rounded-lg p-4">
               <div className="flex gap-3">
                 <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
@@ -1588,6 +1599,21 @@ const SBTManagement: React.FC = () => {
                     <p><span className="text-gray-600">ショップオーナー (ID:1):</span> <span className="text-gray-900">{shopInfo?.owner?.slice(0, 12)}...{shopInfo?.owner?.slice(-8)}</span></p>
                     <p><span className="text-gray-600">現在のウォレット:</span> <span className="text-gray-900">{walletAddress?.slice(0, 12)}...{walletAddress?.slice(-8)}</span></p>
                   </div>
+                  
+                  {/* デバッグ用: 権限状態を表示 */}
+                  <div className="bg-yellow-50 rounded p-2 text-xs mb-3">
+                    <p>🔍 デバッグ情報:</p>
+                    <p>Contract Owner: {isContractOwner ? 'true' : 'false'}</p>
+                    <p>Shop Owner: {isShopOwner ? 'true' : 'false'}</p>
+                    <p>Wallet Connected: {walletAddress ? 'true' : 'false'}</p>
+                  </div>
+                  
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold text-sm transition mb-2"
+                  >
+                    🔄 権限情報を再読み込み
+                  </button>
                   
                   {isContractOwner && !isShopOwner && (
                     <button
