@@ -161,6 +161,34 @@ Polygon Amoy でテストを行う際は、テストネットトークン（POL�
   - Polygon Mainnet: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
   - Polygon Amoy: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
 
+## 📚 ドキュメント
+
+- **[SBT一覧表示実装ガイド](./docs/SBT_LIST_INTEGRATION.md)** - スマホアプリ向け SBT 表示実装
+  - React コンポーネント実装例
+  - 複数ショップ対応
+  - 来店回数表示
+  - Polygon MainNet / Amoy 対応
+
+- **[Shop仕様](./Shop仕様.md)** - お店側の操作マニュアル
+- **[User仕様](./user仕様.md)** - ユーザー側の操作マニュアル
+
+## 📚 ドキュメント
+
+### スマホアプリ向けドキュメント
+
+- **[📱 SBT一覧表示実装ガイド](./docs/SBT_LIST_INTEGRATION.md)** ⭐ スマホでSBTを表示したい場合は必読
+  - React コンポーネント実装例（完全版）
+  - 複数ショップ対応（タブ表示）
+  - 来店回数（スタンプ数）表示
+  - Polygon MainNet / Amoy Testnet 完全対応
+  - IPFS メタデータ取得
+  - トラブルシューティング
+
+### その他のドキュメント
+
+- [Shop仕様](./Shop仕様.md) - お店側の操作マニュアル
+- [User仕様](./user仕様.md) - ユーザー側の操作マニュアル
+
 ## 🔗 関連リポジトリ
 
 - [jpycwallet-x402](https://github.com/miracle777/jpycwallet-x402) - QRコード規格参考

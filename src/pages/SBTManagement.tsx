@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle } from 'lucide-react';
+import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle, Copy } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
 import { mintSBT, getBlockExplorerUrl, getContractOwner, getShopInfo, registerShop } from '../utils/sbtMinting';
+import { generateNonConflictingShopId, formatShopIdAsHex } from '../utils/shopIdGenerator';
 import { NETWORKS } from '../config/networks';
 import { BrowserProvider } from 'ethers';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
@@ -14,6 +15,7 @@ type IssuePattern = 'per_payment' | 'after_count' | 'time_period' | 'period_rang
 
 interface SBTTemplate {
   id: string;
+  shopId: number; // ⭐ 新規: ショップID（ランダム生成）
   name: string;
   description: string;
   issuePattern: IssuePattern; // 'per_payment': 毎回発行 | 'after_count': N回後に発行 | 'time_period': 期間内に発行 | 'period_range': 期間指定
@@ -582,8 +584,11 @@ const SBTManagement: React.FC = () => {
       await saveTemplateEdit(e);
     } else {
       // 新規作成（コピーも含む）
+      const shopId = generateNonConflictingShopId(templates);
+      
       const newTemplateData: SBTTemplate = {
         id: `template-${Date.now()}`,
+        shopId, // ⭐ 新規: ランダムショップIDを割り当て
         name: newTemplate.name,
         description: newTemplate.description,
         issuePattern: newTemplate.issuePattern,
@@ -604,23 +609,9 @@ const SBTManagement: React.FC = () => {
       // IndexedDB に保存
       await sbtStorage.saveTemplate(newTemplateData);
 
-      // フォームをリセット
-      setNewTemplate({
-        name: '',
-        description: '',
-        issuePattern: 'per_payment' as IssuePattern,
-        maxStamps: 10,
-        timePeriodDays: 30,
-        periodStartDate: '',
-        periodEndDate: '',
-        rewardDescription: '',
-        imageUrl: '',
-        imageMimeType: 'image/jpeg',
-      });
-      setImagePreview('');
-      setShowTemplateForm(false);
-      toast.success(editingTemplateId ? 'テンプレートを更新しました' : 'テンプレートを作成しました');
-    }
+      // ショップID を通知
+      console.log(`✅ 新規テンプレート作成: ショップID ${shopId} (${formatShopIdAsHex(shopId)})`);
+      toast.success(`テンプレートを作成しました\n🆔 ショップID: ${shopId}`, { duration: 4000 });
   };
 
   const issueSBT = async (e: React.FormEvent, selectedPaymentId?: string, selectedTemplateId?: string) => {
@@ -1214,7 +1205,24 @@ const SBTManagement: React.FC = () => {
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="font-bold text-gray-900 mb-1">{template.name}</h3>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-gray-900">{template.name}</h3>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(formatShopIdAsHex(template.shopId));
+                        toast.success(`コピーしました: ${formatShopIdAsHex(template.shopId)}`);
+                      }}
+                      className="ml-2 p-1 hover:bg-gray-100 rounded transition"
+                      title="ショップIDをコピー"
+                    >
+                      <Copy className="w-4 h-4 text-gray-500 hover:text-gray-700" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-600 mb-2 font-mono bg-amber-50 px-2 py-1 rounded inline-block">
+                    🆔 {formatShopIdAsHex(template.shopId)}
+                  </p>
                   <p className="text-xs text-gray-500 mb-2">{template.description}</p>
                   <div className="mb-3 text-sm space-y-1">
                     <div className="px-2 py-1 bg-blue-50 rounded text-blue-700 text-xs font-medium">
