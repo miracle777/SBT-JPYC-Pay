@@ -268,7 +268,17 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
           // 最後の手段: ユーザー手動でのトランザクション実行を推奨
           return {
             success: false,
-            error: 'RPC接続が不安定です。○ MetaMaskで手動でトランザクションを送信するか、○ 数分後に再度お試しください。SBTデータはローカルに保存されています。',
+            error: `🌐 Polygon Amoyネットワークの接続が不安定です
+
+📋 解決方法:
+1️⃣ 設定画面でRPCエンドポイントを変更
+2️⃣ MetaMaskを再起動  
+3️⃣ 数分後に再試行
+
+💾 重要: SBTデータはローカルに保存済み
+ネットワーク接続が安定すれば、いつでもブロックチェーンに記録できます。
+
+🔧 詳細: 設定画面の「ネットワーク情報」セクションをご確認ください。`,
           };
         }
       } else {

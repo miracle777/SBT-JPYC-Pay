@@ -323,6 +323,70 @@ const Settings: React.FC = () => {
               </div>
             </div>
 
+            {/* RPC接続トラブルシューティング - Polygon Amoyの場合のみ表示 */}
+            {currentChainId === 80002 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertCircle className="w-5 h-5 text-amber-600" />
+                  <h3 className="font-bold text-amber-900">⚠️ RPC接続が不安定な場合の解決方法</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-700">
+                    <strong>Internal JSON-RPC error</strong> が発生する場合、MetaMaskのRPCエンドポイントを変更してください：
+                  </p>
+                  
+                  <div className="bg-white rounded-lg p-4 border">
+                    <h4 className="font-semibold text-gray-900 mb-3">🔄 推奨RPCエンドポイント（優先順）</h4>
+                    <div className="space-y-2 font-mono text-sm">
+                      <div className="flex items-center justify-between bg-green-50 p-2 rounded border border-green-200">
+                        <span className="text-green-800">https://polygon-amoy-bor-rpc.publicnode.com</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText('https://polygon-amoy-bor-rpc.publicnode.com');
+                            toast.success('📋 RPCアドレスをコピーしました');
+                          }}
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between bg-blue-50 p-2 rounded border border-blue-200">
+                        <span className="text-blue-800">https://rpc.ankr.com/polygon_amoy</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText('https://rpc.ankr.com/polygon_amoy');
+                            toast.success('📋 RPCアドレスをコピーしました');
+                          }}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-blue-50 rounded p-3 border border-blue-200">
+                    <h4 className="font-semibold text-blue-900 mb-2">📝 MetaMask設定変更手順</h4>
+                    <ol className="text-sm text-blue-800 space-y-1">
+                      <li>1. MetaMask → ネットワーク → 「ネットワークを編集」</li>
+                      <li>2. 「RPC URL」を上記の推奨アドレスに変更</li>
+                      <li>3. 「保存」をクリック</li>
+                      <li>4. MetaMaskを一度閉じて再度開く</li>
+                      <li>5. SBT記録を再試行</li>
+                    </ol>
+                  </div>
+                  
+                  <div className="bg-green-50 rounded p-3 border border-green-200">
+                    <p className="text-sm text-green-800">
+                      💡 <strong>重要:</strong> SBTデータは既にローカルストレージに保存されています。
+                      ネットワーク接続の問題が解決されれば、ブロックチェーンへの記録が可能になります。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">利用可能なネットワーク</label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
