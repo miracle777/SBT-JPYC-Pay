@@ -6,7 +6,6 @@ import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
 import { pinataService } from '../utils/pinata';
-import SBTPrivateKeySection from '../components/SBTPrivateKeySection';
 
 const Settings: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
@@ -709,25 +708,58 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* 🔑 SBT発行権限設定（秘密鍵管理） */}
-        <div className="bg-white rounded-xl shadow-lg p-8 border-l-4 border-red-500">
+        {/* 🚨 SBT発行のセキュリティに関する重要な注意事項 */}
+        <div className="bg-white rounded-xl shadow-lg p-8 border-l-4 border-blue-500">
           <div className="flex items-center gap-3 mb-6">
-            <Key className="w-6 h-6 text-red-600" />
-            <h2 className="text-lg font-bold text-gray-900">🔑 SBT発行権限設定</h2>
+            <AlertCircle className="w-6 h-6 text-blue-600" />
+            <h2 className="text-lg font-bold text-gray-900">🛡️ SBT発行のセキュリティについて</h2>
           </div>
           
-          <div className="bg-red-50 border border-red-300 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-red-900 mb-2">⚠️ 重要なセキュリティ設定</h3>
-            <ul className="text-sm text-red-800 space-y-1">
-              <li>• <strong>個人専用:</strong> 必ず自分専用の秘密鍵を使用してください</li>
-              <li>• <strong>ローカル保存:</strong> ブラウザのローカルストレージにのみ保存されます</li>
-              <li>• <strong>サーバー送信なし:</strong> 秘密鍵がネットワークで送信されることはありません</li>
-              <li>• <strong>管理責任:</strong> 秘密鍵の紛失や漏洩は自己責任となります</li>
-              <li>• <strong>コントラクトオーナー権限:</strong> SBT発行権限を持つアドレスの秘密鍵が必要です</li>
-            </ul>
-          </div>
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-semibold text-blue-900 mb-2">📱 現在のデモ実装</h3>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• MetaMaskを使用したフロントエンド署名</li>
+                <li>• ユーザーがSBT発行の都度トランザクションを承認</li>
+                <li>• 秘密鍵はユーザーのMetaMaskが安全に管理</li>
+                <li>• プロトタイプ・デモ・テスト目的に適している</li>
+              </ul>
+            </div>
 
-          <SBTPrivateKeySection />
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h3 className="font-semibold text-green-900 mb-2">🏢 本番環境での推奨構成</h3>
+              <ul className="text-sm text-green-800 space-y-1">
+                <li>• <strong>サーバーサイドAPI:</strong> Node.js、Python等でSBT発行API作成</li>
+                <li>• <strong>環境変数管理:</strong> サーバー上で秘密鍵を暗号化して保存</li>
+                <li>• <strong>認証システム:</strong> JWT、OAuth等でAPI保護</li>
+                <li>• <strong>監査ログ:</strong> すべてのSBT発行を記録</li>
+                <li>• <strong>レート制限:</strong> 不正な大量発行を防止</li>
+                <li>• <strong>権限管理:</strong> ロールベースアクセス制御</li>
+              </ul>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h3 className="font-semibold text-yellow-900 mb-2">⚠️ フロントエンドでの秘密鍵管理の危険性</h3>
+              <ul className="text-sm text-yellow-800 space-y-1">
+                <li>• ブラウザのローカルストレージは暗号化されていない</li>
+                <li>• JavaScript コードから秘密鍵が読み取り可能</li>
+                <li>• ブラウザ拡張機能からのアクセス可能性</li>
+                <li>• デバッグツールでの秘密鍵の可視化</li>
+                <li>• XSS攻撃による秘密鍵の流出リスク</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-2">💡 本番移行時の検討事項</h3>
+              <ul className="text-sm text-gray-700 space-y-1">
+                <li>• ユーザビリティ vs セキュリティのバランス</li>
+                <li>• 署名頻度の最適化（バッチ処理等）</li>
+                <li>• オフチェーン署名の活用</li>
+                <li>• マルチシグウォレットの導入</li>
+                <li>• ハードウェアウォレット対応</li>
+              </ul>
+            </div>
+          </div>
         </div>
 
         {/* データ管理（バックアップ・復元） */}

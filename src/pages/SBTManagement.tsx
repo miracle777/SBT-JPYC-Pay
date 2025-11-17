@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle, Copy, Key, Settings } from 'lucide-react';
+import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle, Copy, Server, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
@@ -12,7 +12,6 @@ import SBTCard from '../components/SBTCard';
 import { pinataService } from '../utils/pinata';
 import { formatShopIdAsHex, generateNonConflictingShopId, generateUniqueShopId } from '../utils/shopIdGenerator';
 import { getShopSettings } from '../utils/shopSettings';
-import { canMintSBT } from '../utils/privateKeyManager';
 
 type IssuePattern = 'per_payment' | 'after_count' | 'time_period' | 'period_range';
 
@@ -1110,70 +1109,77 @@ const SBTManagement: React.FC = () => {
           </div>
         ) : null}
 
-        {/* 🔑 秘密鍵設定状態チェック */}
-        {(() => {
-          const mintCheck = canMintSBT();
-          if (!mintCheck.canMint) {
-            return (
-              <div className="mb-6 bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <Key className="w-6 h-6 text-red-600" />
-                  <h3 className="text-lg font-bold text-red-900">⚠️ SBT発行用秘密鍵が未設定</h3>
+        {/* 🚨 本番環境での実装についての重要な注意事項 */}
+        <div className="mb-6 bg-orange-50 border-l-4 border-orange-500 rounded-lg p-6">
+          <div className="flex items-start gap-3">
+            <Shield className="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-orange-900 mb-3">🚨 デモ環境での実装について</h3>
+              <div className="space-y-4">
+                <div className="bg-white border border-orange-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-orange-900 mb-2">📱 現在の実装（デモ用）</h4>
+                  <ul className="text-sm text-orange-800 space-y-1">
+                    <li>• フロントエンドでMetaMaskを使用した署名</li>
+                    <li>• ユーザーが都度トランザクションを承認</li>
+                    <li>• 秘密鍵はMetaMaskが安全に管理</li>
+                    <li>• デモ・プロトタイプ・テスト目的に適している</li>
+                  </ul>
                 </div>
-                <div className="space-y-3">
-                  <p className="text-sm text-red-800">
-                    {mintCheck.reason}
-                  </p>
-                  <div className="bg-white border border-red-200 rounded-lg p-3">
-                    <h4 className="font-semibold text-red-900 mb-2">🔒 必要な設定:</h4>
-                    <ul className="text-sm text-red-800 space-y-1">
-                      <li>• SBT発行権限を持つウォレットの秘密鍵</li>
-                      <li>• コントラクトオーナーまたはショップオーナーの権限</li>
-                      <li>• ローカルストレージでの安全な保存</li>
-                    </ul>
+                
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-green-900 mb-2">🏢 本番環境での推奨実装</h4>
+                  <ul className="text-sm text-green-800 space-y-1">
+                    <li>• <strong>サーバーサイドAPI:</strong> Express.js、FastAPI等でSBT発行API作成</li>
+                    <li>• <strong>環境変数管理:</strong> サーバー上で秘密鍵を安全に管理</li>
+                    <li>• <strong>認証・認可:</strong> JWT、OAuth等でAPI保護</li>
+                    <li>• <strong>ログ・監査:</strong> 発行履歴の適切な記録</li>
+                    <li>• <strong>レート制限:</strong> 不正な大量発行を防止</li>
+                  </ul>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-blue-900 mb-2">💻 サーバーサイド実装例</h4>
+                  <div className="text-xs font-mono bg-gray-800 text-green-400 p-3 rounded overflow-x-auto">
+                    <div className="space-y-1">
+                      <div># 環境変数設定</div>
+                      <div>SBT_OWNER_PRIVATE_KEY=0x1234567890abcdef...</div>
+                      <div>POLYGON_RPC_URL=https://polygon-rpc.com/</div>
+                      <div>PINATA_API_KEY=your_api_key</div>
+                      <div>&nbsp;</div>
+                      <div># API実装</div>
+                      <div>POST /api/mint-sbt</div>
+                      <div>- 秘密鍵をサーバー環境変数から取得</div>
+                      <div>- ethers.jsでサーバーサイド署名</div>
+                      <div>- フロントエンドには結果のみ返却</div>
+                    </div>
                   </div>
-                  <div className="flex gap-3">
-                    <a
-                      href="/settings"
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition flex items-center gap-2 text-sm font-semibold"
-                    >
-                      <Settings className="w-4 h-4" />
-                      設定画面で秘密鍵を設定
-                    </a>
-                    <button
-                      onClick={() => {
-                        const mintCheckAgain = canMintSBT();
-                        if (mintCheckAgain.canMint) {
-                          toast.success('✅ 秘密鍵が設定されました');
-                          window.location.reload();
-                        } else {
-                          toast.error('❌ 秘密鍵がまだ設定されていません');
-                        }
-                      }}
-                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition text-sm"
-                    >
-                      🔄 設定状態を再確認
-                    </button>
-                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-4">
+                  <a
+                    href="https://docs.ethers.org/v6/getting-started/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition flex items-center gap-2 text-sm font-semibold"
+                  >
+                    <Server className="w-4 h-4" />
+                    ethers.js サーバー実装ガイド
+                  </a>
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toast('📚 詳細なドキュメントは別途提供予定です', { icon: '📚' });
+                    }}
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition text-sm"
+                  >
+                    📚 実装ガイド（準備中）
+                  </a>
                 </div>
               </div>
-            );
-          } else {
-            return (
-              <div className="mb-6 bg-green-50 border-l-4 border-green-500 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <div>
-                    <h3 className="font-semibold text-green-900">✅ SBT発行準備完了</h3>
-                    <p className="text-sm text-green-800">
-                      発行用秘密鍵が設定済みです（アドレス: {mintCheck.address?.slice(0, 8)}...{mintCheck.address?.slice(-6)}）
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-        })()}
+            </div>
+          </div>
+        </div>
 
         {/* ネットワーク情報表示 */}
         <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">

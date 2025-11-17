@@ -1,12 +1,48 @@
 /**
  * SBT Minting ユーティリティ
  * スマートコントラクトとの連携でSBTを発行
+ * 
+ * 🚨 重要: セキュリティについて
+ * 
+ * 【デモ環境での実装】
+ * - MetaMaskを使用したフロントエンド署名
+ * - 都度ユーザーが署名を承認
+ * - 秘密鍵はMetaMaskが安全に管理
+ * 
+ * 【本番環境での推奨実装】
+ * - サーバーサイドでの秘密鍵管理
+ * - 環境変数での秘密鍵設定
+ * - API経由でのSBT発行
+ * - フロントエンドには秘密鍵を一切保存しない
+ * 
+ * 例:
+ * ```
+ * # サーバー環境変数
+ * SBT_OWNER_PRIVATE_KEY=0x1234567890abcdef...
+ * PINATA_API_KEY=your_api_key
+ * PINATA_SECRET_KEY=your_secret_key
+ * ```
+ * 
+ * サーバーサイド実装例:
+ * ```typescript
+ * // server/routes/sbt.ts
+ * app.post('/api/mint-sbt', async (req, res) => {
+ *   const { recipientAddress, shopId, metadata } = req.body;
+ *   
+ *   // 環境変数から秘密鍵取得
+ *   const privateKey = process.env.SBT_OWNER_PRIVATE_KEY;
+ *   const provider = new JsonRpcProvider(process.env.RPC_URL);
+ *   const signer = new ethers.Wallet(privateKey, provider);
+ *   
+ *   // SBT発行処理
+ *   const result = await mintSBTServerSide(signer, { recipientAddress, shopId, metadata });
+ *   res.json(result);
+ * });
+ * ```
  */
 
-import { BrowserProvider, Contract, parseUnits, JsonRpcProvider } from 'ethers';
+import { BrowserProvider, Contract, parseUnits } from 'ethers';
 import { getSBTContractAddress, JPYC_STAMP_SBT_ABI } from '../config/contracts';
-import { NETWORKS } from '../config/networks';
-import { canMintSBT, createSignerFromPrivateKey, getSavedPrivateKey } from './privateKeyManager';
 import toast from 'react-hot-toast';
 
 export interface MintSBTParams {
@@ -25,19 +61,92 @@ export interface MintSBTResult {
 
 /**
  * SBT を発行する（ブロックチェーンに記録）
+ * 
+ * デモ実装: MetaMaskでユーザーが都度署名
+ * 本番推奨: サーバーサイドAPI経由での発行
  */
 export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
   try {
-    const { recipientAddress, shopId, tokenURI, chainId } = params;
-
-    // 秘密鍵の確認
-    const mintCheck = canMintSBT();
-    if (!mintCheck.canMint) {
+    // MetaMask が利用可能か確認
+    if (!window.ethereum) {
       return {
         success: false,
-        error: mintCheck.reason || 'SBT発行権限がありません',
+        error: 'MetaMask がインストールされていません',
       };
     }
+
+    // 自動でウォレットを指定チェーンに切り替える（必要なら追加）
+    const ensureNetwork = async (targetChainId: number): Promise<{ ok: true } | { ok: false; error: string }> => {
+      try {
+        const hex = '0x' + targetChainId.toString(16);
+        // 現在の chainId を確認
+        const currentHex = (window.ethereum as any)?.chainId as string | undefined;
+        const current = currentHex ? parseInt(currentHex, 16) : undefined;
+        if (current === targetChainId) return { ok: true };
+
+        // 試行: 切替
+        await (window.ethereum as any).request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: hex }],
+        });
+
+        return { ok: true };
+      } catch (switchError: any) {
+        // 4902: chain not found in wallet -> add chain
+        if (switchError && (switchError.code === 4902 || (switchError.message && switchError.message.includes('Unrecognized chain')))) {
+          try {
+            // 代表的なネットワーク情報（Amoy を想定）。他チェーンは必要に応じて拡張。
+            const chainParams: Record<number, any> = {
+              80002: {
+                chainId: '0x13882',
+                chainName: 'Polygon Amoy (Testnet)',
+                rpcUrls: ['https://rpc-amoy.polygon.technology'],
+                nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
+                blockExplorerUrls: ['https://amoy.polygonscan.com'],
+              },
+              11155111: {
+                chainId: '0xa3d6f7',
+                chainName: 'Sepolia',
+                rpcUrls: ['https://sepolia.infura.io/v3/'],
+                nativeCurrency: { name: 'SepoliaETH', symbol: 'ETH', decimals: 18 },
+                blockExplorerUrls: ['https://sepolia.etherscan.io'],
+              },
+            };
+
+            const params = chainParams[targetChainId];
+            if (!params) {
+              return { ok: false, error: `ウォレットにチェーン ${targetChainId} を追加する情報がありません` };
+            }
+
+            await (window.ethereum as any).request({
+              method: 'wallet_addEthereumChain',
+              params: [params],
+            });
+
+            // 追加後に切替再試行
+            await (window.ethereum as any).request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: params.chainId }],
+            });
+
+            return { ok: true };
+          } catch (addError: any) {
+            if (addError && addError.code === 4001) {
+              return { ok: false, error: 'ユーザーがネットワーク追加を拒否しました' };
+            }
+            return { ok: false, error: addError?.message || String(addError) };
+          }
+        }
+
+        if (switchError && switchError.code === 4001) {
+          return { ok: false, error: 'ユーザーがネットワーク切替を拒否しました' };
+        }
+
+        return { ok: false, error: switchError?.message || String(switchError) };
+      }
+    };
+
+    const { recipientAddress, shopId, tokenURI, chainId } = params;
 
     // バリデーション
     if (!recipientAddress || !recipientAddress.startsWith('0x')) {
@@ -77,37 +186,32 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
       };
     }
 
-    // ネットワーク情報を取得
-    const network = Object.values(NETWORKS).find(n => n.chainId === chainId);
-    if (!network) {
-      return {
-        success: false,
-        error: `サポートされていないチェーンID: ${chainId}`,
-      };
+    // 自動でウォレットを指定チェーンに切り替え（必要なら追加）
+    const ensure = await ensureNetwork(chainId);
+    if (!ensure.ok) {
+      return { success: false, error: ensure.error };
     }
 
-    // 保存された秘密鍵を取得
-    const privateKey = getSavedPrivateKey();
-    if (!privateKey) {
-      return {
-        success: false,
-        error: '秘密鍵が設定されていません。設定画面で秘密鍵を入力してください。',
-      };
+    // Provider と Signer を取得
+    const provider = new BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+
+    // 現在のネットワークを確認
+    let network;
+    try {
+      network = await provider.getNetwork();
+    } catch (networkError) {
+      console.warn('ネットワーク取得エラー（続行）:', networkError);
+      // network 取得失敗した場合は続行（後で検証）
     }
 
-    // JsonRpcProvider を使用（秘密鍵での署名のため）
-    const provider = new JsonRpcProvider(network.rpcUrl);
-
-    // 秘密鍵から署名者を作成
-    const signer = createSignerFromPrivateKey(privateKey, provider);
-    if (!signer) {
+    // provider.getNetwork().chainId は number または bigint 型なので比較は慎重に行う
+    if (network && Number(network.chainId) !== chainId) {
       return {
         success: false,
-        error: '秘密鍵が無効です。設定画面で正しい秘密鍵を設定してください。',
+        error: `ネットワークが一致していません。Chain ID ${chainId} に切り替えてください`,
       };
     }
-
-    console.log('🔑 SBT発行者アドレス:', await signer.getAddress());
 
     // コントラクトインスタンスを作成
     const contract = new Contract(
@@ -133,12 +237,14 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
       to: recipientAddress,
       shopId,
       tokenURI,
-      minter: await signer.getAddress(),
     });
+
+    // Signer のアドレスを取得（現在の呼び出し者）
+    const signerAddress = await signer.getAddress();
+    console.log(`👤 現在の Signer アドレス: ${signerAddress}`);
 
     // 事前チェック: provider.call を使って eth_call（静的実行）を行い、revert理由を取得
     try {
-      const signerAddress = await signer.getAddress();
       const callData = contract.interface.encodeFunctionData('mintSBT', [recipientAddress, shopId, tokenURI]);
       await provider.call({ to: contractAddress, data: callData, from: signerAddress });
     } catch (callError: any) {
@@ -289,17 +395,14 @@ export async function checkSBTTransactionStatus(
   error?: string;
 }> {
   try {
-    // ネットワーク情報を取得
-    const network = Object.values(NETWORKS).find(n => n.chainId === chainId);
-    if (!network) {
+    if (!window.ethereum) {
       return {
         status: 'failed',
-        error: `サポートされていないチェーンID: ${chainId}`,
+        error: 'MetaMask がインストールされていません',
       };
     }
 
-    // JsonRpcProvider を使用
-    const provider = new JsonRpcProvider(network.rpcUrl);
+    const provider = new BrowserProvider(window.ethereum);
     
     // トランザクションレシートを取得
     const receipt = await provider.getTransactionReceipt(transactionHash);
@@ -361,13 +464,11 @@ export async function getContractOwner(
   chainId: number
 ): Promise<{ owner: string; error?: string }> {
   try {
-    // ネットワーク情報を取得
-    const network = Object.values(NETWORKS).find(n => n.chainId === chainId);
-    if (!network) {
-      return { owner: '', error: `サポートされていないチェーンID: ${chainId}` };
+    if (!window.ethereum) {
+      return { owner: '', error: 'MetaMask がインストールされていません' };
     }
 
-    const provider = new JsonRpcProvider(network.rpcUrl);
+    const provider = new BrowserProvider(window.ethereum);
     const contractAddress = getSBTContractAddress(chainId);
 
     if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
@@ -409,13 +510,12 @@ export async function getShopInfo(
   error?: string;
 }> {
   try {
-    // ネットワーク情報を取得
-    const network = Object.values(NETWORKS).find(n => n.chainId === chainId);
-    if (!network) {
-      return { error: `サポートされていないチェーンID: ${chainId}` };
+    // MetaMaskプロバイダーを取得
+    if (!window.ethereum) {
+      return { error: 'MetaMaskがインストールされていません' };
     }
 
-    const provider = new JsonRpcProvider(network.rpcUrl);
+    const provider = new BrowserProvider(window.ethereum);
     const contractAddress = getSBTContractAddress(chainId);
 
     if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
@@ -467,7 +567,12 @@ export async function getShopInfo(
 }
 
 /**
- * ショップを登録する（コントラクトオーナー権限で実行）
+ * ショップを登録する（MetaMask署名）
+ * 
+ * 🚨 セキュリティ注意：
+ * - MetaMaskでの署名が必要
+ * - コントラクトオーナー権限が必要
+ * - ユーザーが都度トランザクションを承認
  */
 export async function registerShop(params: {
   shopId: number;
@@ -484,12 +589,11 @@ export async function registerShop(params: {
   try {
     const { shopId, shopName, description, shopOwnerAddress, requiredVisits = 1, chainId } = params;
 
-    // 秘密鍵の確認
-    const mintCheck = canMintSBT();
-    if (!mintCheck.canMint) {
+    // MetaMaskの確認
+    if (!window.ethereum) {
       return {
         success: false,
-        error: mintCheck.reason || 'ショップ登録権限がありません',
+        error: 'MetaMaskがインストールされていません。ウォレットを接続してください。',
       };
     }
 
@@ -501,36 +605,9 @@ export async function registerShop(params: {
       };
     }
 
-    // ネットワーク情報を取得
-    const network = Object.values(NETWORKS).find(n => n.chainId === chainId);
-    if (!network) {
-      return {
-        success: false,
-        error: `サポートされていないチェーンID: ${chainId}`,
-      };
-    }
-
-    // 保存された秘密鍵を取得
-    const privateKey = getSavedPrivateKey();
-    if (!privateKey) {
-      return {
-        success: false,
-        error: '秘密鍵が設定されていません。設定画面で秘密鍵を入力してください。',
-      };
-    }
-
-    // JsonRpcProvider を使用
-    const provider = new JsonRpcProvider(network.rpcUrl);
-
-    // 秘密鍵から署名者を作成
-    const signer = createSignerFromPrivateKey(privateKey, provider);
-    if (!signer) {
-      return {
-        success: false,
-        error: '秘密鍵が無効です。設定画面で正しい秘密鍵を設定してください。',
-      };
-    }
-
+    // プロバイダーと署名者を取得
+    const provider = new BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
     const signerAddress = await signer.getAddress();
 
     // コントラクトアドレスを取得
@@ -554,7 +631,7 @@ export async function registerShop(params: {
     if (owner.toLowerCase() !== signerAddress.toLowerCase()) {
       return {
         success: false,
-        error: `ショップ登録権限がありません。現在のアカウント: ${signerAddress}、コントラクトオーナー: ${owner}`,
+        error: `ショップ登録権限がありません。\n現在のアカウント: ${signerAddress}\nコントラクトオーナー: ${owner}\n\nコントラクトオーナーのアカウントでMetaMaskに接続してください。`,
       };
     }
 
@@ -563,9 +640,13 @@ export async function registerShop(params: {
       shopName,
       shopOwnerAddress,
       requiredVisits,
+      signerAddress,
     });
 
-    // ショップを登録
+    // ユーザーに確認メッセージを表示
+    toast.loading(`ショップ登録中... (Shop ${shopId}: ${shopName})`, { id: 'shop-register' });
+
+    // ショップを登録（MetaMaskで署名）
     const tx = await contract.registerShop(
       shopId,
       shopName,
@@ -575,11 +656,13 @@ export async function registerShop(params: {
     );
 
     console.log('⏳ トランザクション送信:', tx.hash);
+    toast.loading(`トランザクション処理中... ${tx.hash.substring(0, 10)}...`, { id: 'shop-register' });
 
     // トランザクション完了を待機
     const receipt = await tx.wait();
 
     if (receipt?.status === 0) {
+      toast.error('ショップ登録トランザクションが失敗しました', { id: 'shop-register' });
       return {
         success: false,
         error: 'ショップ登録トランザクションが失敗しました',
@@ -587,6 +670,7 @@ export async function registerShop(params: {
     }
 
     console.log('✅ ショップ登録完了:', receipt?.transactionHash);
+    toast.success(`ショップ登録完了: ${shopName}`, { id: 'shop-register' });
 
     return {
       success: true,
@@ -594,15 +678,30 @@ export async function registerShop(params: {
     };
   } catch (error: any) {
     console.error('❌ ショップ登録エラー:', error);
+    toast.dismiss('shop-register');
 
     let errorMessage = 'ショップ登録に失敗しました';
 
     if (error.code === 'ACTION_REJECTED') {
-      errorMessage = 'トランザクションが拒否されました';
+      errorMessage = 'ユーザーがトランザクションを拒否しました';
+      toast.error('トランザクションが拒否されました', { duration: 3000 });
+    } else if (error.message?.includes('execution reverted')) {
+      if (error.message.includes('Shop ID already exists')) {
+        errorMessage = `ショップID ${params.shopId} は既に登録されています`;
+      } else if (error.message.includes('Ownable: caller is not the owner')) {
+        errorMessage = 'コントラクトオーナー権限が必要です';
+      } else {
+        errorMessage = `スマートコントラクトエラー: ${error.reason || error.message}`;
+      }
+      toast.error(errorMessage, { duration: 5000 });
     } else if (error.reason) {
       errorMessage = error.reason;
+      toast.error(errorMessage, { duration: 4000 });
     } else if (error.message) {
       errorMessage = error.message;
+      toast.error(errorMessage, { duration: 4000 });
+    } else {
+      toast.error(errorMessage, { duration: 4000 });
     }
 
     return {
@@ -611,3 +710,5 @@ export async function registerShop(params: {
     };
   }
 }
+
+
