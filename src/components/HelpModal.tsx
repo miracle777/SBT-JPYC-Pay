@@ -51,6 +51,7 @@ const FAQ_ITEMS: FAQItem[] = [
           <p className="font-semibold text-red-900 text-sm">❌ オフラインでは不可（インターネット接続必須）：</p>
           <ul className="text-red-800 space-y-1 text-xs">
             <li>• <strong>SBT実際の発行</strong> - Pinata (IPFS) へのメタデータアップロード</li>
+            <li>• <strong>JPYC QR決済</strong> - リアルタイムトランザクション処理・確認</li>
             <li>• <strong>ブロックチェーン記録</strong> - Polygon等ネットワークへのトランザクション送信</li>
             <li>• <strong>SBT画像保存</strong> - 画像ファイルのIPFS分散保存</li>
             <li>• 新版アプリ更新（接続時に自動更新）</li>
@@ -97,7 +98,7 @@ const FAQ_ITEMS: FAQItem[] = [
             <p className="font-semibold text-purple-700">1️⃣ 毎回発行（per_payment）</p>
             <p className="text-gray-600">支払いのたびに SBT を 1 つずつ発行します</p>
             <p className="text-xs text-gray-500">例：コーヒー購入 → SBT1個発行、また購入 → SBT1個追加発行</p>
-            <p className="text-xs text-amber-600 font-medium">⚠️ SBT発行にはインターネット接続が必要です</p>
+            <p className="text-xs text-amber-600 font-medium">⚠️ SBT発行・JPYC QR決済にはインターネット接続が必要です</p>
           </div>
           <div className="border-l-4 border-blue-500 pl-3 py-2">
             <p className="font-semibold text-blue-700">2️⃣ N回後発行（after_count）</p>
@@ -163,7 +164,7 @@ const FAQ_ITEMS: FAQItem[] = [
     question: 'SBTの発行には本当にインターネット接続が必要ですか？',
     answer: (
       <div className="space-y-3 text-sm">
-        <p><strong>⚠️ はい、SBT発行にはインターネット接続が必要です</strong></p>
+        <p><strong>⚠️ はい、SBT発行・JPYC QR決済にはインターネット接続が必要です</strong></p>
         <div className="bg-amber-50 border border-amber-300 rounded p-3 space-y-2">
           <p className="font-semibold text-amber-900">🌐 必要な接続：</p>
           <ol className="text-amber-800 space-y-1">
