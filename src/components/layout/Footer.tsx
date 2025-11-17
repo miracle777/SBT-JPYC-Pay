@@ -19,6 +19,11 @@ export const Footer: React.FC = () => {
               <p className="text-sm text-gray-600">
                 SBT スタンプカード発行・管理システム（デモ版）
               </p>
+              <p className="text-xs text-blue-600">
+                <a href="https://jpyc-pay.app/" target="_blank" rel="noopener noreferrer" className="hover:text-blue-800 transition-colors">
+                  JPYCペイアプリ（jpyc-pay.app）との連携対応
+                </a>
+              </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>• PWA対応（スマートフォンアプリ化可能）</p>
                 <p>• ローカルデータ管理（プライバシー重視）</p>

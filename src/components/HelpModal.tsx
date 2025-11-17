@@ -316,6 +316,42 @@ const FAQ_ITEMS: FAQItem[] = [
     ),
     icon: <Settings className="w-5 h-5" />,
   },
+  {
+    id: 'jpyc-pay-integration',
+    category: 'SBT発行',
+    question: 'JPYCペイアプリとはどう連携しますか？',
+    answer: (
+      <div className="space-y-3 text-sm">
+        <p><strong>🔗 JPYCペイアプリとの連携について</strong></p>
+        <div className="bg-blue-50 border border-blue-200 rounded p-3 space-y-2">
+          <p className="font-semibold text-blue-900">📱 JPYCペイアプリ（<a href="https://jpyc-pay.app/" target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">https://jpyc-pay.app/</a>）との関係：</p>
+          <ul className="text-blue-800 space-y-2">
+            <li><strong>• 店舗側：</strong> この管理アプリでQRコード生成・SBT発行設定</li>
+            <li><strong>• 顧客側：</strong> JPYCペイアプリでQR読み取り・支払い・SBT受け取り</li>
+            <li><strong>• 連携機能：</strong> 店舗情報・SBTテンプレート・決済データの統合管理</li>
+          </ul>
+        </div>
+        <div className="bg-green-50 border border-green-200 rounded p-3 space-y-2">
+          <p className="font-semibold text-green-900">✅ 対応機能：</p>
+          <ul className="text-green-800 space-y-1">
+            <li>• QRコード決済連携（リアルタイム処理）</li>
+            <li>• SBT自動発行（支払い完了時）</li>
+            <li>• 店舗情報同期（名前・説明・画像等）</li>
+            <li>• 決済履歴・SBT発行状況の管理</li>
+          </ul>
+        </div>
+        <p className="text-gray-600"><strong>📍 利用フロー：</strong></p>
+        <ol className="text-gray-700 space-y-1 ml-4">
+          <li>1. この管理アプリで店舗設定・SBTテンプレート作成</li>
+          <li>2. QRコード生成・表示</li>
+          <li>3. 顧客がJPYCペイアプリでQR読み取り</li>
+          <li>4. JPYC決済完了・SBT自動発行</li>
+          <li>5. この管理アプリで決済確認・SBT発行状況確認</li>
+        </ol>
+      </div>
+    ),
+    icon: <TrendingUp className="w-5 h-5" />,
+  },
 ];
 
 interface HelpModalProps {

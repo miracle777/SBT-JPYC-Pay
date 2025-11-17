@@ -188,21 +188,18 @@ const Settings: React.FC = () => {
         return;
       }
 
-      // 店舗IDが空の場合は自動生成
-      let finalShopInfo = { ...shopInfo };
-      if (!finalShopInfo.id.trim()) {
-        const timestamp = Date.now().toString(36);
-        const random = Math.random().toString(36).substr(2, 5);
-        finalShopInfo.id = `shop-${timestamp}-${random}`;
-        setShopInfo(finalShopInfo);
+      // 店舗IDが空の場合の警告（PWAインストール時に自動生成）
+      if (!shopInfo.id.trim()) {
+        toast.error('店舗IDが生成されていません。PWAをインストールしてください。');
+        return;
       }
 
       // 店舗設定を保存
       const shopData = {
-        ...finalShopInfo,
-        name: finalShopInfo.name.trim(),
-        category: finalShopInfo.category.trim(),
-        description: finalShopInfo.description.trim(),
+        ...shopInfo,
+        name: shopInfo.name.trim(),
+        category: shopInfo.category.trim(),
+        description: shopInfo.description.trim(),
         updatedAt: new Date().toISOString(),
       };
       
@@ -282,7 +279,7 @@ const Settings: React.FC = () => {
             <h3 className="font-semibold text-amber-900 mb-2">📝 初回設定が必要です</h3>
             <ul className="text-sm text-amber-800 space-y-1">
               <li>• <strong>店舗名</strong>: SBTスタンプカードに表示される店舗名（必須）</li>
-              <li>• <strong>店舗ID</strong>: 自動生成されます（変更不可）</li>
+              <li>• <strong>店舗ID</strong>: PWAインストール時に自動発行されます（ウェブ版も同様）</li>
               <li>• <strong>データ保存</strong>: ブラウザのローカルストレージに保存されます</li>
               <li>• <strong>バックアップ推奨</strong>: 設定完了後はデータエクスポートをお勧めします</li>
             </ul>
@@ -317,9 +314,7 @@ const Settings: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                店舗名 <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">店舗説明</label>
               <textarea
                 value={shopInfo.description}
                 onChange={(e) => setShopInfo({ ...shopInfo, description: e.target.value })}
@@ -345,7 +340,7 @@ const Settings: React.FC = () => {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                UUIDベースで生成されたSBT記録用の一意ショップID。PWAインストール時に自動発行されます。
+                UUIDベースで生成されたSBT記録用の一意ショップID。ウェブ・アプリともPWAインストール時に自動発行。
               </p>
             </div>
 
@@ -355,7 +350,7 @@ const Settings: React.FC = () => {
               <ul className="text-sm text-blue-800 space-y-1">
                 <li>• <strong>メリット</strong>: 個人情報不要、即座利用開始、ウォレットで認証</li>
                 <li>• <strong>注意</strong>: アプリ削除時に店舗データも消失（バックアップ推奨）</li>
-                <li>• <strong>UUID管理</strong>: PWAインストール時のみ発行で無駄なID増加を防止</li>
+              <li>• <strong>UUID管理</strong>: PWAインストール時のみ発行で無駄なID墜加を防止（ウェブ版も同様）</li>
               </ul>
             </div>
 

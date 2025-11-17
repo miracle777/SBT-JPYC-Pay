@@ -126,6 +126,44 @@ if ('serviceWorker' in navigator) {
     deferredPrompt = e;
     // インストール通知は表示しない（ヘッダーのインストールボタンを使用）
   });
+
+  // PWAインストール完了時のUUID生成
+  window.addEventListener('appinstalled', () => {
+    console.log('📱 PWA installed successfully');
+    
+    // 店舗IDが未設定の場合のみ生成
+    try {
+      const existingShopInfo = localStorage.getItem('shop-info');
+      const shopInfo = existingShopInfo ? JSON.parse(existingShopInfo) : {};
+      
+      if (!shopInfo.id) {
+        // UUID形式の店舗ID生成
+        const timestamp = Date.now().toString(36);
+        const random = Math.random().toString(36).substr(2, 8);
+        const shopId = `shop-${timestamp}-${random}`;
+        
+        // 店舗情報に追加
+        const updatedShopInfo = {
+          ...shopInfo,
+          id: shopId,
+          createdAt: new Date().toISOString(),
+        };
+        
+        localStorage.setItem('shop-info', JSON.stringify(updatedShopInfo));
+        console.log('🆔 PWAインストール時に店舗ID生成:', shopId);
+        
+        // 成功通知
+        setTimeout(() => {
+          toast.success('🎉 PWAインストール完了！\n店舗IDが自動生成されました', {
+            duration: 5000,
+            icon: '✨',
+          });
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('PWAインストール時の店舗ID生成エラー:', error);
+    }
+  });
 }
 
 // オフライン・オンライン状態の監視

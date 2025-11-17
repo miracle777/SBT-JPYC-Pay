@@ -160,6 +160,7 @@ const Dashboard: React.FC = () => {
                   <li>• 金額指定QRコード生成</li>
                   <li>• リアルタイム決済確認</li>
                   <li>• トランザクション履歴表示</li>
+                  <li>• <strong>JPYCペイアプリ</strong>（https://jpyc-pay.app/）との連携</li>
                 </ul>
               </div>
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -168,6 +169,7 @@ const Dashboard: React.FC = () => {
                   <li>• MetaMask（推奨）</li>
                   <li>• WalletConnect対応ウォレット</li>
                   <li>• モバイルウォレットアプリ</li>
+                  <li>• <strong>JPYCペイアプリ</strong>での決済連携</li>
                 </ul>
               </div>
             </div>
@@ -193,6 +195,7 @@ const Dashboard: React.FC = () => {
                   <li>• 自動スタンプ付与</li>
                   <li>• 来店履歴の永続記録</li>
                   <li>• 偽造防止・不正利用防止</li>
+                  <li>• <strong>JPYCペイアプリ</strong>での店舗情報連携</li>
                 </ul>
               </div>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -202,6 +205,7 @@ const Dashboard: React.FC = () => {
                   <li>• 発行履歴・統計表示</li>
                   <li>• 特典・キャンペーン設定</li>
                   <li>• スタンプ付与記録管理</li>
+                  <li>• <strong>JPYCペイアプリ</strong>での連携決済管理</li>
                 </ul>
               </div>
             </div>
