@@ -61,6 +61,11 @@
     "polygon",
     "avalanche"
   ],
-  "author": "miracle777",
-  "license": "MIT"
+  "author": "miracle777 (@masaru21)",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/miracle777/SBT-JPYC-Pay.git"
+  },
+  "homepage": "https://github.com/miracle777/SBT-JPYC-Pay#readme"
 }

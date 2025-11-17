@@ -121,6 +121,12 @@ export const APP_CONFIG = {
   url: typeof window !== 'undefined' ? window.location.origin : '',
   social: {
     github: 'https://github.com/miracle777/SBT-JPYC-Pay',
+    twitter: 'https://x.com/masaru21',
+    website: 'https://lit.link/itsapotamk',
+  },
+  legal: {
+    privacyPolicy: 'https://raw.githubusercontent.com/miracle777/SBT-JPYC-Pay/main/PRIVACY_POLICY.md',
+    license: 'https://raw.githubusercontent.com/miracle777/SBT-JPYC-Pay/main/LICENSE',
   },
 };
 
