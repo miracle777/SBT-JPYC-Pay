@@ -38,15 +38,16 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose, onAc
               <div className="space-y-2">
                 <h3 className="text-red-900 font-bold text-lg">⚠️ インターネット接続必須</h3>
                 <p className="text-red-800">
-                  <strong>SBTの発行にはインターネット接続が必要です。</strong>
-                  オフラインではSBTを作成・保存することはできません。
+                  <strong>SBT発行とJPYC QR決済にはインターネット接続が必要です。</strong>
+                  オフラインではSBTを作成・保存、QR決済を実行できません。
                 </p>
                 <div className="bg-white rounded p-3 space-y-1">
                   <p className="font-semibold text-red-900">必要なサービス：</p>
                   <ul className="text-sm text-red-800 space-y-1">
                     <li>• <strong>Pinata (IPFS)</strong> - SBT画像・メタデータの分散保存</li>
                     <li>• <strong>Polygon Network</strong> - ブロックチェーンへの記録</li>
-                    <li>• <strong>MetaMask</strong> - ウォレット接続とトランザクション送信</li>
+                    <li>• <strong>MetaMask</strong> - ウォレット接続とJPYC決済処理</li>
+                    <li>• <strong>RPCエンドポイント</strong> - リアルタイムトランザクション処理</li>
                   </ul>
                 </div>
               </div>
@@ -150,18 +151,11 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose, onAc
 
         </div>
 
-        {/* Footer */}
-        <div className="border-t bg-gray-50 px-4 sm:px-6 py-4 flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <Button
-            onClick={onClose}
-            variant="outline"
-            className="flex-1 sm:flex-none"
-          >
-            後で確認する
-          </Button>
+        {/* Footer Buttons */}
+        <div className="border-t bg-gray-50 px-4 sm:px-6 py-4 flex justify-center">
           <Button
             onClick={onAccept}
-            className="flex-1 bg-purple-600 hover:bg-purple-700"
+            className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700"
           >
             理解しました。アプリを使用する
           </Button>
@@ -229,7 +223,7 @@ export const DisclaimerBanner: React.FC = () => {
                 ⚠️ 利用前に必ずお読みください
               </h3>
               <p className="text-xs sm:text-sm text-red-100">
-                SBT発行にはインターネット接続が必要です。企業・店舗利用には専用サーバー設定が必要です。
+                SBT発行とJPYC QR決済にはインターネット接続が必要です。企業・店舗利用には専用サーバー設定が必要です。
               </p>
             </div>
           </div>
