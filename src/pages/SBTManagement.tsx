@@ -78,48 +78,7 @@ const SBTManagement: React.FC = () => {
     campaign: 3,  // ショップID: 3
   };
   
-  const [templates, setTemplates] = useState<SBTTemplate[]>([
-    {
-      id: 'template-stamp-card',
-      shopId: initialShopIds.stampCard,
-      name: 'スタンプカード',
-      description: '毎回の支払いでスタンプを1つ獲得',
-      issuePattern: 'per_payment',
-      maxStamps: 10,
-      rewardDescription: 'スタンプ1個',
-      imageUrl: '/sbt-images/visit-memorial.png',
-      imageMimeType: 'image/png',
-      createdAt: '2025-11-14',
-      status: 'active',
-    },
-    {
-      id: 'template-milestone',
-      shopId: initialShopIds.milestone,
-      name: 'マイルストーン達成',
-      description: '10回の支払い達成時にバッジを授与',
-      issuePattern: 'after_count',
-      maxStamps: 10,
-      rewardDescription: 'ゴールド会員バッジ',
-      imageUrl: '/sbt-images/milestone-10x.png',
-      imageMimeType: 'image/png',
-      createdAt: '2025-11-14',
-      status: 'active',
-    },
-    {
-      id: 'template-campaign',
-      shopId: initialShopIds.campaign,
-      name: 'キャンペーン記念',
-      description: 'キャンペーン期間内（30日）の支払いで期間限定メダルを取得',
-      issuePattern: 'time_period',
-      maxStamps: 5,
-      timePeriodDays: 30,
-      rewardDescription: 'キャンペーン記念メダル',
-      imageUrl: '/sbt-images/campaign-limited.png',
-      imageMimeType: 'image/png',
-      createdAt: '2025-11-14',
-      status: 'active',
-    },
-  ]);
+  const [templates, setTemplates] = useState<SBTTemplate[]>([]);
 
   const [issuedSBTs, setIssuedSBTs] = useState<IssuedSBT[]>([]);
 
@@ -183,19 +142,70 @@ const SBTManagement: React.FC = () => {
       try {
         setIsLoading(true);
         
+        // 初期テンプレート（常に表示される）
+        const defaultTemplates = [
+          {
+            id: 'template-stamp-card',
+            shopId: initialShopIds.stampCard,
+            name: 'スタンプカード',
+            description: '毎回の支払いでスタンプを1つ獲得',
+            issuePattern: 'per_payment' as const,
+            maxStamps: 10,
+            rewardDescription: 'スタンプ1個',
+            imageUrl: '/sbt-images/visit-memorial.png',
+            imageMimeType: 'image/png',
+            createdAt: '2025-11-14',
+            status: 'active' as const,
+          },
+          {
+            id: 'template-milestone',
+            shopId: initialShopIds.milestone,
+            name: 'マイルストーン達成',
+            description: '10回の支払い達成時にバッジを授与',
+            issuePattern: 'after_count' as const,
+            maxStamps: 10,
+            rewardDescription: 'ゴールド会員バッジ',
+            imageUrl: '/sbt-images/milestone-10x.png',
+            imageMimeType: 'image/png',
+            createdAt: '2025-11-14',
+            status: 'active' as const,
+          },
+          {
+            id: 'template-campaign',
+            shopId: initialShopIds.campaign,
+            name: 'キャンペーン記念',
+            description: 'キャンペーン期間内（30日）の支払いで期間限定メダルを取得',
+            issuePattern: 'time_period' as const,
+            maxStamps: 5,
+            timePeriodDays: 30,
+            rewardDescription: 'キャンペーン記念メダル',
+            imageUrl: '/sbt-images/campaign-limited.png',
+            imageMimeType: 'image/png',
+            createdAt: '2025-11-14',
+            status: 'active' as const,
+          },
+        ];
+        
         // テンプレートを読み込み
         const savedTemplates = await sbtStorage.getAllTemplates();
-        if (savedTemplates.length > 0) {
-          setTemplates(savedTemplates);
-          console.log(`✅ ${savedTemplates.length}個のテンプレートをロード`);
-          
-          // 使用済みショップIDをローカルストレージに記録（重複防止用）
-          try {
-            const usedShopIds = savedTemplates.map(t => t.shopId).filter(Boolean);
-            localStorage.setItem('used-shop-ids', JSON.stringify([...new Set(usedShopIds)]));
-          } catch (error) {
-            console.warn('使用済みショップID保存エラー:', error);
-          }
+        
+        // 初期テンプレート以外のカスタムテンプレートを取得
+        const customTemplates = savedTemplates.filter(template => 
+          !['template-stamp-card', 'template-milestone', 'template-campaign'].includes(template.id)
+        );
+        
+        // 初期テンプレート + カスタムテンプレートの順で結合
+        const allTemplates = [...defaultTemplates, ...customTemplates];
+        setTemplates(allTemplates);
+        
+        console.log(`✅ ${defaultTemplates.length}個の初期テンプレート + ${customTemplates.length}個のカスタムテンプレートをロード`);
+        
+        // 使用済みショップIDをローカルストレージに記録（重複防止用）
+        try {
+          const usedShopIds = allTemplates.map(t => t.shopId).filter(Boolean);
+          localStorage.setItem('used-shop-ids', JSON.stringify([...new Set(usedShopIds)]));
+        } catch (error) {
+          console.warn('使用済みショップID保存エラー:', error);
         }
 
         // 発行済み SBT を読み込み
@@ -666,6 +676,12 @@ const SBTManagement: React.FC = () => {
   };
 
   const deleteTemplate = (id: string) => {
+    // 初期テンプレートは削除できない
+    if (['template-stamp-card', 'template-milestone', 'template-campaign'].includes(id)) {
+      toast.error('初期テンプレートは削除できません');
+      return;
+    }
+    
     // 削除対象テンプレートから発行された SBT を確認
     const relatedSBTs = issuedSBTs.filter((sbt) => sbt.templateId === id);
     const completedSBTs = relatedSBTs.filter((sbt) => sbt.status === 'redeemed');
@@ -679,7 +695,8 @@ const SBTManagement: React.FC = () => {
       return;
     }
 
-    setTemplates(templates.filter((t) => t.id !== id));
+    const updatedTemplates = templates.filter((t) => t.id !== id);
+    setTemplates(updatedTemplates);
     
     // IndexedDB + localStorage から削除
     sbtStorage.deleteTemplate(id).catch(err => {
@@ -825,10 +842,64 @@ const SBTManagement: React.FC = () => {
       };
 
       console.log('新しいショップID:', shopId, formatShopIdAsHex(shopId));
-      const updatedTemplates = [newTemplateData, ...templates];
-      setTemplates(updatedTemplates);
+      
+      // 初期テンプレートを保持し、カスタムテンプレートを追加
+      const defaultTemplates = [
+        {
+          id: 'template-stamp-card',
+          shopId: initialShopIds.stampCard,
+          name: 'スタンプカード',
+          description: '毎回の支払いでスタンプを1つ獲得',
+          issuePattern: 'per_payment' as const,
+          maxStamps: 10,
+          rewardDescription: 'スタンプ1個',
+          imageUrl: '/sbt-images/visit-memorial.png',
+          imageMimeType: 'image/png',
+          createdAt: '2025-11-14',
+          status: 'active' as const,
+        },
+        {
+          id: 'template-milestone',
+          shopId: initialShopIds.milestone,
+          name: 'マイルストーン達成',
+          description: '10回の支払い達成時にバッジを授与',
+          issuePattern: 'after_count' as const,
+          maxStamps: 10,
+          rewardDescription: 'ゴールド会員バッジ',
+          imageUrl: '/sbt-images/milestone-10x.png',
+          imageMimeType: 'image/png',
+          createdAt: '2025-11-14',
+          status: 'active' as const,
+        },
+        {
+          id: 'template-campaign',
+          shopId: initialShopIds.campaign,
+          name: 'キャンペーン記念',
+          description: 'キャンペーン期間内（30日）の支払いで期間限定メダルを取得',
+          issuePattern: 'time_period' as const,
+          maxStamps: 5,
+          timePeriodDays: 30,
+          rewardDescription: 'キャンペーン記念メダル',
+          imageUrl: '/sbt-images/campaign-limited.png',
+          imageMimeType: 'image/png',
+          createdAt: '2025-11-14',
+          status: 'active' as const,
+        },
+      ];
+      
+      // カスタムテンプレートを抽出（初期テンプレート以外）
+      const customTemplates = templates.filter(template => 
+        !['template-stamp-card', 'template-milestone', 'template-campaign'].includes(template.id)
+      );
+      
+      // 新しいカスタムテンプレートを追加
+      const updatedCustomTemplates = [newTemplateData, ...customTemplates];
+      
+      // 初期テンプレート + 更新されたカスタムテンプレート
+      const allTemplates = [...defaultTemplates, ...updatedCustomTemplates];
+      setTemplates(allTemplates);
 
-      // IndexedDB に保存
+      // IndexedDB に保存（カスタムテンプレートのみ）
       await sbtStorage.saveTemplate(newTemplateData);
       
       // ローカルストレージにもショップIDリストを保存（重複防止用）
