@@ -10,8 +10,8 @@ import { pinataService } from '../utils/pinata';
 const Settings: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
   const [shopInfo, setShopInfo] = useState({
-    name: DEFAULT_SHOP_INFO.name,
-    id: DEFAULT_SHOP_INFO.id,
+    name: '',
+    id: '',
     category: '',
     description: '',
   });
@@ -34,6 +34,29 @@ const Settings: React.FC = () => {
   // 🔄 設定をローカルストレージから読み込み
   useEffect(() => {
     const loadConfigs = () => {
+      // 店舗情報読み込み
+      try {
+        const savedShopInfo = localStorage.getItem('shop-info');
+        if (savedShopInfo) {
+          const shop = JSON.parse(savedShopInfo);
+          setShopInfo({
+            name: shop.name || '',
+            id: shop.id || '',
+            category: shop.category || '',
+            description: shop.description || '',
+          });
+        } else {
+          // 初回設定時はUUIDベースの店舗IDを発行
+          const newShopId = 'shop-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+          setShopInfo(prev => ({ ...prev, id: newShopId }));
+        }
+      } catch (error) {
+        console.warn('店舗情報読み込みエラー:', error);
+        // エラー時は新規発行
+        const newShopId = 'shop-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+        setShopInfo(prev => ({ ...prev, id: newShopId }));
+      }
+
       // Pinata設定読み込み
       try {
         const savedPinata = localStorage.getItem('pinata-config');
@@ -159,9 +182,32 @@ const Settings: React.FC = () => {
 
   const handleSave = () => {
     try {
+      // 店舗名の必須チェック
+      if (!shopInfo.name.trim()) {
+        toast.error('店舗名を入力してください');
+        return;
+      }
+
+      // 店舗IDが空の場合は自動生成
+      let finalShopInfo = { ...shopInfo };
+      if (!finalShopInfo.id.trim()) {
+        const timestamp = Date.now().toString(36);
+        const random = Math.random().toString(36).substr(2, 5);
+        finalShopInfo.id = `shop-${timestamp}-${random}`;
+        setShopInfo(finalShopInfo);
+      }
+
       // 店舗設定を保存
-      localStorage.setItem('shop-info', JSON.stringify(shopInfo));
-      console.log('✅ 店舗設定保存完了:', shopInfo);
+      const shopData = {
+        ...finalShopInfo,
+        name: finalShopInfo.name.trim(),
+        category: finalShopInfo.category.trim(),
+        description: finalShopInfo.description.trim(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      localStorage.setItem('shop-info', JSON.stringify(shopData));
+      console.log('✅ 店舗設定保存完了:', shopData);
       toast.success('設定を保存しました');
     } catch (error) {
       console.error('設定保存エラー:', error);
@@ -230,16 +276,35 @@ const Settings: React.FC = () => {
         {/* 店舗情報 */}
         <div className="bg-white rounded-xl shadow-lg p-8">
           <h2 className="text-lg font-bold text-gray-900 mb-6">店舗情報</h2>
+          
+          {/* ウェブ版利用者向け説明 */}
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <h3 className="font-semibold text-amber-900 mb-2">📝 初回設定が必要です</h3>
+            <ul className="text-sm text-amber-800 space-y-1">
+              <li>• <strong>店舗名</strong>: SBTスタンプカードに表示される店舗名（必須）</li>
+              <li>• <strong>店舗ID</strong>: 自動生成されます（変更不可）</li>
+              <li>• <strong>データ保存</strong>: ブラウザのローカルストレージに保存されます</li>
+              <li>• <strong>バックアップ推奨</strong>: 設定完了後はデータエクスポートをお勧めします</li>
+            </ul>
+          </div>
+          
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">店舗名</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                店舗名 <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 value={shopInfo.name}
                 onChange={(e) => setShopInfo({ ...shopInfo, name: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="例: Cafe JPYC"
+                placeholder="例: 本格コーヒー店 カフェドパリ / ファミリーマート佐藤 / 美容室ハナコ"
+                maxLength={50}
+                required
               />
+              <p className="text-xs text-gray-500 mt-1">
+                SBTカードに表示される店舗名を入力してください（最大50文字）
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">店舗カテゴリ</label>
@@ -252,7 +317,9 @@ const Settings: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">店舗説明</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                店舗名 <span className="text-red-500">*</span>
+              </label>
               <textarea
                 value={shopInfo.description}
                 onChange={(e) => setShopInfo({ ...shopInfo, description: e.target.value })}
@@ -278,9 +345,20 @@ const Settings: React.FC = () => {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                SBTメタデータで使用される固有IDです
+                UUIDベースで生成されたSBT記録用の一意ショップID。PWAインストール時に自動発行されます。
               </p>
             </div>
+
+            {/* ユーザー登録不要のメリット・注意事項 */}
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="font-semibold text-blue-900 mb-2">👤 ユーザー登録不要のPWAアプリ</h3>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• <strong>メリット</strong>: 個人情報不要、即座利用開始、ウォレットで認証</li>
+                <li>• <strong>注意</strong>: アプリ削除時に店舗データも消失（バックアップ推奨）</li>
+                <li>• <strong>UUID管理</strong>: PWAインストール時のみ発行で無駄なID増加を防止</li>
+              </ul>
+            </div>
+
             <button
               onClick={handleSave}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2"
