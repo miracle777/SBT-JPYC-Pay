@@ -6,6 +6,7 @@ import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
 import { pinataService } from '../utils/pinata';
+import { generateNewShopId } from '../utils/shopSettings';
 
 const Settings: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
@@ -47,13 +48,13 @@ const Settings: React.FC = () => {
           });
         } else {
           // 初回設定時はUUIDベースの店舗IDを発行
-          const newShopId = 'shop-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+          const newShopId = generateNewShopId();
           setShopInfo(prev => ({ ...prev, id: newShopId }));
         }
       } catch (error) {
         console.warn('店舗情報読み込みエラー:', error);
         // エラー時は新規発行
-        const newShopId = 'shop-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+        const newShopId = generateNewShopId();
         setShopInfo(prev => ({ ...prev, id: newShopId }));
       }
 

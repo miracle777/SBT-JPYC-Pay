@@ -21,7 +21,7 @@ export function getShopSettings(): ShopSettings {
       const config = JSON.parse(saved);
       return {
         name: config.name || DEFAULT_SHOP_INFO.name,
-        id: config.id || DEFAULT_SHOP_INFO.id,
+        id: config.id || generateNewShopId(), // デフォルトのshop-001を使わず、新しいIDを生成
         category: config.category || '',
         description: config.description || '',
       };
@@ -30,13 +30,28 @@ export function getShopSettings(): ShopSettings {
     console.warn('店舗設定読み込みエラー:', error);
   }
 
-  // デフォルト値を返す
-  return {
+  // デフォルト値を返す際も新しいIDを生成
+  const newShopId = generateNewShopId();
+  const defaultSettings = {
     name: DEFAULT_SHOP_INFO.name,
-    id: DEFAULT_SHOP_INFO.id,
+    id: newShopId,
     category: '',
     description: '',
   };
+
+  // 自動的に保存してしまう
+  saveShopSettings(defaultSettings);
+  
+  return defaultSettings;
+}
+
+/**
+ * 新しい店舗IDを生成
+ */
+export function generateNewShopId(): string {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substr(2, 8);
+  return `shop-${timestamp}-${random}`;
 }
 
 /**
