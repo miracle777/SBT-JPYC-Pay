@@ -43,15 +43,15 @@ const FAQ_ITEMS: FAQItem[] = [
           <ul className="text-green-800 space-y-1 text-xs">
             <li>• テンプレート作成 ✓</li>
             <li>• SBT データ準備・管理 ✓</li>
-            <li>• QR コード生成 ✓</li>
             <li>• ローカルデータ表示・検索 ✓</li>
           </ul>
         </div>
         <div className="bg-red-50 border border-red-200 rounded p-2 sm:p-3 space-y-2">
           <p className="font-semibold text-red-900 text-sm">❌ オフラインでは不可（インターネット接続必須）：</p>
           <ul className="text-red-800 space-y-1 text-xs">
+            <li>• <strong>QR コード生成</strong> - MetaMask等ウォレット接続が必要</li>
             <li>• <strong>SBT実際の発行</strong> - Pinata (IPFS) へのメタデータアップロード</li>
-            <li>• <strong>JPYC QR決済</strong> - リアルタイムトランザクション処理・確認</li>
+            <li>• <strong>JPYC 決済処理</strong> - リアルタイムトランザクション処理・確認</li>
             <li>• <strong>ブロックチェーン記録</strong> - Polygon等ネットワークへのトランザクション送信</li>
             <li>• <strong>SBT画像保存</strong> - 画像ファイルのIPFS分散保存</li>
             <li>• 新版アプリ更新（接続時に自動更新）</li>
