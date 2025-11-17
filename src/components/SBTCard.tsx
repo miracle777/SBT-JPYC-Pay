@@ -107,7 +107,7 @@ const SBTCard: React.FC<SBTCardProps> = ({ sbt }) => {
           <div>
             <p className="text-gray-500">ステータス</p>
             <p className="font-medium text-gray-900">
-              {sbt.status === 'active' ? '🟢 有効' : '🔵 報酬獲得'}
+              {sbt.status === 'active' ? '🟢 有効' : '🔵 特典獲得'}
             </p>
           </div>
         </div>

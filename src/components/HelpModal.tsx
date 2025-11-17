@@ -118,7 +118,7 @@ const FAQ_ITEMS: FAQItem[] = [
   {
     id: 'sbt-status',
     category: 'SBT発行',
-    question: 'SBTの「有効」と「報酬獲得」の状態の違いは？',
+    question: 'SBTの「有効」と「特典獲得」の状態の違いは？',
     answer: (
       <div className="space-y-3 text-sm">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -128,9 +128,9 @@ const FAQ_ITEMS: FAQItem[] = [
             <p className="text-green-700 text-xs mt-2">例：スタンプ 3/10 進行中</p>
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded p-2 sm:p-3">
-            <p className="font-semibold text-blue-900 text-sm">🔵 報酬獲得（Redeemed）</p>
+            <p className="font-semibold text-blue-900 text-sm">🔵 特典獲得（Redeemed）</p>
             <p className="text-blue-800 text-xs mt-1">スタンプが満杯になった状態</p>
-            <p className="text-blue-700 text-xs mt-2">例：スタンプ 10/10 完了 → 報酬獲得</p>
+            <p className="text-blue-700 text-xs mt-2">例：スタンプ 10/10 完了 → 特典獲得</p>
           </div>
         </div>
       </div>
@@ -248,7 +248,7 @@ const FAQ_ITEMS: FAQItem[] = [
             <ul className="text-blue-700 text-xs mt-1">
               <li>• 総 SBT 数</li>
               <li>• 有効な SBT 数</li>
-              <li>• 報酬獲得済み SBT 数</li>
+              <li>• 特典獲得済み SBT 数</li>
               <li>• スタンプ進捗率</li>
             </ul>
           </div>
@@ -289,7 +289,7 @@ const FAQ_ITEMS: FAQItem[] = [
               <p>• <strong>ウォレット</strong>：配布先のアドレス</p>
               <p>• <strong>総 SBT：</strong> 配布した SBT 総数</p>
               <p>• <strong>有効：</strong> 進行中の SBT 数</p>
-              <p>• <strong>報酬獲得済み：</strong> 完了した SBT 数</p>
+              <p>• <strong>特典獲得済み：</strong> 完了した SBT 数</p>
               <p>• <strong>進捗：</strong> スタンプ集計と完了率</p>
             </div>
           </div>

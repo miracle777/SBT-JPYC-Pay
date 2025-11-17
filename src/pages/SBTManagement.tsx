@@ -1681,7 +1681,7 @@ const SBTManagement: React.FC = () => {
                     </p>
                     {template.rewardDescription && (
                       <p className="text-gray-700">
-                        <span className="font-semibold">報酬:</span> {template.rewardDescription}
+                        <span className="font-semibold">特典:</span> {template.rewardDescription}
                       </p>
                     )}
                   </div>
@@ -1894,7 +1894,7 @@ const SBTManagement: React.FC = () => {
                   <p className="text-xs text-gray-600 mt-2">進行中</p>
                 </div>
                 <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-4">
-                  <p className="text-xs text-gray-600 font-medium mb-1">報酬獲得済み</p>
+                  <p className="text-xs text-gray-600 font-medium mb-1">特典獲得済み</p>
                   <p className="text-3xl font-bold text-orange-600">{issuedSBTs.filter(s => s.status === 'redeemed').length}</p>
                   <p className="text-xs text-gray-600 mt-2">完了</p>
                 </div>
@@ -1950,7 +1950,7 @@ const SBTManagement: React.FC = () => {
                         <p className="text-lg font-bold text-green-600">{stats.activeSBTs}</p>
                       </div>
                       <div className="bg-white rounded p-2">
-                        <p className="text-xs text-gray-600">報酬獲得</p>
+                        <p className="text-xs text-gray-600">特典獲得</p>
                         <p className="text-lg font-bold text-blue-600">{stats.redeemedSBTs}</p>
                       </div>
                       <div className="bg-white rounded p-2">
@@ -2215,7 +2215,7 @@ const SBTManagement: React.FC = () => {
                                     : 'bg-blue-100 text-blue-800'
                                 }`}
                               >
-                                {sbt.status === 'active' ? '有効' : '報酬獲得'}
+                                {sbt.status === 'active' ? '有効' : '特典獲得'}
                               </span>
                             </td>
                             <td className="px-6 py-4">
