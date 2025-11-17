@@ -190,7 +190,7 @@ export const DisclaimerBanner: React.FC = () => {
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-purple-600 flex-shrink-0" />
               <span className="text-purple-800">
-                <strong>SBT発行にはインターネット接続とサーバー設定が必要</strong>
+                <strong>SBT発行・QRコード決済にはインターネット接続とサーバー設定が必要</strong>
               </span>
             </div>
             <button
