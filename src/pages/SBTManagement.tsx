@@ -1487,7 +1487,7 @@ const SBTManagement: React.FC = () => {
                   )}
                   {newTemplate.issuePattern !== 'time_period' && newTemplate.issuePattern !== 'period_range' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">報酬内容</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">特典内容</label>
                       <input
                         type="text"
                         value={newTemplate.rewardDescription}
@@ -1511,7 +1511,7 @@ const SBTManagement: React.FC = () => {
                 )}
                 {newTemplate.issuePattern === 'time_period' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">報酬内容</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">特典内容</label>
                     <input
                       type="text"
                       value={newTemplate.rewardDescription}
@@ -1523,7 +1523,7 @@ const SBTManagement: React.FC = () => {
                 )}
                 {newTemplate.issuePattern === 'period_range' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">報酬内容</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">特典内容</label>
                     <input
                       type="text"
                       value={newTemplate.rewardDescription}

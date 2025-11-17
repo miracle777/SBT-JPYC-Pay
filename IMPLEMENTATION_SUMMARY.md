@@ -60,7 +60,7 @@ interface SBTTemplate {
 ##### パターン2: N回後発行（after_count）
 - 指定回数の支払い達成時に1回だけSBT発行
 - 例: 10回購入で「VIP会員」SBT発行
-- 設定項目: 達成条件回数、報酬内容
+- 設定項目: 達成条件回数、特典内容
 
 ##### パターン3: 期間内発行（time_period）
 - 指定期間内の支払いでSBT発行
@@ -188,7 +188,7 @@ interface SBTTemplate {
   issuePattern: IssuePattern;          // 発行パターン
   maxStamps: number;                   // スタンプ最大数
   timePeriodDays?: number;             // 期間内発行の場合の有効期間（日数）
-  rewardDescription: string;           // 報酬内容
+  rewardDescription: string;           // 特典内容
   imageUrl: string;                    // Base64 JPEG画像データ
   imageMimeType: string;               // 'image/jpeg'
   createdAt: string;                   // 作成日
@@ -238,7 +238,7 @@ interface SBTTemplate {
    - 説明
    - 発行パターン選択 ← **新規**
    - SBT画像ファイル選択 ← **新規**
-   - その他設定（スタンプ数、報酬内容など）
+   - その他設定（スタンプ数、特典内容など）
 3. 「作成」ボタンをクリック
 
 ### 画像アップロード
