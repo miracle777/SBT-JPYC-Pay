@@ -200,6 +200,10 @@ const router = createBrowserRouter([
         element: <SBTManagement />,
       },
       {
+        path: "sbt", 
+        element: <SBTManagement />,
+      },
+      {
         path: "settings",
         element: <Settings />,
       },
