@@ -36,6 +36,12 @@ export class PinataService {
   private baseUrl: string;
 
   constructor(apiKey?: string, secretKey?: string, jwt?: string) {
+    // プロパティを初期化
+    this.apiKey = '';
+    this.secretKey = '';
+    this.jwt = '';
+    this.baseUrl = PINATA_CONFIG.baseUrl;
+    
     // ローカルストレージから設定読み込み
     this.loadFromLocalStorage();
     

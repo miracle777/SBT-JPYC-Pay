@@ -967,7 +967,7 @@ const QRPayment: React.FC = () => {
                                   {session.transactionHash ? (
                                     <a
                                       href={`${paymentSessions.find(s => s.chainId === session.chainId) ? 
-                                        Object.values(NETWORKS).find(n => n.chainId === session.chainId)?.blockExplorer : 
+                                        Object.values(NETWORKS).find(n => n.chainId === session.chainId)?.blockExplorerUrl : 
                                         '#'
                                       }/tx/${session.transactionHash}`}
                                       target="_blank"
