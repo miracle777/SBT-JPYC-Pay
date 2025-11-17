@@ -31,7 +31,7 @@ const Dashboard: React.FC = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <a
-              href="/payment"
+              href="/qr-payment"
               className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
             >
               <QrCode className="w-5 h-5" />
@@ -39,7 +39,7 @@ const Dashboard: React.FC = () => {
               <ArrowRight className="w-4 h-4" />
             </a>
             <a
-              href="/sbt"
+              href="/sbt-management"
               className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
             >
               <Store className="w-5 h-5" />

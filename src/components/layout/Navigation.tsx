@@ -42,8 +42,8 @@ export const Navigation: React.FC = () => {
   const navItems = [
     { to: '/', icon: <Home size={20} />, label: 'ダッシュボード' },
     { to: '/shops', icon: <Store size={20} />, label: '店舗管理' },
-    { to: '/sbt', icon: <Award size={20} />, label: 'SBT管理' },
-    { to: '/payment', icon: <QrCode size={20} />, label: 'QR決済' },
+    { to: '/sbt-management', icon: <Award size={20} />, label: 'SBT管理' },
+    { to: '/qr-payment', icon: <QrCode size={20} />, label: 'QR決済' },
     { to: '/settings', icon: <Settings size={20} />, label: '設定' },
     { to: '/about', icon: <Info size={20} />, label: '情報' },
   ];
