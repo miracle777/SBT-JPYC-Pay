@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import QRPayment from './pages/QRPayment';
 import SBTManagement from './pages/SBTManagement';
 import Settings from './pages/Settings';
+import TermsAndPrivacy from './pages/TermsAndPrivacy';
 import NotFound from './pages/NotFound';
 import { WalletProvider } from './context/WalletContext';
 import Header from './components/layout/Header';
@@ -26,6 +27,7 @@ function App() {
             <Route path="/payment" element={<QRPayment />} />
             <Route path="/sbt" element={<SBTManagement />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/terms-privacy" element={<TermsAndPrivacy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

@@ -42,16 +42,20 @@ const FAQ_ITEMS: FAQItem[] = [
           <p className="font-semibold text-green-900 text-sm">🟢 オフライン動作対応：</p>
           <ul className="text-green-800 space-y-1 text-xs">
             <li>• テンプレート作成 ✓</li>
-            <li>• SBT 発行・管理 ✓</li>
+            <li>• SBT データ準備・管理 ✓</li>
             <li>• QR コード生成 ✓</li>
-            <li>• データ表示・検索 ✓</li>
+            <li>• ローカルデータ表示・検索 ✓</li>
           </ul>
         </div>
-        <p className="text-gray-600"><strong>❌ オフラインでは不可：</strong></p>
-        <ul className="text-gray-600 space-y-1">
-          <li>• ブロックチェーン取引（インターネット接続必須）</li>
-          <li>• 新版アプリ更新（接続時に自動更新）</li>
-        </ul>
+        <div className="bg-red-50 border border-red-200 rounded p-2 sm:p-3 space-y-2">
+          <p className="font-semibold text-red-900 text-sm">❌ オフラインでは不可（インターネット接続必須）：</p>
+          <ul className="text-red-800 space-y-1 text-xs">
+            <li>• <strong>SBT実際の発行</strong> - Pinata (IPFS) へのメタデータアップロード</li>
+            <li>• <strong>ブロックチェーン記録</strong> - Polygon等ネットワークへのトランザクション送信</li>
+            <li>• <strong>SBT画像保存</strong> - 画像ファイルのIPFS分散保存</li>
+            <li>• 新版アプリ更新（接続時に自動更新）</li>
+          </ul>
+        </div>
       </div>
     ),
     icon: <RefreshCw className="w-5 h-5" />,
@@ -93,6 +97,7 @@ const FAQ_ITEMS: FAQItem[] = [
             <p className="font-semibold text-purple-700">1️⃣ 毎回発行（per_payment）</p>
             <p className="text-gray-600">支払いのたびに SBT を 1 つずつ発行します</p>
             <p className="text-xs text-gray-500">例：コーヒー購入 → SBT1個発行、また購入 → SBT1個追加発行</p>
+            <p className="text-xs text-amber-600 font-medium">⚠️ SBT発行にはインターネット接続が必要です</p>
           </div>
           <div className="border-l-4 border-blue-500 pl-3 py-2">
             <p className="font-semibold text-blue-700">2️⃣ N回後発行（after_count）</p>
@@ -151,6 +156,38 @@ const FAQ_ITEMS: FAQItem[] = [
       </div>
     ),
     icon: <Calendar className="w-5 h-5" />,
+  },
+  {
+    id: 'sbt-network-requirement',
+    category: 'SBT発行',
+    question: 'SBTの発行には本当にインターネット接続が必要ですか？',
+    answer: (
+      <div className="space-y-3 text-sm">
+        <p><strong>⚠️ はい、SBT発行にはインターネット接続が必要です</strong></p>
+        <div className="bg-amber-50 border border-amber-300 rounded p-3 space-y-2">
+          <p className="font-semibold text-amber-900">🌐 必要な接続：</p>
+          <ol className="text-amber-800 space-y-1">
+            <li><strong>1. Pinata (IPFS) サービス</strong>
+              <p className="text-xs">SBTメタデータ（名前・説明・画像）の分散保存</p>
+              <p className="text-xs font-mono">api.pinata.cloud</p>
+            </li>
+            <li><strong>2. ブロックチェーンネットワーク</strong>
+              <p className="text-xs">実際のSBT発行・所有権登録</p>
+              <p className="text-xs font-mono">Polygon: polygon-rpc.com</p>
+            </li>
+          </ol>
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded p-2 space-y-1">
+          <p className="font-semibold text-blue-900 text-sm">💡 作業の分離：</p>
+          <ul className="text-blue-800 space-y-1 text-xs">
+            <li>• <strong>オフライン</strong>：テンプレート作成、データ準備</li>
+            <li>• <strong>オンライン</strong>：実際のSBT発行（IPFS + ブロックチェーン）</li>
+          </ul>
+        </div>
+        <p className="text-gray-600"><strong>📱 推奨環境：</strong> 安定したWiFi接続またはモバイルデータ通信</p>
+      </div>
+    ),
+    icon: <RefreshCw className="w-5 h-5" />,
   },
   {
     id: 'sales-history',
