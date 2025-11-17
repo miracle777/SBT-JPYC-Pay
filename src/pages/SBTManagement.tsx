@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle, Copy } from 'lucide-react';
+import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle, Copy, Key, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
@@ -12,6 +12,7 @@ import SBTCard from '../components/SBTCard';
 import { pinataService } from '../utils/pinata';
 import { formatShopIdAsHex, generateNonConflictingShopId, generateUniqueShopId } from '../utils/shopIdGenerator';
 import { getShopSettings } from '../utils/shopSettings';
+import { canMintSBT } from '../utils/privateKeyManager';
 
 type IssuePattern = 'per_payment' | 'after_count' | 'time_period' | 'period_range';
 
@@ -1108,6 +1109,71 @@ const SBTManagement: React.FC = () => {
             </div>
           </div>
         ) : null}
+
+        {/* 🔑 秘密鍵設定状態チェック */}
+        {(() => {
+          const mintCheck = canMintSBT();
+          if (!mintCheck.canMint) {
+            return (
+              <div className="mb-6 bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <Key className="w-6 h-6 text-red-600" />
+                  <h3 className="text-lg font-bold text-red-900">⚠️ SBT発行用秘密鍵が未設定</h3>
+                </div>
+                <div className="space-y-3">
+                  <p className="text-sm text-red-800">
+                    {mintCheck.reason}
+                  </p>
+                  <div className="bg-white border border-red-200 rounded-lg p-3">
+                    <h4 className="font-semibold text-red-900 mb-2">🔒 必要な設定:</h4>
+                    <ul className="text-sm text-red-800 space-y-1">
+                      <li>• SBT発行権限を持つウォレットの秘密鍵</li>
+                      <li>• コントラクトオーナーまたはショップオーナーの権限</li>
+                      <li>• ローカルストレージでの安全な保存</li>
+                    </ul>
+                  </div>
+                  <div className="flex gap-3">
+                    <a
+                      href="/settings"
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition flex items-center gap-2 text-sm font-semibold"
+                    >
+                      <Settings className="w-4 h-4" />
+                      設定画面で秘密鍵を設定
+                    </a>
+                    <button
+                      onClick={() => {
+                        const mintCheckAgain = canMintSBT();
+                        if (mintCheckAgain.canMint) {
+                          toast.success('✅ 秘密鍵が設定されました');
+                          window.location.reload();
+                        } else {
+                          toast.error('❌ 秘密鍵がまだ設定されていません');
+                        }
+                      }}
+                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition text-sm"
+                    >
+                      🔄 設定状態を再確認
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          } else {
+            return (
+              <div className="mb-6 bg-green-50 border-l-4 border-green-500 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <div>
+                    <h3 className="font-semibold text-green-900">✅ SBT発行準備完了</h3>
+                    <p className="text-sm text-green-800">
+                      発行用秘密鍵が設定済みです（アドレス: {mintCheck.address?.slice(0, 8)}...{mintCheck.address?.slice(-6)}）
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+        })()}
 
         {/* ネットワーク情報表示 */}
         <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">

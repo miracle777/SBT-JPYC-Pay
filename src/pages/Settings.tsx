@@ -6,6 +6,7 @@ import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
 import { pinataService } from '../utils/pinata';
+import SBTPrivateKeySection from '../components/SBTPrivateKeySection';
 
 const Settings: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
@@ -706,6 +707,27 @@ const Settings: React.FC = () => {
               </a>
             </div>
           </div>
+        </div>
+
+        {/* 🔑 SBT発行権限設定（秘密鍵管理） */}
+        <div className="bg-white rounded-xl shadow-lg p-8 border-l-4 border-red-500">
+          <div className="flex items-center gap-3 mb-6">
+            <Key className="w-6 h-6 text-red-600" />
+            <h2 className="text-lg font-bold text-gray-900">🔑 SBT発行権限設定</h2>
+          </div>
+          
+          <div className="bg-red-50 border border-red-300 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-red-900 mb-2">⚠️ 重要なセキュリティ設定</h3>
+            <ul className="text-sm text-red-800 space-y-1">
+              <li>• <strong>個人専用:</strong> 必ず自分専用の秘密鍵を使用してください</li>
+              <li>• <strong>ローカル保存:</strong> ブラウザのローカルストレージにのみ保存されます</li>
+              <li>• <strong>サーバー送信なし:</strong> 秘密鍵がネットワークで送信されることはありません</li>
+              <li>• <strong>管理責任:</strong> 秘密鍵の紛失や漏洩は自己責任となります</li>
+              <li>• <strong>コントラクトオーナー権限:</strong> SBT発行権限を持つアドレスの秘密鍵が必要です</li>
+            </ul>
+          </div>
+
+          <SBTPrivateKeySection />
         </div>
 
         {/* データ管理（バックアップ・復元） */}
