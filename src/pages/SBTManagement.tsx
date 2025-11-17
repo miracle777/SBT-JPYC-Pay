@@ -10,6 +10,7 @@ import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetw
 import SBTCard from '../components/SBTCard';
 import { pinataService } from '../utils/pinata';
 import { formatShopIdAsHex, generateNonConflictingShopId, generateUniqueShopId } from '../utils/shopIdGenerator';
+import { getShopSettings } from '../utils/shopSettings';
 
 type IssuePattern = 'per_payment' | 'after_count' | 'time_period' | 'period_range';
 
@@ -146,8 +147,6 @@ const SBTManagement: React.FC = () => {
   const [shopInfo, setShopInfo] = useState<any>(null);
   const [isShopOwner, setIsShopOwner] = useState(false);
   const [showRegisterShopModal, setShowRegisterShopModal] = useState(false);
-  const [shopNameForReg, setShopNameForReg] = useState('');
-  const [shopDescForReg, setShopDescForReg] = useState('');
   const [isRegisteringShop, setIsRegisteringShop] = useState(false);
   
   // 📥📤 エクスポート・インポート関連
@@ -498,10 +497,13 @@ const SBTManagement: React.FC = () => {
           const template = templates.find(t => t.shopId === shopId);
           if (template) {
             try {
+              // 店舗設定を取得して登録に使用
+              const shopSettings = getShopSettings();
+              
               const registerResult = await registerShop({
                 shopId,
-                shopName: template.name,
-                description: template.description,
+                shopName: shopSettings.name || template.name, // 設定画面の店舗名を優先
+                description: shopSettings.description || template.description, // 設定画面の説明を優先
                 shopOwnerAddress: walletAddress,
                 requiredVisits: template.maxStamps,
                 chainId: selectedChainForSBT,
@@ -509,19 +511,20 @@ const SBTManagement: React.FC = () => {
               
               if (registerResult.success) {
                 console.log(`✅ ショップ${shopId}の自動登録完了`);
-                toast.success(`ショップ "${template.name}" を自動登録しました (ID: ${shopId})`);
+                toast.success(`ショップ "${shopSettings.name || template.name}" を自動登録しました (ID: ${shopId})`);
               } else {
                 console.error(`❌ ショップ${shopId}の自動登録失敗:`, registerResult.error);
                 // "Shop already registered" エラーは無視（実際は登録済み）
                 if (!registerResult.error?.includes('Shop already registered')) {
-                  toast.error(`ショップ "${template.name}" の登録に失敗: ${registerResult.error}`);
+                  toast.error(`ショップ "${shopSettings.name || template.name}" の登録に失敗: ${registerResult.error}`);
                 }
               }
             } catch (error: any) {
               console.error(`❌ ショップ${shopId}の自動登録エラー:`, error);
               // "Shop already registered" エラーは無視（実際は登録済み）
               if (!error.message?.includes('Shop already registered')) {
-                toast.error(`ショップ "${template.name}" の登録でエラーが発生しました`);
+                const shopSettings = getShopSettings();
+                toast.error(`ショップ "${shopSettings.name || template.name}" の登録でエラーが発生しました`);
               }
             }
           }
@@ -918,20 +921,26 @@ const SBTManagement: React.FC = () => {
 
         toast.loading('📤 画像とメタデータをIPFSにアップロード中...', { id: mintingToast });
 
-        // Pinataにアップロードしてtokenuri取得
-        const result = await pinataService.createSBTWithImage(
+        // 店舗設定を取得
+        const shopSettings = getShopSettings();
+        console.log('📋 店舗設定:', shopSettings);
+
+        // 動的メタデータでPinataにアップロード
+        const result = await pinataService.createDynamicSBTWithImage(
           file,
           template.name,
           template.description,
-          [
-            { trait_type: 'スタンプ最大数', value: template.maxStamps },
-            { trait_type: '報酬', value: template.rewardDescription },
-            { trait_type: '発行パターン', value: template.issuePattern },
-          ]
+          shopSettings,
+          {
+            shopId: template.shopId,
+            maxStamps: template.maxStamps,
+            rewardDescription: template.rewardDescription,
+            issuePattern: template.issuePattern,
+          }
         );
 
         tokenURI = result.tokenURI;
-        console.log('✅ IPFS Upload成功:', tokenURI);
+        console.log('✅ 動的メタデータでIPFS Upload成功:', tokenURI);
 
       } catch (uploadError: any) {
         console.error('IPFS Upload エラー:', uploadError);
@@ -948,10 +957,10 @@ const SBTManagement: React.FC = () => {
       // ユーザーにネットワーク切替が発生する旨を通知
       toast('🔁 発行先ネットワークへウォレットを切り替えます。MetaMaskの確認を許可してください', { icon: '🔁' });
 
-      // SBT mint 実行（選択されたネットワークを使用）
+      // SBT mint 実行（テンプレートのshopIdを使用）
       const result = await mintSBT({
         recipientAddress,
-        shopId: 1, // shop.ts の DEFAULT_SHOP_INFO に対応
+        shopId: template.shopId, // テンプレートのshopIdを使用
         tokenURI,
         chainId: selectedChainForSBT, // ユーザーが選択したネットワーク
       });
@@ -2016,21 +2025,21 @@ const SBTManagement: React.FC = () => {
                         <button onClick={() => setShowRegisterShopModal(false)} className="text-gray-500 hover:text-gray-800">✕</button>
                       </div>
                       <p className="text-sm text-gray-600 mb-4">
-                        現在のウォレットをショップID 1 のオーナーとして登録します。登録後、このウォレットでSBTをミントできるようになります。
+                        現在のウォレットをショップID 1 のオーナーとして登録します。店舗情報は設定画面の内容が使用されます。
                       </p>
                       <form
                         onSubmit={async (e) => {
                           e.preventDefault();
-                          if (!shopNameForReg || !shopDescForReg) {
-                            toast.error('ショップ名と説明を入力してください');
-                            return;
-                          }
                           
                           setIsRegisteringShop(true);
+                          
+                          // 設定画面の店舗情報を取得
+                          const shopSettings = getShopSettings();
+                          
                           const result = await registerShop({
                             shopId: 1,
-                            shopName: shopNameForReg,
-                            description: shopDescForReg,
+                            shopName: shopSettings.name,
+                            description: shopSettings.description || 'SBT対応店舗',
                             shopOwnerAddress: walletAddress || '',
                             requiredVisits: 1,
                             chainId: selectedChainForSBT,
@@ -2039,8 +2048,6 @@ const SBTManagement: React.FC = () => {
                           if (result.success) {
                             toast.success('ショップが登録されました！');
                             setShowRegisterShopModal(false);
-                            setShopNameForReg('');
-                            setShopDescForReg('');
                             // ショップ情報を再度取得
                             const shopInfo = await getShopInfo(1, selectedChainForSBT);
                             setShopInfo(shopInfo);
@@ -2052,26 +2059,19 @@ const SBTManagement: React.FC = () => {
                         }}
                         className="space-y-4"
                       >
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">ショップ名</label>
-                          <input
-                            type="text"
-                            value={shopNameForReg}
-                            onChange={(e) => setShopNameForReg(e.target.value)}
-                            placeholder="例: Coffee Shop XYZ"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                          />
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <h4 className="font-medium text-blue-900 mb-2">使用される店舗情報</h4>
+                          <div className="text-sm text-blue-800 space-y-1">
+                            <p><strong>店舗名:</strong> {getShopSettings().name}</p>
+                            <p><strong>店舗ID:</strong> {getShopSettings().id}</p>
+                            <p><strong>カテゴリ:</strong> {getShopSettings().category || '未設定'}</p>
+                            <p><strong>説明:</strong> {getShopSettings().description || 'SBT対応店舗'}</p>
+                          </div>
+                          <p className="text-xs text-blue-600 mt-2">
+                            ⚙️ これらの設定は「設定」画面で変更できます
+                          </p>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">説明</label>
-                          <input
-                            type="text"
-                            value={shopDescForReg}
-                            onChange={(e) => setShopDescForReg(e.target.value)}
-                            placeholder="例: 人気のコーヒーショップ"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                          />
-                        </div>
+                        
                         <div className="flex gap-3">
                           <button
                             type="button"

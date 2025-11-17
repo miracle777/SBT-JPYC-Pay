@@ -40,6 +40,9 @@ export interface SBTMetadata {
   name: string;
   description: string;
   image: string;
+  shopId?: number;
+  required_visits?: number;
+  benefits?: string[];
   attributes: Array<{
     trait_type: string;
     value: string | number;

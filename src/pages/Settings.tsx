@@ -12,6 +12,8 @@ const Settings: React.FC = () => {
   const [shopInfo, setShopInfo] = useState({
     name: DEFAULT_SHOP_INFO.name,
     id: DEFAULT_SHOP_INFO.id,
+    category: '',
+    description: '',
   });
 
   // 🔐 Pinata設定の状態管理
@@ -29,13 +31,14 @@ const Settings: React.FC = () => {
   const shopWalletAddress = getShopWalletAddress(walletAddress);
   const currentNetwork = Object.values(NETWORKS).find(n => n.chainId === currentChainId);
 
-  // 🔄 Pinata設定をローカルストレージから読み込み
+  // 🔄 設定をローカルストレージから読み込み
   useEffect(() => {
-    const loadPinataConfig = () => {
+    const loadConfigs = () => {
+      // Pinata設定読み込み
       try {
-        const saved = localStorage.getItem('pinata-config');
-        if (saved) {
-          const config = JSON.parse(saved);
+        const savedPinata = localStorage.getItem('pinata-config');
+        if (savedPinata) {
+          const config = JSON.parse(savedPinata);
           setPinataConfig({
             apiKey: config.apiKey || '',
             secretKey: config.secretKey || '',
@@ -50,9 +53,26 @@ const Settings: React.FC = () => {
       } catch (error) {
         console.warn('Pinata設定読み込みエラー:', error);
       }
+
+      // 店舗設定読み込み
+      try {
+        const savedShop = localStorage.getItem('shop-info');
+        if (savedShop) {
+          const config = JSON.parse(savedShop);
+          setShopInfo({
+            name: config.name || DEFAULT_SHOP_INFO.name,
+            id: config.id || DEFAULT_SHOP_INFO.id,
+            category: config.category || '',
+            description: config.description || '',
+          });
+          console.log('✅ 店舗設定読み込み完了:', config);
+        }
+      } catch (error) {
+        console.warn('店舗設定読み込みエラー:', error);
+      }
     };
 
-    loadPinataConfig();
+    loadConfigs();
   }, []);
 
   // 🧪 Pinata接続テスト
@@ -138,7 +158,15 @@ const Settings: React.FC = () => {
   };
 
   const handleSave = () => {
-    toast.success('設定を保存しました');
+    try {
+      // 店舗設定を保存
+      localStorage.setItem('shop-info', JSON.stringify(shopInfo));
+      console.log('✅ 店舗設定保存完了:', shopInfo);
+      toast.success('設定を保存しました');
+    } catch (error) {
+      console.error('設定保存エラー:', error);
+      toast.error('設定の保存に失敗しました');
+    }
   };
 
   // エクスポート機能
@@ -210,6 +238,27 @@ const Settings: React.FC = () => {
                 value={shopInfo.name}
                 onChange={(e) => setShopInfo({ ...shopInfo, name: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="例: Cafe JPYC"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">店舗カテゴリ</label>
+              <input
+                type="text"
+                value={shopInfo.category}
+                onChange={(e) => setShopInfo({ ...shopInfo, category: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="例: カフェ・飲食、小売店、サービス業"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">店舗説明</label>
+              <textarea
+                value={shopInfo.description}
+                onChange={(e) => setShopInfo({ ...shopInfo, description: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                rows={3}
+                placeholder="例: 地域密着型のコーヒーショップです"
               />
             </div>
             <div>
@@ -228,6 +277,9 @@ const Settings: React.FC = () => {
                   <Copy className="w-4 h-4" />
                 </button>
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                SBTメタデータで使用される固有IDです
+              </p>
             </div>
             <button
               onClick={handleSave}

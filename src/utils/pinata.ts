@@ -288,6 +288,103 @@ export class PinataService {
   }
 
   /**
+   * 店舗情報とテンプレートから動的にSBTメタデータを作成
+   */
+  async createDynamicSBTWithImage(
+    imageFile: File,
+    sbtName: string,
+    sbtDescription: string,
+    shopSettings: {
+      name: string;
+      id: string;
+      category: string;
+      description: string;
+    },
+    template: {
+      shopId: number;
+      maxStamps: number;
+      rewardDescription: string;
+      issuePattern: string;
+    }
+  ): Promise<{ imageHash: string; metadataHash: string; tokenURI: string }> {
+    try {
+      // 1. 画像をアップロード
+      const imageResult = await this.uploadFile(imageFile, {
+        name: `${sbtName} - Image`,
+        description: `Image for SBT: ${sbtName}`,
+      });
+
+      // 2. ランクを決定
+      const getSBTRank = (requiredVisits: number): 'bronze' | 'silver' | 'gold' | 'platinum' => {
+        if (requiredVisits >= 50) return 'platinum';
+        if (requiredVisits >= 20) return 'gold';
+        if (requiredVisits >= 10) return 'silver';
+        return 'bronze';
+      };
+
+      // 3. 特典リストを生成
+      const generateBenefits = (rewardDescription: string): string[] => {
+        if (!rewardDescription.trim()) {
+          return ['特典なし'];
+        }
+        const benefits = rewardDescription
+          .split(/[,、\n・]/)
+          .map(item => item.trim())
+          .filter(item => item.length > 0);
+        return benefits.length > 0 ? benefits : [rewardDescription];
+      };
+
+      const rank = getSBTRank(template.maxStamps);
+      const benefits = generateBenefits(template.rewardDescription);
+
+      // 4. 動的メタデータを作成（ユーザーの要求に従った形式）
+      const metadata: SBTMetadata = {
+        name: sbtName,
+        description: sbtDescription,
+        image: `ipfs://${imageResult.IpfsHash}`,
+        shopId: template.shopId,
+        required_visits: template.maxStamps,
+        benefits: benefits,
+        attributes: [
+          {
+            trait_type: 'Shop Name',
+            value: shopSettings.name
+          },
+          {
+            trait_type: 'Shop Category',
+            value: shopSettings.category || 'その他'
+          },
+          {
+            trait_type: 'Required Visits',
+            value: template.maxStamps
+          },
+          {
+            trait_type: 'Rank',
+            value: rank
+          },
+          {
+            trait_type: '発行パターン',
+            value: template.issuePattern
+          }
+        ]
+      };
+
+      console.log('📋 動的SBTメタデータ生成:', metadata);
+
+      // 5. メタデータをアップロード
+      const metadataResult = await this.uploadSBTMetadata(metadata, sbtName);
+
+      return {
+        imageHash: imageResult.IpfsHash,
+        metadataHash: metadataResult.metadataHash,
+        tokenURI: metadataResult.metadataUri,
+      };
+    } catch (error) {
+      throw new Error(`Dynamic SBT creation failed: ${getErrorMessage(error)}`);
+    }
+  }
+
+  /**
    * ピン留めされたファイル一覧を取得
    */
   async listPinnedFiles(

@@ -7,6 +7,7 @@ This is a Progressive Web App (PWA) for shop owners to issue and manage SBT (Sou
 ## 🌟 主要機能
 
 - **SBT発行管理**: お店独自のデザインでSBTスタンプを発行
+- **動的メタデータ**: 店舗設定に基づくSBTメタデータの自動生成
 - **QRコード決済**: 制限時間付きQRコード決済システム
 - **ウォレット接続**: MetaMask、WalletConnect対応
 - **Pinata連携**: 分散ストレージによる画像・メタデータ管理
@@ -161,8 +162,37 @@ Polygon Amoy でテストを行う際は、テストネットトークン（POL�
   - Polygon Mainnet: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
   - Polygon Amoy: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
 
+## 🆕 最新機能：動的SBTメタデータ
+
+**v2024.11.17** より、SBTメタデータが動的に生成されるようになりました：
+
+### 特徴
+- **店舗設定連携**: 設定画面で入力した店舗名・カテゴリ・説明が自動的にSBTメタデータに反映
+- **ハードコーディング削除**: 固定された店舗情報から、テンプレート・設定ベースの動的生成へ移行
+- **自動ランク決定**: 必要訪問回数に応じてbronze/silver/gold/platinumを自動設定
+- **特典リスト生成**: テンプレートの報酬説明から配列形式の特典リストを自動作成
+
+### メタデータ形式
+```json
+{
+  "name": "カフェ常連客証明",
+  "description": "Cafe JPYCの常連客証明SBT",
+  "shopId": 2,
+  "required_visits": 5,
+  "benefits": ["10%割引", "無料ドリンクアップグレード"],
+  "attributes": [
+    {"trait_type": "Shop Name", "value": "Cafe JPYC"},
+    {"trait_type": "Shop Category", "value": "カフェ・飲食"},
+    {"trait_type": "Rank", "value": "silver"}
+  ]
+}
+```
+
+詳細は **[DYNAMIC_SBT_METADATA.md](./DYNAMIC_SBT_METADATA.md)** を参照
+
 ## 📚 ドキュメント
 
+- **[動的SBTメタデータ実装ガイド](./DYNAMIC_SBT_METADATA.md)** - 動的メタデータ機能の詳細
 - **[SBT一覧表示実装ガイド](./docs/SBT_LIST_INTEGRATION.md)** - スマホアプリ向け SBT 表示実装
   - React コンポーネント実装例
   - 複数ショップ対応
