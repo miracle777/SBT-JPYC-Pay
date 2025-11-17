@@ -1072,11 +1072,11 @@ const SBTManagement: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
         {/* MetaMask 接続チェック警告 */}
         {!window.ethereum ? (
-          <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border-2 border-red-200 rounded-lg">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
@@ -1110,15 +1110,15 @@ const SBTManagement: React.FC = () => {
         ) : null}
 
         {/* ネットワーク情報表示 */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             {/* 現在のネットワーク */}
-            <div className="bg-white p-3 rounded border">
-              <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+            <div className="bg-white p-2 sm:p-3 rounded border">
+              <h3 className="font-semibold text-blue-900 mb-1 sm:mb-2 flex items-center gap-2 text-sm sm:text-base">
                 <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                 現在接続中のネットワーク
               </h3>
-              <div className="space-y-1 text-sm">
+              <div className="space-y-1 text-xs sm:text-sm">
                 <p><span className="text-gray-600">ネットワーク:</span> <span className={`font-medium ${currentChainId ? (getNetworkByChainId(currentChainId)?.isTestnet ? 'text-orange-600' : 'text-green-600') : 'text-gray-600'}`}>
                   {getNetworkDisplayInfo(currentChainId).displayName}
                   {currentChainId && (getNetworkByChainId(currentChainId)?.isTestnet ? ' (テスト用)' : ' (本番用)')}
@@ -1147,32 +1147,32 @@ const SBTManagement: React.FC = () => {
         </div>
 
         {/* ヘッダー */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
-              <Award className="w-8 h-8 text-purple-600" />
-              <h1 className="text-3xl font-bold text-gray-900">SBT管理</h1>
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <Award className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">SBT管理</h1>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <button
                 onClick={() => setShowExportModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg transition"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg transition text-xs sm:text-sm"
                 title="データをエクスポート・インポート"
               >
-                <ExternalLink className="w-5 h-5" />
-                データ管理
+                <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">データ管理</span><span className="sm:hidden">データ</span>
               </button>
               <button
                 onClick={() => setShowGuideModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition text-xs sm:text-sm"
                 title="使い方ガイドを表示"
               >
-                <HelpCircle className="w-5 h-5" />
-                使い方ガイド
+                <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">使い方ガイド</span><span className="sm:hidden">ガイド</span>
               </button>
             </div>
           </div>
-          <p className="text-gray-600">スタンプカードテンプレートの作成・管理と発行（PWA対応、画像ローカル保存、データエクスポート可能）</p>
+          <p className="text-xs sm:text-sm md:text-base text-gray-600">スタンプカードテンプレートの作成・管理と発行（PWA対応、画像ローカル保存、データエクスポート可能）</p>
         </div>
 
         {/* 使い方ガイドモーダル */}
@@ -1271,9 +1271,9 @@ const SBTManagement: React.FC = () => {
         )}
 
         {/* テンプレート管理 */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">テンプレート</h2>
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">テンプレート</h2>
             <button
               onClick={() => {
                 if (editingTemplateId) {
@@ -1294,10 +1294,11 @@ const SBTManagement: React.FC = () => {
                 }
                 setShowTemplateForm(!showTemplateForm);
               }}
-              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 sm:px-4 rounded-lg transition duration-200 text-sm sm:text-base min-h-[44px]"
             >
-              <Plus className="w-5 h-5" />
-              {editingTemplateId ? '編集をキャンセル' : '新規作成'}
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">{editingTemplateId ? '編集をキャンセル' : '新規作成'}</span>
+              <span className="sm:hidden">{editingTemplateId ? 'キャンセル' : '新規'}</span>
             </button>
           </div>
 
@@ -1505,20 +1506,20 @@ const SBTManagement: React.FC = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
             {templates.map((template) => (
-              <div key={template.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition duration-200">
-                <div className="h-32 bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
+              <div key={template.id} className="bg-white rounded-lg sm:rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition duration-200">
+                <div className="h-24 sm:h-28 md:h-32 bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
                   {template.imageUrl ? (
-                    <img src={template.imageUrl} alt={template.name} className="h-24 w-24 object-cover rounded-full border-2 border-white" />
+                    <img src={template.imageUrl} alt={template.name} className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 object-cover rounded-full border-2 border-white" />
                   ) : (
-                    <Award className="w-24 h-24 text-white opacity-50" />
+                    <Award className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 text-white opacity-50" />
                   )}
                 </div>
-                <div className="p-4">
+                <div className="p-3 sm:p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <h3 className="font-bold text-gray-900">{template.name}</h3>
+                      <h3 className="font-bold text-gray-900 text-sm sm:text-base">{template.name}</h3>
                     </div>
                     <button
                       onClick={() => {
@@ -1528,7 +1529,7 @@ const SBTManagement: React.FC = () => {
                       className="ml-2 p-1 hover:bg-gray-100 rounded transition"
                       title="ショップIDをコピー"
                     >
-                      <Copy className="w-4 h-4 text-gray-500 hover:text-gray-700" />
+                      <Copy className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500 hover:text-gray-700" />
                     </button>
                   </div>
                   <p className="text-xs text-gray-600 mb-2 font-mono bg-amber-50 px-2 py-1 rounded inline-block">
@@ -1551,25 +1552,25 @@ const SBTManagement: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 sm:gap-2">
                     <button 
                       onClick={() => editTemplate(template)}
-                      className="flex-1 p-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition flex items-center justify-center gap-2"
+                      className="flex-1 p-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition flex items-center justify-center gap-1 text-xs sm:text-sm min-h-[36px] sm:min-h-[40px]"
                     >
-                      <Edit2 className="w-4 h-4" />
-                      編集
+                      <Edit2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">編集</span>
                     </button>
                     <button
                       onClick={() => copyTemplateAsNew(template)}
-                      className="flex-1 p-2 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg transition flex items-center justify-center gap-2"
+                      className="flex-1 p-2 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg transition flex items-center justify-center gap-1 text-xs sm:text-sm min-h-[36px] sm:min-h-[40px]"
                     >
-                      <Plus className="w-4 h-4" />
-                      コピー
+                      <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">コピー</span>
                     </button>
                     <button
                       onClick={() => deleteTemplate(template.id)}
                       disabled={issuedSBTs.some((sbt) => sbt.templateId === template.id && sbt.status === 'redeemed')}
-                      className={`flex-1 p-2 rounded-lg transition flex items-center justify-center gap-2 ${
+                      className={`flex-1 p-2 rounded-lg transition flex items-center justify-center gap-1 text-xs sm:text-sm min-h-[36px] sm:min-h-[40px] ${
                         issuedSBTs.some((sbt) => sbt.templateId === template.id && sbt.status === 'redeemed')
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                           : 'bg-red-100 hover:bg-red-200 text-red-600'
@@ -1580,8 +1581,8 @@ const SBTManagement: React.FC = () => {
                           : ''
                       }
                     >
-                      <Trash2 className="w-4 h-4" />
-                      削除
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">削除</span>
                     </button>
                   </div>
                 </div>

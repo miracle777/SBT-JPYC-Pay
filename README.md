@@ -14,6 +14,11 @@ This is a Progressive Web App (PWA) for shop owners to issue and manage SBT (Sou
 - **PWA対応**: スマートフォンアプリのような操作感
 - **マルチチェーン対応**: Polygon、Avalanche、Ethereum
 
+> **⚠️ 重要**: SBTの発行には**サーバーの設定**と**インターネット接続**が必要です。
+>
+> - 🌐 **インターネット接続必要**: SBT発行時にはブロックチェーンへの接続とIPFSへのアップロードが必要です
+> - 🏢 **店舗・企業単位での運用推奨**: 実際の商用利用には、利用する店舗や企業単位でサーバーの設定も含めた環境構築が推奨されます
+
 ## 🛠️ 技術スタック
 
 - **Frontend**: React + TypeScript + Vite
@@ -24,6 +29,40 @@ This is a Progressive Web App (PWA) for shop owners to issue and manage SBT (Sou
 - **PWA**: Service Worker, Manifest
 
 ## 📋 セットアップ
+
+> **⚠️ 重要な前提条件**
+>
+> - 🌐 **インターネット接続が必要**: SBT発行時にIPFSアップロードとブロックチェーン書き込みが必要です
+> - 🗺️ **サーバー環境推奨**: 実際の利用にはPinata API設定やMetaMask接続が必要です
+> - 🏢 **組織単位での導入推奨**: 店舗や企業単位でのサーバー設定も含めた環境構築を推奨します
+
+### 🎯 利用シーン別セットアップガイド
+
+#### 1. 💻 個人デモ・テスト用（ローカル環境）
+
+```bash
+# 1. リポジトリをクローン
+npm install
+npm run dev
+
+# 2. アプリ内の「設定」ページでAPIキーを入力
+# - Pinata API Key/Secret (テスト用でも登録必要)
+# - ウォレット接続 (MetaMask)
+```
+
+#### 2. 🏢 店舗・企業導入用（サーバー環境）
+
+```bash
+# 1. サーバーにデプロイ
+# 例: Vercel, Netlify, AWS, Azure 等
+
+# 2. 環境変数でAPIキーを設定
+VITE_PINATA_API_KEY=your_organization_api_key
+VITE_PINATA_API_SECRET=your_organization_secret
+VITE_WALLET_CONNECT_PROJECT_ID=your_project_id
+
+# 3. 組織内でのアクセスURLを共有
+```
 
 ### 1. 依存関係のインストール
 
@@ -58,9 +97,25 @@ npm run dev
 
 ## 📖 使用方法
 
-### お店側の操作
+### 🏢 お店側の操作
+
+> **⚠️ 前提条件**:
+>
+> - 🌐 **インターネット接続が必要**: SBT発行時にオンラインでのアップロードが必要です
+> - 🗺️ **サーバー設定必要**: PinataのAPIキー、MetaMaskウォレットの接続が必要です
+
+#### 📝 基本フロー
+
+1. **ウォレット接続**: MetaMaskを接続
+2. **SBT設定**: 店舗情報とスタンプデザインを設定
+3. **決済QR生成**: 商品価格を入力してQRコード生成
+4. **SBT発行**: 条件達成時に自動でSBTを発行 (⚠️ インターネット接続必要)
 
 詳細は [LICENSE](./LICENSE) をご確認ください。
+
+### 📱 ユーザー側の操作
+
+詳細は [user仕様.md](./user仕様.md) を参照
 
 ## 📋 プライバシーポリシー・利用条件
 

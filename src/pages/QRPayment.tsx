@@ -466,22 +466,22 @@ const QRPayment: React.FC = () => {
   const networkList = Object.values(NETWORKS);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-4 md:p-6">
       <div className="max-w-4xl mx-auto">
         {/* ヘッダー */}
-        <div className="mb-6">
-          <div className="flex items-center space-x-4 mb-4">
-            <QrCode className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">QR決済</h1>
+        <div className="mb-4 sm:mb-6">
+          <div className="flex items-center space-x-3 sm:space-x-4 mb-3 sm:mb-4">
+            <QrCode className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">QR決済</h1>
           </div>
-          <p className="text-sm md:text-base text-gray-600">JPYC対応のQRコード決済を生成・管理します</p>
+          <p className="text-xs sm:text-sm md:text-base text-gray-600">JPYC対応のQRコード決済を生成・管理します</p>
         </div>
 
         {/* メインコンテナ: QRコード表示エリアが最優先 */}
         <div className="space-y-4">
           {/* QRコード表示エリア（上部） */}
-          <div className="bg-white rounded-xl shadow-lg p-4 md:p-8">
-            <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-6 text-center">
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-8">
+            <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 mb-4 sm:mb-6 text-center">
               現在のQRコード
             </h2>
             
@@ -499,20 +499,20 @@ const QRPayment: React.FC = () => {
                   .map((session) => (
                     <div key={session.id} className="w-full">
                       {/* 決済情報 */}
-                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-4 mb-4">
-                        <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
+                        <div className="grid grid-cols-3 gap-2 text-center mb-2 sm:mb-3">
                           <div>
                             <p className="text-xs text-gray-600">金額</p>
-                            <p className="text-lg md:text-xl font-bold text-blue-600">{session.amount}</p>
+                            <p className="text-base sm:text-lg md:text-xl font-bold text-blue-600">{session.amount}</p>
                             <p className="text-xs text-gray-600">JPYC</p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-600">ネットワーク</p>
-                            <p className="text-sm font-semibold text-gray-900">{session.chainName}</p>
+                            <p className="text-xs sm:text-sm font-semibold text-gray-900">{session.chainName}</p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-600">残り時間</p>
-                            <p className={`text-lg font-bold ${
+                            <p className={`text-base sm:text-lg font-bold ${
                               (session.timeRemainingSeconds || 0) < 300
                                 ? 'text-red-600'
                                 : 'text-green-600'
@@ -528,48 +528,48 @@ const QRPayment: React.FC = () => {
                         <div style={{
                           display: 'flex',
                           justifyContent: 'center',
-                          padding: '1rem',
+                          padding: '0.75rem',
                           background: 'white',
                           borderRadius: '0.5rem',
                           border: '2px solid #e5e7eb',
                         }}>
                           <QRCodeDisplay
                             data={session.qrCodeData}
-                            size={280}
+                            size={Math.min(280, window.innerWidth - 120)}
                             errorCorrectionLevel="H"
                             onDownload={(type) => {
                               toast.success(`QRコードを${type === 'png' ? 'PNG' : 'SVG'}でダウンロードしました`);
                             }}
                           />
                         </div>
-                        <p className="text-xs text-gray-500 mt-3 text-center">
+                        <p className="text-xs text-gray-500 mt-2 sm:mt-3 text-center px-4">
                           スマートフォンでスキャンしてください
                         </p>
                       </div>
 
                       {/* 操作ボタン */}
-                      <div className="flex gap-2 mt-4 flex-wrap justify-center">
+                      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-3 sm:mt-4 justify-center">
                         <button
                           onClick={() => setSelectedSessionForWindow(session.id)}
-                          className="flex items-center gap-1 px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-600 text-sm rounded-lg transition font-semibold"
+                          className="flex items-center justify-center gap-1 px-3 py-2.5 bg-purple-100 hover:bg-purple-200 text-purple-600 text-xs sm:text-sm rounded-lg transition font-semibold min-h-[44px]"
                         >
-                          <Monitor className="w-4 h-4" /> 新規ウィンドウ
+                          <Monitor className="w-4 h-4" /> <span className="hidden sm:inline">新規ウィンドウ</span><span className="sm:hidden">ウィンドウ</span>
                         </button>
                         <button
                           onClick={() => copyToClipboard(session.id)}
-                          className="flex items-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition"
+                          className="flex items-center justify-center gap-1 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm rounded-lg transition min-h-[44px]"
                         >
                           <Copy className="w-4 h-4" /> ID
                         </button>
                         <button
                           onClick={() => downloadQR(session.id)}
-                          className="flex items-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition"
+                          className="flex items-center justify-center gap-1 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm rounded-lg transition min-h-[44px]"
                         >
                           <Download className="w-4 h-4" /> DL
                         </button>
                         <button
                           onClick={() => deleteSession(session.id)}
-                          className="flex items-center gap-1 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-600 text-sm rounded-lg transition"
+                          className="flex items-center justify-center gap-1 px-3 py-2.5 bg-red-100 hover:bg-red-200 text-red-600 text-xs sm:text-sm rounded-lg transition min-h-[44px]"
                         >
                           <Trash2 className="w-4 h-4" /> 削除
                         </button>
@@ -599,11 +599,11 @@ const QRPayment: React.FC = () => {
           </div>
 
           {/* 設定エリア（下部） */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
             {/* 生成フォーム */}
-            <div className="md:col-span-2">
-              <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">設定</h2>
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
+                <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">設定</h2>
                 <form onSubmit={generateQRCode} className="space-y-3">
                   {/* 支払い用ネットワーク選択 */}
                   <div>
@@ -786,9 +786,9 @@ const QRPayment: React.FC = () => {
             </div>
 
             {/* 統計情報 */}
-            <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">統計</h2>
-              <div className="space-y-3 text-sm">
+            <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">統計</h2>
+              <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
                 <div>
                   <p className="text-gray-600 text-xs">総生成数</p>
                   <p className="text-2xl font-bold text-gray-900">{paymentSessions.length}</p>
