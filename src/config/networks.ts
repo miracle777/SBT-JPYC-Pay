@@ -108,19 +108,91 @@ export const JPYC: Currency = {
 };
 
 // JPYC開発用コントラクトアドレス（複数対応）
-// Sepoliaでは2つのJPYCコントラクトが存在するため、配列で管理
+// テストネットワークでは公式と独自テスト用アドレスの両方に対応
 export const JPYC_DEV_CONTRACTS: Record<number, string[]> = {
   // Testnet - 複数のJPYCコントラクトに対応
   [NETWORKS.ETHEREUM_SEPOLIA.chainId]: [
     '0xd3eF95d29A198868241FE374A999fc25F6152253',
     '0x431D5dfF03120AFA4bDf332c61A6e1766eF37BDB',
   ],
-  // 他のネットワークは単一アドレス
-  [NETWORKS.POLYGON_AMOY.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
+  // Polygon Amoy - 公式アドレスと独自テスト用アドレス
+  [NETWORKS.POLYGON_AMOY.chainId]: [
+    '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29', // 公式テスト用
+    '0xcD54D62DF66f54AB3788CA17aD90d402eCD8D34a', // 独自テスト用（お客様提供）
+  ],
+  // Avalanche Fuji - 公式アドレスと独自テスト用アドレス
+  [NETWORKS.AVALANCHE_FUJI.chainId]: [
+    '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29', // 公式テスト用
+    '0xeAB2AF47cbc02CDD73d106CA15884cAB541F5345', // 独自テスト用（お客様提供）
+  ],
+  // Mainnet - 単一の公式アドレス
   [NETWORKS.POLYGON_MAINNET.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
   [NETWORKS.ETHEREUM_MAINNET.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
   [NETWORKS.AVALANCHE_MAINNET.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
-  [NETWORKS.AVALANCHE_FUJI.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
+};
+
+// JPYCアドレスのタイプを定義
+export type JpycAddressType = 'official' | 'custom-test';
+
+// JPYCアドレスのメタデータを取得する関数
+export const getJpycContractMeta = (chainId: number, address: string): { type: JpycAddressType; label: string; description: string; symbol: string; decimals: number; debugNote?: string } => {
+  const network = getNetworkByChainId(chainId);
+  const isMainnet = !network?.isTestnet;
+  
+  // メインネットでは全て公式として扱う
+  if (isMainnet) {
+    return {
+      type: 'official',
+      label: '公式JPYC',
+      description: 'JPYC公式コントラクト',
+      symbol: 'JPYC',
+      decimals: 18
+    };
+  }
+  
+  // テストネットでのアドレス判定
+  const officialAddress = JPYC.contractAddress[chainId];
+  if (address === officialAddress) {
+    return {
+      type: 'official',
+      label: '公式テスト用JPYC',
+      description: 'JPYC公式のテストネットワーク用コントラクト',
+      symbol: 'JPYC',
+      decimals: 18
+    };
+  }
+  
+  // 独自テスト用アドレスの場合
+  if (chainId === NETWORKS.AVALANCHE_FUJI.chainId && address === '0xeAB2AF47cbc02CDD73d106CA15884cAB541F5345') {
+    return {
+      type: 'custom-test',
+      label: 'テスト用tJPYC (Fuji)',
+      description: '独自デプロイされたテスト用JPYCトークン (Avalanche Fuji)',
+      symbol: 'tJPYC',
+      decimals: 18,
+      debugNote: '⚠️ デバッグ用トークン: このトークンは開発者が独自にミントしたもので、他のユーザーは使用できません'
+    };
+  }
+  
+  if (chainId === NETWORKS.POLYGON_AMOY.chainId && address === '0xcD54D62DF66f54AB3788CA17aD90d402eCD8D34a') {
+    return {
+      type: 'custom-test',
+      label: 'テスト用tJPYC (Amoy)',
+      description: '独自デプロイされたテスト用JPYCトークン (Polygon Amoy)',
+      symbol: 'tJPYC',
+      decimals: 18,
+      debugNote: '⚠️ デバッグ用トークン: このトークンは開発者が独自にミントしたもので、他のユーザーは使用できません'
+    };
+  }
+  
+  // その他のアドレス
+  return {
+    type: 'custom-test',
+    label: 'カスタムJPYC',
+    description: 'カスタムJPYCトークンコントラクト',
+    symbol: 'JPYC',
+    decimals: 18
+  };
 };
 
 export const getNetworkByChainId = (chainId: number): Network | undefined => {

@@ -775,6 +775,21 @@ export const JPYC_TOKEN_ADDRESS: Record<number, string> = {
   43113: '0x0000000000000000000000000000000000000000', // Avalanche Fuji
 };
 
+// カスタムテストネットワーク用JPYCアドレス（お客様独自のトークン）
+export const CUSTOM_TEST_JPYC_ADDRESSES: Record<number, string[]> = {
+  43113: ['0xeAB2AF47cbc02CDD73d106CA15884cAB541F5345'], // Avalanche Fuji - お客様のテスト用JPYC
+  80002: ['0xcD54D62DF66f54AB3788CA17aD90d402eCD8D34a'], // Polygon Amoy - お客様のテスト用JPYC
+};
+
+// JPYCアドレス設定タイプ
+export type JpycAddressType = 'official' | 'test';
+
+// JPYCアドレス設定の表示名
+export const JPYC_ADDRESS_TYPE_LABELS: Record<JpycAddressType, string> = {
+  official: '公式JPYC',
+  test: 'テスト用JPYC（カスタム）'
+};
+
 // SBT スタンプシステムコントラクトアドレス
 export const SBT_CONTRACT_ADDRESS: Record<number, string> = {
   // Mainnet - 本番環境用
@@ -790,6 +805,33 @@ export const SBT_CONTRACT_ADDRESS: Record<number, string> = {
 // チェーンIDに応じたSBTコントラクトアドレスを取得
 export const getSBTContractAddress = (chainId: number): string => {
   return SBT_CONTRACT_ADDRESS[chainId] || '';
+};
+
+// 利用可能なJPYCアドレス（公式 + カスタムテスト用）を取得
+export const getAvailableJpycAddresses = (chainId: number): { address: string; type: JpycAddressType; label: string }[] => {
+  const addresses: { address: string; type: JpycAddressType; label: string }[] = [];
+  
+  // 公式JPYCアドレス
+  const officialAddress = JPYC_TOKEN_ADDRESS[chainId];
+  if (officialAddress && officialAddress !== '0x0000000000000000000000000000000000000000') {
+    addresses.push({
+      address: officialAddress,
+      type: 'official',
+      label: JPYC_ADDRESS_TYPE_LABELS.official
+    });
+  }
+  
+  // カスタムテスト用JPYCアドレス
+  const customAddresses = CUSTOM_TEST_JPYC_ADDRESSES[chainId] || [];
+  customAddresses.forEach((address, index) => {
+    addresses.push({
+      address,
+      type: 'test',
+      label: `${JPYC_ADDRESS_TYPE_LABELS.test}${customAddresses.length > 1 ? ` (${index + 1})` : ''}`
+    });
+  });
+  
+  return addresses;
 };
 
 // サポートされているネットワークのチェック

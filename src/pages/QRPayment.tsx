@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor, Zap, User, Award, Hash } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { BrowserProvider } from 'ethers';
-import { NETWORKS, JPYC, getContractAddress, getJpycContracts } from '../config/networks';
+import { BrowserProvider, ethers } from 'ethers';
+import { NETWORKS, JPYC, getContractAddress, getJpycContracts, getJpycContractMeta } from '../config/networks';
 import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
 import { createPaymentPayload, encodePaymentPayload } from '../types/payment';
 import { useWallet } from '../context/WalletContext';
@@ -44,6 +44,51 @@ const QRPayment: React.FC = () => {
   const [walletPolBalance, setWalletPolBalance] = useState<bigint | null>(null);
   const [hasInsufficientGas, setHasInsufficientGas] = useState(false);
   const [customerPaymentStats, setCustomerPaymentStats] = useState<Map<string, number>>(new Map());
+  const [jpycBalance, setJpycBalance] = useState<string | null>(null);
+  const [loadingBalance, setLoadingBalance] = useState(false);
+  const [lastBalanceCheck, setLastBalanceCheck] = useState<string>('');
+
+  // JPYC残高を取得する関数
+  const fetchJpycBalance = async () => {
+    if (!walletAddress || !window.ethereum || !paymentContractAddress) {
+      setJpycBalance(null);
+      return;
+    }
+
+    try {
+      setLoadingBalance(true);
+      const provider = new BrowserProvider(window.ethereum);
+      
+      // ERC20コントラクトのインスタンスを作成
+      const erc20Abi = [
+        'function balanceOf(address owner) view returns (uint256)',
+        'function decimals() view returns (uint8)',
+        'function symbol() view returns (string)'
+      ];
+      
+      const contract = new ethers.Contract(paymentContractAddress, erc20Abi, provider);
+      const balance = await contract.balanceOf(walletAddress);
+      const balanceContractMeta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
+      
+      // Weiからトークン単位に変換
+      const balanceFormatted = ethers.formatUnits(balance, balanceContractMeta.decimals);
+      const balanceNumber = parseFloat(balanceFormatted);
+      
+      // 整数部分と小数部分を分けて表示（小数点以下2桁まで）
+      setJpycBalance(balanceNumber.toLocaleString('ja-JP', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+      }));
+      
+      console.log(`${balanceContractMeta.symbol}残高: ${balanceFormatted}`);
+      setLastBalanceCheck(new Date().toLocaleTimeString('ja-JP'));
+    } catch (error) {
+      console.error('JPYC残高取得エラー:', error);
+      setJpycBalance(null);
+    } finally {
+      setLoadingBalance(false);
+    }
+  };
 
   const shopWalletAddress = getShopWalletAddress(walletAddress);
   const paymentNetwork = Object.values(NETWORKS).find(
@@ -59,6 +104,11 @@ const QRPayment: React.FC = () => {
     JPYC
   );
   
+  // 残高取得 - ウォレット、ネットワーク、コントラクトアドレス変更時に実行
+  useEffect(() => {
+    fetchJpycBalance();
+  }, [walletAddress, selectedChainForPayment, paymentContractAddress]);
+
   // ネットワーク変更時にJPYCコントラクトを自動選択
   useEffect(() => {
     const contracts = getJpycContracts(selectedChainForPayment);
@@ -234,9 +284,12 @@ const QRPayment: React.FC = () => {
             // セッション作成時のブロック番号以降のみを検索（過去のトランザクションを除外）
             const searchFromBlock = session.createdAtBlockNumber || Math.max(0, latestBlockNumber - 10);
 
-            // 複数のJPYCコントラクトアドレスに対応
+            // 複数のJPYCコントラクトアドレスに対応（公式 + カスタムテスト用）
             const jpycContracts = getJpycContracts(chainId);
-            console.log(`監視中のJPYCコントラクト (${chainId}):`, jpycContracts);
+            console.log(`監視中のJPYCコントラクト (${chainId}):`, jpycContracts.map(addr => {
+              const meta = getJpycContractMeta(chainId, addr);
+              return `${addr} (${meta.label})`;
+            }));
 
             // ERC20のTransferイベントシグネチャ: Transfer(address,address,uint256)
             const transferEventSignature = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
@@ -268,8 +321,9 @@ const QRPayment: React.FC = () => {
                 // トランザクションの詳細情報を取得
                 const txDetails = await provider.getTransaction(txHash);
                 const payerAddress = txDetails?.from; // トランザクション送信者（支払者）のアドレス
+                const detectedContractMeta = getJpycContractMeta(chainId, contractAddress);
                 
-                console.log(`✓ JPYC決済検知: ${contractAddress}`);
+                console.log(`✓ JPYC決済検知: ${contractAddress} (${detectedContractMeta.label})`);
                 console.log(`  Tx: ${txHash}`);
                 console.log(`  支払者: ${payerAddress}`);
                 console.log(`  受取: ${shopWalletAddress}`);
@@ -320,6 +374,18 @@ const QRPayment: React.FC = () => {
       return;
     }
 
+    // 残高チェック（JPYC残高がある場合）
+    if (jpycBalance !== null) {
+      const requestAmount = parseFloat(amount);
+      const currentBalance = parseFloat(jpycBalance.replace(/,/g, ''));
+      
+      if (requestAmount > currentBalance) {
+        const contractMeta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
+        toast.error(`残高不足です。現在の${contractMeta.symbol}残高: ${jpycBalance}`);
+        return;
+      }
+    }
+
     if (!shopWalletAddress) {
       toast.error('ウォレットアドレスが設定されていません');
       return;
@@ -352,9 +418,10 @@ const QRPayment: React.FC = () => {
       }
 
       // Wei単位に変換（18小数点、整数値に変換）
-      // JPYCは1JPYCが1円で固定されているため、小数点は不要
+      // JPYCとtJPYCは1トークンが1円で固定されているため、小数点は不要
       const amountNum = parseInt(amount) || parseFloat(amount);
-      const amountInWei = (BigInt(amountNum) * BigInt(10 ** 18)).toString();
+      const qrContractMeta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
+      const amountInWei = (BigInt(amountNum) * BigInt(10 ** qrContractMeta.decimals)).toString();
 
       const payload = createPaymentPayload(
         DEFAULT_SHOP_INFO.id,
@@ -373,7 +440,7 @@ const QRPayment: React.FC = () => {
       const newSession: PaymentSession = {
         id: paymentId,
         amount: amountNum,
-        currency: 'JPYC',
+        currency: qrContractMeta.symbol, // JPYC または tJPYC
         chainId: selectedChainForPayment,
         chainName: paymentNetwork.displayName,
         qrCodeData: encodedPayload,
@@ -390,7 +457,8 @@ const QRPayment: React.FC = () => {
 
       setPaymentSessions([newSession, ...paymentSessions]);
       setAmount('');
-      toast.success('QRコードを生成しました');
+      const selectedContractMeta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
+      toast.success(`QRコードを生成しました (${selectedContractMeta.label})`);
     } catch (error) {
       console.error('QRコード生成エラー:', error);
       toast.error('QRコード生成に失敗しました');
@@ -474,7 +542,7 @@ const QRPayment: React.FC = () => {
             <QrCode className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">QR決済</h1>
           </div>
-          <p className="text-xs sm:text-sm md:text-base text-gray-600">JPYC対応のQRコード決済を生成・管理します</p>
+          <p className="text-xs sm:text-sm md:text-base text-gray-600">JPYC/tJPYC対応のQRコード決済を生成・管理します</p>
         </div>
 
         {/* メインコンテナ: QRコード表示エリアが最優先 */}
@@ -504,7 +572,12 @@ const QRPayment: React.FC = () => {
                           <div>
                             <p className="text-xs text-gray-600">金額</p>
                             <p className="text-base sm:text-lg md:text-xl font-bold text-blue-600">{session.amount}</p>
-                            <p className="text-xs text-gray-600">JPYC</p>
+                            <p className="text-xs text-gray-600">
+                              {(() => {
+                                const contractMeta = getJpycContractMeta(session.chainId, paymentContractAddress);
+                                return contractMeta.symbol;
+                              })()}
+                            </p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-600">ネットワーク</p>
@@ -521,6 +594,19 @@ const QRPayment: React.FC = () => {
                             </p>
                           </div>
                         </div>
+                        {/* JPYCタイプ表示 */}
+                        {(() => {
+                          const contractMeta = getJpycContractMeta(session.chainId, paymentContractAddress);
+                          return (
+                            <div className={`text-center text-xs px-2 py-1 rounded-full inline-block ${
+                              contractMeta.type === 'official'
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {contractMeta.label}
+                            </div>
+                          );
+                        })()}
                       </div>
                       
                       {/* QRコード表示 */}
@@ -634,22 +720,53 @@ const QRPayment: React.FC = () => {
                   {availableJpycContracts.length > 1 && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        JPYCコントラクトアドレス
+                        JPYCトークンタイプ
                       </label>
                       <select
                         value={selectedJpycContract}
                         onChange={(e) => setSelectedJpycContract(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-mono"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                       >
-                        {availableJpycContracts.map((contractAddr, index) => (
-                          <option key={contractAddr} value={contractAddr}>
-                            {contractAddr.slice(0, 6)}...{contractAddr.slice(-4)} (Contract {index + 1})
-                          </option>
-                        ))}
+                        {availableJpycContracts.map((contractAddr) => {
+                          const meta = getJpycContractMeta(selectedChainForPayment, contractAddr);
+                          return (
+                            <option key={contractAddr} value={contractAddr}>
+                              {meta.label} ({meta.symbol})
+                            </option>
+                          );
+                        })}
                       </select>
-                      <p className="text-xs text-gray-500 mt-1">
-                        選択中: {selectedJpycContract}
-                      </p>
+                      {selectedJpycContract && (() => {
+                        const meta = getJpycContractMeta(selectedChainForPayment, selectedJpycContract);
+                        return (
+                          <div className="mt-2 space-y-2">
+                            {/* 基本情報 */}
+                            <div className={`p-2 rounded-lg text-xs ${
+                              meta.type === 'official' 
+                                ? 'bg-green-50 border border-green-200 text-green-700'
+                                : 'bg-blue-50 border border-blue-200 text-blue-700'
+                            }`}>
+                              <p className="font-semibold">{meta.description}</p>
+                              <p className="mt-1">
+                                <span className="font-semibold">シンボル:</span> {meta.symbol} | 
+                                <span className="font-semibold">小数点:</span> {meta.decimals}
+                              </p>
+                              <p className="font-mono text-xs mt-1 text-gray-600">
+                                {selectedJpycContract}
+                              </p>
+                            </div>
+                            
+                            {/* デバッグ注意（カスタムテスト用の場合のみ） */}
+                            {meta.debugNote && (
+                              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <p className="text-xs text-yellow-800 font-semibold">
+                                  {meta.debugNote}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 
@@ -668,7 +785,10 @@ const QRPayment: React.FC = () => {
                   {/* 金額入力 */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      金額 (JPYC)
+                      金額 ({selectedJpycContract ? (() => {
+                        const meta = getJpycContractMeta(selectedChainForPayment, selectedJpycContract);
+                        return meta.symbol;
+                      })() : 'JPYC'})
                     </label>
                     <input
                       type="number"
@@ -787,7 +907,67 @@ const QRPayment: React.FC = () => {
 
             {/* 統計情報 */}
             <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
-              <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">統計</h2>
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h2 className="text-base sm:text-lg font-bold text-gray-900">統計</h2>
+                {jpycBalance !== null && (
+                  <button
+                    onClick={fetchJpycBalance}
+                    disabled={loadingBalance}
+                    className={`text-xs px-2 py-1 rounded-lg transition ${
+                      loadingBalance 
+                        ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                        : 'bg-blue-100 hover:bg-blue-200 text-blue-600'
+                    }`}
+                  >
+                    {loadingBalance ? '更新中...' : '残高更新'}
+                  </button>
+                )}
+              </div>
+              
+              {/* JPYC残高表示 */}
+              {walletAddress && paymentContractAddress && (
+                <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs text-gray-600 font-semibold">
+                      {(() => {
+                        const meta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
+                        return `${meta.symbol}残高`;
+                      })()} 💰
+                    </p>
+                    {lastBalanceCheck && (
+                      <p className="text-xs text-gray-500">
+                        {lastBalanceCheck}更新
+                      </p>
+                    )}
+                  </div>
+                  {loadingBalance ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin text-blue-600">⏳</div>
+                      <p className="text-sm text-blue-600">残高確認中...</p>
+                    </div>
+                  ) : jpycBalance !== null ? (
+                    <div>
+                      <p className="text-2xl font-bold text-green-600 mb-1">
+                        {jpycBalance}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        {(() => {
+                          const meta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
+                          const network = paymentNetwork;
+                          
+                          if (network?.isTestnet) {
+                            return meta.type === 'custom-test' ? 'テスト用トークン（独自）' : '公式テストトークン';
+                          } else {
+                            return meta.type === 'custom-test' ? 'カスタムトークン' : '公式トークン';
+                          }
+                        })()} | {paymentNetwork?.displayName}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">残高取得できません</p>
+                  )}
+                </div>
+              )}
               <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
                 <div>
                   <p className="text-gray-600 text-xs">総生成数</p>
@@ -929,7 +1109,7 @@ const QRPayment: React.FC = () => {
                                   {session.id.slice(-8)}
                                 </td>
                                 <td className="py-3 px-3 font-semibold text-gray-900">
-                                  {session.amount} JPYC
+                                  {session.amount} {session.currency}
                                 </td>
                                 <td className="py-3 px-3">
                                   <div className="font-mono text-xs text-gray-700">
