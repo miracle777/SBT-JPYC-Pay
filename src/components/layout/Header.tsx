@@ -30,7 +30,7 @@ const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
               ダッシュボード
             </Link>
             <Link
-              to="/payment"
+              to="/qr-payment"
               className="text-gray-600 hover:text-gray-900 font-medium transition"
             >
               QR決済
@@ -85,7 +85,7 @@ const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
               ダッシュボード
             </Link>
             <Link
-              to="/payment"
+              to="/qr-payment"
               className="block px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
               onClick={() => setIsMenuOpen(false)}
             >
