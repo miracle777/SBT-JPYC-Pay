@@ -192,19 +192,13 @@ Polygon Amoy でテストを行う際は、テストネットトークン（POL�
 
 ## 📚 ドキュメント
 
-- **[動的SBTメタデータ実装ガイド](./DYNAMIC_SBT_METADATA.md)** - 動的メタデータ機能の詳細
-- **[SBT一覧表示実装ガイド](./docs/SBT_LIST_INTEGRATION.md)** - スマホアプリ向け SBT 表示実装
-  - React コンポーネント実装例
-  - 複数ショップ対応
-  - 来店回数表示
-  - Polygon MainNet / Amoy 対応
+### 🛠️ SBT技術ドキュメント
 
-- **[Shop仕様](./Shop仕様.md)** - お店側の操作マニュアル
-- **[User仕様](./user仕様.md)** - ユーザー側の操作マニュアル
+- **[🆕 動的SBTメタデータ実装ガイド](./DYNAMIC_SBT_METADATA.md)** - 動的メタデータ機能の詳細
+- **[📖 SBT発行完全ガイド](./docs/SBT_ISSUANCE_GUIDE.md)** - SBT発行プロセスの完全解説  
+- **[📋 SBTメタデータ仕様書](./docs/SBT_METADATA_SPECIFICATION.md)** - メタデータ構造と技術仕様
 
-## 📚 ドキュメント
-
-### スマホアプリ向けドキュメント
+### 📱 スマホアプリ向けドキュメント
 
 - **[📱 SBT一覧表示実装ガイド](./docs/SBT_LIST_INTEGRATION.md)** ⭐ スマホでSBTを表示したい場合は必読
   - React コンポーネント実装例（完全版）
@@ -214,10 +208,10 @@ Polygon Amoy でテストを行う際は、テストネットトークン（POL�
   - IPFS メタデータ取得
   - トラブルシューティング
 
-### その他のドキュメント
+### 📖 操作マニュアル
 
-- [Shop仕様](./Shop仕様.md) - お店側の操作マニュアル
-- [User仕様](./user仕様.md) - ユーザー側の操作マニュアル
+- **[Shop仕様](./Shop仕様.md)** - お店側の操作マニュアル
+- **[User仕様](./user仕様.md)** - ユーザー側の操作マニュアル
 
 ## 🔗 関連リポジトリ
 
