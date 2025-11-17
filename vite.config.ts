@@ -13,6 +13,7 @@ export default defineConfig({
         'icons/**/*.svg',
         'manifest.json',
         'sbt-images/**/*.png',
+        'browserconfig.xml',
       ],
       manifest: false, // 外部manifest.jsonを使用
       workbox: {
@@ -20,68 +21,68 @@ export default defineConfig({
           '**/*.{js,css,html,png,svg,ico,webp}',
           'icons/**/*.png',
           'manifest.json',
-          'sbt-images/**/*.png',
+          'browserconfig.xml',
+        ],
+        // キャッシュするアセット
+        additionalManifestEntries: [
+          { url: '/', revision: null },
+          { url: '/manifest.json', revision: null },
+          { url: '/icons/icon-192x192.png', revision: null },
+          { url: '/icons/icon-512x512.png', revision: null },
         ],
         // ファイルサイズ制限を緩和（画像データ含むため）
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
         runtimeCaching: [
-          // 画像キャッシュ（外部リソース）
+          // アプリ本体のナビゲーション
           {
-            urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif|webp)$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'external-image-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 30 * 24 * 60 * 60, // 30日
-              },
-            },
-          },
-          // IPFS・Pinata APIキャッシュ（短時間）
-          {
-            urlPattern: /^https:\/\/api\.pinata\.cloud\/.*/,
+            urlPattern: ({ request }) => request.mode === 'navigate',
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'pinata-api-cache',
+              cacheName: 'page-cache',
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 5 * 60, // 5分
+                maxAgeSeconds: 24 * 60 * 60, // 1日
               },
-              networkTimeoutSeconds: 10,
+              networkTimeoutSeconds: 3,
             },
           },
-          // ブロックチェーンRPC（キャッシュしない）
+          // 静的アセット（JS, CSS）
           {
-            urlPattern: /^https:\/\/.*\.(alchemyapi\.io|infura\.io|polygonscan\.com).*/,
-            handler: 'NetworkOnly',
-          },
-          // アプリ本体のアセット（積極的キャッシュ）
-          {
-            urlPattern: /^\/.*\.(js|css|html)$/,
+            urlPattern: /\.(?:js|css)$/,
             handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'app-assets-cache',
+              cacheName: 'static-resources',
               expiration: {
-                maxEntries: 200,
+                maxEntries: 100,
                 maxAgeSeconds: 7 * 24 * 60 * 60, // 7日
               },
             },
           },
+          // 画像キャッシュ
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'image-cache',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30日
+              },
+            },
+          },
         ],
-        // オフライン時のルーティング
+        // オフライン時のフォールバック
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/_/, /\/api\//, /\.json$/],
+        navigateFallbackDenylist: [/^\/_/, /\/api\//, /\.json$/, /\/sw\.js$/],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
       },
       devOptions: {
         enabled: true,
+        type: 'module',
         navigateFallback: 'index.html',
-        suppressWarnings: true,
       },
-      // PWA アップデート通知
-      useCredentials: true,
     }),
   ],
   resolve: {

@@ -235,7 +235,7 @@ export const DisclaimerBanner: React.FC = () => {
           </div>
           <Button
             onClick={handleShowModal}
-            className="bg-white text-red-600 hover:bg-gray-100 font-semibold whitespace-nowrap text-sm px-4 py-2"
+            className="bg-yellow-400 text-red-900 hover:bg-yellow-300 font-semibold whitespace-nowrap text-sm px-4 py-2 border-2 border-red-600"
           >
             重要事項を確認
           </Button>

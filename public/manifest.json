@@ -2,14 +2,16 @@
   "name": "SBT JPYC Pay - 店舗スタンプカード管理",
   "short_name": "SBT Pay",
   "description": "SBTスタンプカード発行・QR決済管理システム。PWA対応でオフライン作業、画像ローカル保存、データエクスポート可能。パソコン・タブレット・スマートフォンで使用できます。",
+  "id": "sbt-jpyc-pay-wallet",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "portrait-primary", 
   "theme_color": "#7c3aed",
   "background_color": "#ffffff",
   "lang": "ja",
   "dir": "ltr",
+  "categories": ["finance", "business", "productivity"],
   "icons": [
     {
       "src": "/icons/icon-72x72.png",
@@ -48,7 +50,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-192x192-maskable.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
@@ -66,7 +68,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512x512-maskable.png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -96,7 +98,7 @@
       "url": "/sbt",
       "icons": [
         {
-          "src": "/icons/shortcut-sbt-96x96.png",
+          "src": "/icons/icon-96x96.png",
           "sizes": "96x96",
           "type": "image/png"
         }
@@ -109,7 +111,7 @@
       "url": "/payment",
       "icons": [
         {
-          "src": "/icons/shortcut-payment-96x96.png",
+          "src": "/icons/icon-96x96.png",
           "sizes": "96x96",
           "type": "image/png"
         }
@@ -122,7 +124,7 @@
       "url": "/?tab=export",
       "icons": [
         {
-          "src": "/icons/shortcut-data-96x96.png",
+          "src": "/icons/icon-96x96.png",
           "sizes": "96x96",
           "type": "image/png"
         }

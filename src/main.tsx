@@ -1,9 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import App from './App';
 import './index.css';
+
+// ページコンポーネントのimport
+import Dashboard from './pages/Dashboard';
+import QRPayment from './pages/QRPayment';
+import SBTManagement from './pages/SBTManagement';
+import Settings from './pages/Settings';
+import NotFound from './pages/NotFound';
 
 // PWA Service Worker Registration with Update Notification
 if ('serviceWorker' in navigator) {
@@ -34,103 +41,129 @@ if ('serviceWorker' in navigator) {
                         window.location.reload();
                         toast.dismiss(t.id);
                       }}
-                      className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                      className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
                     >
                       更新
                     </button>
                     <button
                       onClick={() => toast.dismiss(t.id)}
-                      className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+                      className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
                     >
                       後で
                     </button>
                   </div>
                 </div>
               ), {
-                duration: 15000, // 15秒表示
+                duration: Infinity,
                 icon: '🔄',
+                style: {
+                  maxWidth: '400px',
+                },
               });
             }
           });
         }
       });
-      
-      // 定期的に更新をチェック
-      setInterval(() => {
-        registration.update();
-      }, 60 * 60 * 1000); // 1時間ごと
-      
+
+      // Periodic update checking (every hour)
+      setInterval(async () => {
+        try {
+          await registration.update();
+        } catch (error) {
+          console.log('🔄 Service Worker update check failed:', error);
+        }
+      }, 60 * 60 * 1000); // 1 hour
+
     } catch (error) {
-      console.error('❌ PWA: Service Worker registration failed', error);
+      console.error('❌ PWA: Service Worker registration failed:', error);
+      
+      // SW registration failure notification
+      setTimeout(() => {
+        toast.error('PWA機能の登録に失敗しました\n一部機能が制限される可能性があります', {
+          duration: 8000,
+          icon: '⚠️',
+        });
+      }, 2000);
     }
   });
-}
 
-// iOS対応: ホーム画面追加時のスタンドアロン表示
-if (
-  (navigator as any).standalone === true ||
-  window.matchMedia('(display-mode: standalone)').matches
-) {
-  console.log('📱 PWA running in standalone mode');
-  
-  // スタンドアロンモードでの起動通知
-  setTimeout(() => {
-    toast.success('📱 PWAモードで起動中\nオフライン機能が利用可能です', {
-      duration: 3000,
-      icon: '🚀',
-    });
-  }, 1000);
-}
+  // SW registration state change monitoring
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    console.log('🔄 PWA: Service Worker controller changed');
+    
+    // App update completed notification
+    setTimeout(() => {
+      toast.success('✨ アプリが最新版に更新されました！', {
+        duration: 4000,
+        icon: '🚀',
+      });
+    }, 1000);
+  });
 
-// PWA インストール促進
-let deferredPrompt: any;
-window.addEventListener('beforeinstallprompt', (e) => {
-  console.log('💾 PWA install prompt available');
-  e.preventDefault();
-  deferredPrompt = e;
-  
-  // インストール可能通知（初回のみ）
-  if (!localStorage.getItem('pwa-install-prompted')) {
+  // SW error monitoring
+  navigator.serviceWorker.addEventListener('error', (error) => {
+    console.error('❌ PWA: Service Worker error:', error);
+    
+    setTimeout(() => {
+      toast.error('PWAサービスでエラーが発生しました\nページを再読み込みしてください', {
+        duration: 6000,
+        icon: '🔧',
+      });
+    }, 3000);
+  });
+
+  // Handle SW messages
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+      window.location.reload();
+    }
+  });
+
+  // Track app install status
+  let deferredPrompt: any;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // App install suggestion (delayed)
     setTimeout(() => {
       toast((t) => (
         <div className="flex flex-col gap-2">
-          <p className="font-semibold text-sm">📱 アプリをインストール</p>
-          <p className="text-xs text-gray-600">ホーム画面に追加してアプリのように使用できます</p>
+          <p className="font-semibold text-sm">📱 アプリとしてインストール可能</p>
+          <p className="text-xs text-gray-600">ホーム画面に追加してより便利にご利用ください</p>
           <div className="flex gap-2 mt-2">
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (deferredPrompt) {
                   deferredPrompt.prompt();
-                  deferredPrompt.userChoice.then((choiceResult: any) => {
-                    console.log('PWA install choice:', choiceResult.outcome);
-                    deferredPrompt = null;
-                  });
+                  const { outcome } = await deferredPrompt.userChoice;
+                  console.log('📱 App install outcome:', outcome);
+                  deferredPrompt = null;
                 }
-                localStorage.setItem('pwa-install-prompted', 'true');
                 toast.dismiss(t.id);
               }}
-              className="px-3 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600"
+              className="px-3 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600"
             >
               インストール
             </button>
             <button
-              onClick={() => {
-                localStorage.setItem('pwa-install-prompted', 'true');
-                toast.dismiss(t.id);
-              }}
-              className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
             >
-              閉じる
+              スキップ
             </button>
           </div>
         </div>
       ), {
-        duration: 12000,
-        icon: '📲',
+        duration: 10000,
+        icon: '✨',
+        style: {
+          maxWidth: '400px',
+        },
       });
     }, 5000); // 5秒後に表示
-  }
-});
+  });
+}
 
 // オフライン・オンライン状態の監視
 window.addEventListener('online', () => {
@@ -147,35 +180,65 @@ window.addEventListener('offline', () => {
   });
 });
 
+// React Router v7対応の設定
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <App />,
+    children: [
+      {
+        index: true,
+        element: <Dashboard />,
+      },
+      {
+        path: "qr-payment",
+        element: <QRPayment />,
+      },
+      {
+        path: "sbt-management", 
+        element: <SBTManagement />,
+      },
+      {
+        path: "settings",
+        element: <Settings />,
+      },
+    ],
+    errorElement: <NotFound />,
+  },
+], {
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true,
+  },
+});
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <App />
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-            maxWidth: '400px',
+    <RouterProvider router={router} />
+    <Toaster
+      position="top-center"
+      toastOptions={{
+        duration: 4000,
+        style: {
+          background: '#363636',
+          color: '#fff',
+          maxWidth: '400px',
+        },
+        success: {
+          duration: 3000,
+          iconTheme: {
+            primary: '#22c55e',
+            secondary: '#fff',
           },
-          success: {
-            duration: 3000,
-            iconTheme: {
-              primary: '#22c55e',
-              secondary: '#fff',
-            },
+        },
+        error: {
+          duration: 5000,
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: '#fff',
           },
-          error: {
-            duration: 5000,
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-          },
-        }}
-      />
-    </BrowserRouter>
+        },
+      }}
+    />
   </React.StrictMode>
 );
