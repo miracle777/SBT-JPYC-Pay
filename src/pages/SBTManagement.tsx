@@ -1127,30 +1127,30 @@ const SBTManagement: React.FC = () => {
                 </div>
                 
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-green-900 mb-2">🏢 本番環境での推奨実装</h4>
+                  <h4 className="font-semibold text-green-900 mb-2">🏢 本番環境での推奨構成（セキュリティ重視）</h4>
                   <ul className="text-sm text-green-800 space-y-1">
+                    <li>• <strong>署名方式:</strong> その都度署名を推奨（マルチシグ等のセキュアな署名プロセス）</li>
                     <li>• <strong>サーバーサイドAPI:</strong> Express.js、FastAPI等でSBT発行API作成</li>
-                    <li>• <strong>環境変数管理:</strong> サーバー上で秘密鍵を安全に管理</li>
                     <li>• <strong>認証・認可:</strong> JWT、OAuth等でAPI保護</li>
-                    <li>• <strong>ログ・監査:</strong> 発行履歴の適切な記録</li>
+                    <li>• <strong>監査ログ:</strong> すべてのSBT発行を記録</li>
                     <li>• <strong>レート制限:</strong> 不正な大量発行を防止</li>
+                    <li>• <strong>権限管理:</strong> ロールベースアクセス制御</li>
                   </ul>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">💻 サーバーサイド実装例</h4>
+                  <h4 className="font-semibold text-blue-900 mb-2">🔐 セキュアな実装例</h4>
                   <div className="text-xs font-mono bg-gray-800 text-green-400 p-3 rounded overflow-x-auto">
                     <div className="space-y-1">
-                      <div># 環境変数設定</div>
-                      <div>SBT_OWNER_PRIVATE_KEY=0x1234567890abcdef...</div>
+                      <div># 環境変数設定（秘密鍵は保存しない）</div>
                       <div>POLYGON_RPC_URL=https://polygon-rpc.com/</div>
                       <div>PINATA_API_KEY=your_api_key</div>
                       <div>&nbsp;</div>
-                      <div># API実装</div>
-                      <div>POST /api/mint-sbt</div>
-                      <div>- 秘密鍵をサーバー環境変数から取得</div>
-                      <div>- ethers.jsでサーバーサイド署名</div>
-                      <div>- フロントエンドには結果のみ返却</div>
+                      <div># セキュアAPI実装</div>
+                      <div>POST /api/prepare-mint</div>
+                      <div>- トランザクションデータを準備</div>
+                      <div>- 承認者に署名要求</div>
+                      <div>- マルチシグまたはHSM署名推奨</div>
                     </div>
                   </div>
                 </div>
@@ -1164,16 +1164,6 @@ const SBTManagement: React.FC = () => {
                   >
                     <Server className="w-4 h-4" />
                     ethers.js サーバー実装ガイド
-                  </a>
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toast('📚 詳細なドキュメントは別途提供予定です', { icon: '📚' });
-                    }}
-                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition text-sm"
-                  >
-                    📚 実装ガイド（準備中）
                   </a>
                 </div>
               </div>
