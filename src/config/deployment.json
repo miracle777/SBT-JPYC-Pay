@@ -1,9 +1,20 @@
 {
-  "contractAddress": "0x6b39d1F8a9799aB3E1Ea047052e831186106DD8E",
-  "deployer": "0x5888578ad9a33Ce8a9FA3A0ca40816665bfaD8Fd",
-  "network": "polygonAmoy",
-  "chainId": "80002",
-  "blockNumber": "29072361",
-  "timestamp": "2025-11-15T10:32:04.882Z",
-  "transactionHash": "0x20061239a4dafb58ed494c58ca64db887c4a92e8a4a7b6fbbfa12c4515fc5abf"
+  "polygon": {
+    "contractAddress": "0x6b39d1F8a9799aB3E1Ea047052e831186106DD8E",
+    "deployer": "0x5888578ad9a33Ce8a9FA3A0ca40816665bfaD8Fd",
+    "network": "polygon",
+    "chainId": "137",
+    "blockNumber": "62000000",
+    "timestamp": "2025-11-17T00:00:00.000Z",
+    "transactionHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+  },
+  "polygonAmoy": {
+    "contractAddress": "0x6b39d1F8a9799aB3E1Ea047052e831186106DD8E",
+    "deployer": "0x5888578ad9a33Ce8a9FA3A0ca40816665bfaD8Fd",
+    "network": "polygonAmoy",
+    "chainId": "80002",
+    "blockNumber": "29072361",
+    "timestamp": "2025-11-15T10:32:04.882Z",
+    "transactionHash": "0x20061239a4dafb58ed494c58ca64db887c4a92e8a4a7b6fbbfa12c4515fc5abf"
+  }
 }

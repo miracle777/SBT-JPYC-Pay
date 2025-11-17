@@ -4,7 +4,8 @@ import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
 import { mintSBT, getBlockExplorerUrl, getContractOwner, getShopInfo, registerShop } from '../utils/sbtMinting';
-import { NETWORKS } from '../config/networks';
+import { NETWORKS, getNetworkByChainId } from '../config/networks';
+import { getSBTContractAddress } from '../config/contracts';
 import { BrowserProvider } from 'ethers';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
 import SBTCard from '../components/SBTCard';
@@ -48,8 +49,26 @@ interface IssuedSBT {
   chainId?: number; // SBT が発行されたチェーンID
 }
 
+// ネットワーク情報表示用ヘルパー
+const getNetworkDisplayInfo = (chainId: number | null) => {
+  if (!chainId) return { displayName: '未接続', isTestnet: null, contractAddress: '' };
+  
+  const network = getNetworkByChainId(chainId);
+  const contractAddress = getSBTContractAddress(chainId);
+  
+  return {
+    displayName: network?.displayName || `未知のネットワーク (${chainId})`,
+    isTestnet: network?.isTestnet || false,
+    contractAddress: contractAddress || '未デプロイ',
+    chainId,
+  };
+};
+
 const SBTManagement: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
+  
+  // ネットワーク情報を取得
+  const currentNetworkInfo = getNetworkDisplayInfo(currentChainId);
   
   // 初期テンプレート用のショップID（固定値）
   // 毎回変わらないように固定値を使用
@@ -127,6 +146,9 @@ const SBTManagement: React.FC = () => {
   
   // SBT発行先ネットワーク（Polygon Mainnet または Amoy Testnet）
   const [selectedChainForSBT, setSelectedChainForSBT] = useState(80002); // デフォルトはPolygon Amoy（テストネット）
+  
+  // 選択されたネットワークの情報を取得
+  const selectedNetworkInfo = getNetworkDisplayInfo(selectedChainForSBT);
 
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [showIssuanceForm, setShowIssuanceForm] = useState(false);
@@ -564,12 +586,24 @@ const SBTManagement: React.FC = () => {
     handleTemplateFormSubmit(e);
   };
 
-  // 📥 エクスポート機能
+  // 📥 エクスポート機能（ネットワーク情報付き）
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      await sbtStorage.downloadExport();
-      toast.success('✅ データをエクスポートしました！');
+      
+      // ネットワーク情報を含むファイル名生成
+      const networkName = currentNetworkInfo.displayName.replace(/[^a-zA-Z0-9]/g, '-');
+      const filename = `sbt-jpyc-pay-export-${networkName}-${new Date().toISOString().split('T')[0]}.json`;
+      
+      // ネットワーク情報をメタデータに含める
+      const exportMetadata = {
+        currentNetwork: currentNetworkInfo,
+        selectedNetwork: selectedNetworkInfo,
+        exportSource: 'SBT JPYC Pay Management'
+      };
+      
+      await sbtStorage.downloadExport(filename, exportMetadata);
+      toast.success(`✅ データをエクスポートしました！\n📡 ネットワーク: ${currentNetworkInfo.displayName}`);
       setShowExportModal(false);
     } catch (error: any) {
       console.error('エクスポートエラー:', error);
@@ -579,7 +613,7 @@ const SBTManagement: React.FC = () => {
     }
   };
 
-  // 📤 インポート機能
+  // 📤 インポート機能（ネットワーク情報対応）
   const handleImport = async () => {
     if (!importFile) {
       toast.error('インポートファイルを選択してください');
@@ -589,8 +623,21 @@ const SBTManagement: React.FC = () => {
     try {
       setIsImporting(true);
       
-      // インポート実行
-      await sbtStorage.uploadImport(importFile);
+      // インポート実行（ネットワーク情報取得）
+      const result = await sbtStorage.uploadImport(importFile);
+      
+      // ネットワーク情報の警告表示
+      if (result.networkInfo) {
+        const importedNetwork = result.networkInfo.displayName;
+        const currentNetwork = getNetworkDisplayInfo(currentChainId).displayName;
+        
+        if (importedNetwork !== currentNetwork) {
+          toast(`⚠️ ネットワークの違いにご注意ください\\n📥 インポート元: ${importedNetwork}\\n📡 現在: ${currentNetwork}`, {
+            duration: 6000,
+            style: { background: '#FEF3C7', color: '#92400E' }
+          });
+        }
+      }
       
       // データを再読み込み
       const savedTemplates = await sbtStorage.getAllTemplates();
@@ -1062,6 +1109,43 @@ const SBTManagement: React.FC = () => {
           </div>
         ) : null}
 
+        {/* ネットワーク情報表示 */}
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 現在のネットワーク */}
+            <div className="bg-white p-3 rounded border">
+              <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                現在接続中のネットワーク
+              </h3>
+              <div className="space-y-1 text-sm">
+                <p><span className="text-gray-600">ネットワーク:</span> <span className={`font-medium ${currentChainId ? (getNetworkByChainId(currentChainId)?.isTestnet ? 'text-orange-600' : 'text-green-600') : 'text-gray-600'}`}>
+                  {getNetworkDisplayInfo(currentChainId).displayName}
+                  {currentChainId && (getNetworkByChainId(currentChainId)?.isTestnet ? ' (テスト用)' : ' (本番用)')}
+                </span></p>
+                <p><span className="text-gray-600">Chain ID:</span> <span className="font-mono">{currentChainId || '未接続'}</span></p>
+                <p><span className="text-gray-600">SBTコントラクト:</span> <span className="font-mono text-xs break-all">{getNetworkDisplayInfo(currentChainId).contractAddress}</span></p>
+              </div>
+            </div>
+            
+            {/* SBT発行対象ネットワーク */}
+            <div className="bg-white p-3 rounded border">
+              <h3 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                SBT発行対象ネットワーク
+              </h3>
+              <div className="space-y-1 text-sm">
+                <p><span className="text-gray-600">ネットワーク:</span> <span className={`font-medium ${getNetworkByChainId(selectedChainForSBT)?.isTestnet ? 'text-orange-600' : 'text-green-600'}`}>
+                  {getNetworkDisplayInfo(selectedChainForSBT).displayName}
+                  {getNetworkByChainId(selectedChainForSBT)?.isTestnet ? ' (テスト用)' : ' (本番用)'}
+                </span></p>
+                <p><span className="text-gray-600">Chain ID:</span> <span className="font-mono">{selectedChainForSBT}</span></p>
+                <p><span className="text-gray-600">SBTコントラクト:</span> <span className="font-mono text-xs break-all">{getNetworkDisplayInfo(selectedChainForSBT).contractAddress}</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* ヘッダー */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -1147,7 +1231,7 @@ const SBTManagement: React.FC = () => {
                     <div>
                       <p className="font-semibold">🎖️ SBT発行セクション</p>
                       <p className="text-gray-600 mt-1">発行済みの SBT 一覧と統計が表示されます。</p>
-                      <p className="text-gray-600 mt-1">「発行先：」ドロップダウンで Polygon Mainnet または Polygon Amoy (Testnet) を選択できます。</p>
+                      <p className="text-gray-600 mt-1">「発行先：」ドロップダウンで Polygon Mainnet（本番用）または Polygon Amoy（テスト用）を選択できます。</p>
                     </div>
                   </div>
                 </div>
@@ -1165,7 +1249,7 @@ const SBTManagement: React.FC = () => {
                     </div>
                     <div>
                       <p className="font-semibold">❌ ガス代が不足している</p>
-                      <p className="text-gray-600 mt-1">→ Testnet (Amoy) を使用している場合は <a href="https://faucet.polygon.technology/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Polygon Faucet</a> から POL を取得してください。</p>
+                      <p className="text-gray-600 mt-1">→ Polygon Mainnet を使用の場合は取引所等からPOLを購入、Polygon Amoy（テスト用）の場合は <a href="https://faucet.polygon.technology/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Polygon Faucet</a> からPOLを取得してください。</p>
                     </div>
                   </div>
                 </div>
@@ -1581,8 +1665,8 @@ const SBTManagement: React.FC = () => {
                 onChange={(e) => setSelectedChainForSBT(Number(e.target.value))}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
               >
-                <option value={137}>Polygon Mainnet</option>
-                <option value={80002}>Polygon Amoy (Testnet)</option>
+                <option value={137}>Polygon Mainnet（本番用）</option>
+                <option value={80002}>Polygon Amoy（テスト用）</option>
               </select>
             </div>
           </div>
@@ -2114,6 +2198,19 @@ const SBTManagement: React.FC = () => {
                         <p><span className="font-semibold">スタンプ:</span> {selectedSBT.currentStamps}/{selectedSBT.maxStamps}</p>
                         <p><span className="font-semibold">発行日:</span> {selectedSBT.issuedAt}</p>
                         <p><span className="font-semibold">ステータス:</span> {selectedSBT.status}</p>
+                        
+                        {/* ネットワーク情報 */}
+                        {selectedSBT.chainId && (
+                          <div className="bg-gray-50 p-3 rounded border">
+                            <p><span className="font-semibold">発行ネットワーク:</span> <span className={`font-medium ${getNetworkByChainId(selectedSBT.chainId)?.isTestnet ? 'text-orange-600' : 'text-green-600'}`}>
+                              {getNetworkDisplayInfo(selectedSBT.chainId).displayName}
+                              {getNetworkByChainId(selectedSBT.chainId)?.isTestnet ? ' (テスト用)' : ' (本番用)'}
+                            </span></p>
+                            <p><span className="font-semibold">Chain ID:</span> <span className="font-mono">{selectedSBT.chainId}</span></p>
+                            <p><span className="font-semibold">コントラクト:</span> <span className="font-mono text-xs break-all">{getSBTContractAddress(selectedSBT.chainId)}</span></p>
+                          </div>
+                        )}
+                        
                         {selectedSBT.transactionHash && (
                           <p>
                             <span className="font-semibold">支払い Tx:</span>{' '}
@@ -2189,7 +2286,7 @@ const SBTManagement: React.FC = () => {
                   <h3 className="text-lg font-bold text-green-900 mb-3">📥 データエクスポート</h3>
                   <p className="text-sm text-green-800 mb-4">
                     すべてのテンプレート、SBT、画像データをJSONファイルでダウンロードします。
-                    PWA対応により、他のデバイスやユーザーと共有できます。
+                    ネットワーク情報も含まれ、PWA対応により他のデバイスやユーザーと共有できます。
                   </p>
                   <div className="bg-green-100 rounded p-3 text-xs text-green-800 mb-4">
                     <p className="font-semibold mb-1">💡 含まれるデータ:</p>
@@ -2197,6 +2294,8 @@ const SBTManagement: React.FC = () => {
                       <li>テンプレート: {templates.length}件</li>
                       <li>発行済みSBT: {issuedSBTs.length}件</li>
                       <li>画像データ: ローカル保存済み（Base64形式）</li>
+                      <li>ネットワーク情報: {currentNetworkInfo.displayName}</li>
+                      <li>コントラクトアドレス: {currentNetworkInfo.contractAddress}</li>
                       <li>ショップID情報とメタデータ</li>
                     </ul>
                   </div>
@@ -2214,6 +2313,7 @@ const SBTManagement: React.FC = () => {
                   <h3 className="text-lg font-bold text-blue-900 mb-3">📤 データインポート</h3>
                   <p className="text-sm text-blue-800 mb-4">
                     エクスポートしたJSONファイルを選択してデータを復元します。
+                    ネットワーク情報も確認され、異なるネットワーク間のインポート時には警告が表示されます。
                     既存データは上書きされますのでご注意ください。
                   </p>
                   <div className="mb-4">

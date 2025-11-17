@@ -368,7 +368,10 @@ const Settings: React.FC = () => {
                     <p className="text-sm text-blue-700 mt-2">Chain ID: {currentNetwork.chainId}</p>
                     <p className="text-sm text-blue-700">RPC: {currentNetwork.rpcUrl}</p>
                     {currentNetwork.isTestnet && (
-                      <p className="text-sm text-orange-600 font-semibold mt-2">⚠ テストネット</p>
+                      <p className="text-sm text-orange-600 font-semibold mt-2">⚠ テストネット（開発・テスト用）</p>
+                    )}
+                    {!currentNetwork.isTestnet && currentNetwork.chainId === 137 && (
+                      <p className="text-sm text-green-600 font-semibold mt-2">✅ 本番ネットワーク</p>
                     )}
                   </>
                 )}

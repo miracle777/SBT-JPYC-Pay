@@ -4,7 +4,7 @@
  */
 
 import { BrowserProvider, Contract, parseUnits } from 'ethers';
-import { SBT_CONTRACT_ADDRESS, JPYC_STAMP_SBT_ABI } from '../config/contracts';
+import { getSBTContractAddress, JPYC_STAMP_SBT_ABI } from '../config/contracts';
 import toast from 'react-hot-toast';
 
 export interface MintSBTParams {
@@ -137,7 +137,7 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
     }
 
     // SBT コントラクトアドレスを取得
-    const contractAddress = SBT_CONTRACT_ADDRESS[chainId];
+    const contractAddress = getSBTContractAddress(chainId);
     if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
       return {
         success: false,
@@ -429,7 +429,7 @@ export async function getContractOwner(
     }
 
     const provider = new BrowserProvider(window.ethereum);
-    const contractAddress = SBT_CONTRACT_ADDRESS[chainId];
+    const contractAddress = getSBTContractAddress(chainId);
 
     if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
       return { owner: '', error: `チェーンID ${chainId} のコントラクトが見つかりません` };
@@ -475,7 +475,7 @@ export async function getShopInfo(
     }
 
     const provider = new BrowserProvider(window.ethereum);
-    const contractAddress = SBT_CONTRACT_ADDRESS[chainId];
+    const contractAddress = getSBTContractAddress(chainId);
 
     if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
       return { error: `チェーンID ${chainId} のコントラクトが見つかりません` };
@@ -564,7 +564,7 @@ export async function registerShop(params: {
     const signerAddress = await signer.getAddress();
 
     // コントラクトアドレスを取得
-    const contractAddress = SBT_CONTRACT_ADDRESS[chainId];
+    const contractAddress = getSBTContractAddress(chainId);
     if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
       return {
         success: false,

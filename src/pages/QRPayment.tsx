@@ -619,7 +619,7 @@ const QRPayment: React.FC = () => {
                     >
                       {Object.values(NETWORKS).map((network) => (
                         <option key={network.chainId} value={network.chainId}>
-                          {network.displayName} {network.isTestnet ? '(T)' : ''}
+                          {network.displayName} {network.isTestnet ? '（テスト用）' : '（本番用）'}
                         </option>
                       ))}
                     </select>

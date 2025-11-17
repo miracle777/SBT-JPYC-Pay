@@ -358,12 +358,14 @@ class SBTStorage {
   }
 
   /**
-   * データベース全体をエクスポート（画像込み、PWA対応）
+   * データベース全体をエクスポート（画像込み、PWA対応、ネットワーク情報付き）
    */
-  async exportData(): Promise<{
+  async exportData(metadata?: any): Promise<{
     templates: any[];
     sbts: any[];
     images: any[];
+    networkInfo?: any;
+    metadata?: any;
     exportedAt: string;
     version: string;
     appName: string;
@@ -376,8 +378,10 @@ class SBTStorage {
       templates,
       sbts,
       images,
+      networkInfo: metadata?.currentNetwork || null,
+      metadata: metadata || null,
       exportedAt: new Date().toISOString(),
-      version: '2.0.0',
+      version: '2.1.0', // ネットワーク情報対応のためバージョンアップ
       appName: 'SBT JPYC Pay',
     };
 
@@ -449,10 +453,10 @@ class SBTStorage {
   }
 
   /**
-   * JSONファイルとしてエクスポート（ダウンロード）
+   * JSONファイルとしてエクスポート（ダウンロード）- ネットワーク情報付き
    */
-  async downloadExport(filename?: string): Promise<void> {
-    const exportData = await this.exportData();
+  async downloadExport(filename?: string, metadata?: any): Promise<void> {
+    const exportData = await this.exportData(metadata);
     const jsonString = JSON.stringify(exportData, null, 2);
     
     const blob = new Blob([jsonString], { type: 'application/json' });
@@ -467,12 +471,13 @@ class SBTStorage {
     URL.revokeObjectURL(url);
     
     console.log(`📥 エクスポート完了: ${a.download}`);
+    console.log('📡 ネットワーク情報:', exportData.networkInfo);
   }
 
   /**
-   * ファイルからインポート（アップロード）
+   * ファイルからインポート（アップロード）- ネットワーク情報対応
    */
-  async uploadImport(file: File): Promise<void> {
+  async uploadImport(file: File): Promise<{ networkInfo?: any; data: any }> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
@@ -486,8 +491,13 @@ class SBTStorage {
             throw new Error('無効なエクスポートファイルです（テンプレートが見つかりません）');
           }
           
+          // ネットワーク情報の確認
+          if (data.networkInfo) {
+            console.log('📡 インポートファイルのネットワーク情報:', data.networkInfo);
+          }
+          
           await this.importData(data);
-          resolve();
+          resolve({ networkInfo: data.networkInfo, data });
         } catch (error: any) {
           console.error('インポートエラー:', error);
           reject(new Error(`インポートに失敗しました: ${error.message}`));
