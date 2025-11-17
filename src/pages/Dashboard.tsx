@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Store, QrCode, Wifi, Server, AlertTriangle, CheckCircle2, ExternalLink, MessageCircle, Globe, Twitter, ArrowRight } from 'lucide-react';
 import { useWallet } from '../hooks/useWallet';
 import { WalletButton } from '../components/WalletButton';
@@ -30,22 +31,22 @@ const Dashboard: React.FC = () => {
           )}
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <a
-              href="/qr-payment"
+            <Link
+              to="/qr-payment"
               className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
             >
               <QrCode className="w-5 h-5" />
               JPYC QR決済（店舗側）
               <ArrowRight className="w-4 h-4" />
-            </a>
-            <a
-              href="/sbt-management"
+            </Link>
+            <Link
+              to="/sbt-management"
               className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
             >
               <Store className="w-5 h-5" />
               SBT管理
               <ArrowRight className="w-4 h-4" />
-            </a>
+            </Link>
           </div>
         </div>
 
