@@ -160,8 +160,6 @@ const Dashboard: React.FC = () => {
                   <li>• 金額指定QRコード生成</li>
                   <li>• リアルタイム決済確認</li>
                   <li>• トランザクション履歴表示</li>
-                  <li>• レシート発行機能</li>
-                  <li>• 返金・キャンセル対応</li>
                 </ul>
               </div>
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -201,9 +199,9 @@ const Dashboard: React.FC = () => {
                 <h3 className="font-bold text-yellow-900 mb-2">管理機能</h3>
                 <ul className="text-sm text-yellow-700 space-y-1">
                   <li>• 店舗別スタンプカード作成</li>
-                  <li>• 顧客データ分析</li>
-                  <li>• 特典・キャンペーン設定</li>
                   <li>• 発行履歴・統計表示</li>
+                  <li>• 特典・キャンペーン設定</li>
+                  <li>• スタンプ付与記録管理</li>
                 </ul>
               </div>
             </div>
