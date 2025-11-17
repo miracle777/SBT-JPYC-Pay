@@ -257,6 +257,21 @@ Polygon Amoy でテストを行う際は、テストネットトークン（POL�
 2. **継続テスト**: 24時間ごと Alchemy Faucet で補充
 3. **高頻度テスト**: Ethereum Mainnet で 0.001 ETH 取得後、QuickNode で最大 2x POL/12時間
 
+### Avalanche テストネット（Fuji） - Faucet 利用方法
+
+Avalanche テストネットでテストを行う際は、テストネットAVAXが必要です。
+
+#### Core Faucet ✅ 推奨
+
+- **URL**: [https://core.app/tools/testnet-faucet/?avalanche-l1=c&token=c](https://core.app/tools/testnet-faucet/?avalanche-l1=c&token=c)
+- **必須条件**: **メインネットのAVAX残高が 0 より多く必要**
+- **特徴**: 本番のAVAX保有者向け
+- **使い方**:
+  1. MetaMaskでウォレットを接続
+  2. メインネットでAVAX残高を確認（0より多く必要）
+  3. Fujiテストネットでトークンを受け取り
+  4. MetaMaskでブリッジして本番AVAXをテスト用に変換可能
+
 ### ガスレス決済について
 
 このアプリは **ガスレス決済モデル** を採用しています：
