@@ -17,7 +17,7 @@ const Dashboard: React.FC = () => {
             SBT JPYC Pay
           </h1>
           <p className="text-gray-600 text-base sm:text-lg mb-6">
-            SBTスタンプカード発行・管理システム（デモ版）
+            JPYC QR決済 & SBTスタンプカード発行・管理システム（デモ版）
           </p>
           
           {!isConnected && (
@@ -35,7 +35,7 @@ const Dashboard: React.FC = () => {
               className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
             >
               <QrCode className="w-5 h-5" />
-              QR決済（店舗側）
+              JPYC QR決済（店舗側）
               <ArrowRight className="w-4 h-4" />
             </a>
             <a
@@ -134,6 +134,77 @@ const Dashboard: React.FC = () => {
                     詳細情報
                   </a>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 機能詳細セクション */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* JPYC決済機能 */}
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="bg-blue-50 border-b border-blue-200 px-6 py-4">
+              <h2 className="text-lg font-bold text-blue-900 flex items-center gap-2">
+                <QrCode className="w-5 h-5" />
+                💰 JPYC QR決済機能
+              </h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-bold text-blue-900 mb-2">店舗向けQR決済</h3>
+                <p className="text-sm text-blue-800 mb-3">
+                  JPYC（日本円連動ステーブルコイン）でのQRコード決済に対応：
+                </p>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• 金額指定QRコード生成</li>
+                  <li>• リアルタイム決済確認</li>
+                  <li>• トランザクション履歴表示</li>
+                  <li>• レシート発行機能</li>
+                  <li>• 返金・キャンセル対応</li>
+                </ul>
+              </div>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h3 className="font-bold text-green-900 mb-2">対応ウォレット</h3>
+                <ul className="text-sm text-green-700 space-y-1">
+                  <li>• MetaMask（推奨）</li>
+                  <li>• WalletConnect対応ウォレット</li>
+                  <li>• モバイルウォレットアプリ</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* SBTスタンプカード機能 */}
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="bg-purple-50 border-b border-purple-200 px-6 py-4">
+              <h2 className="text-lg font-bold text-purple-900 flex items-center gap-2">
+                <Store className="w-5 h-5" />
+                🎫 SBTスタンプカード機能
+              </h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <h3 className="font-bold text-purple-900 mb-2">デジタルスタンプカード発行</h3>
+                <p className="text-sm text-purple-800 mb-3">
+                  Soul Bound Token（SBT）技術で実現する次世代スタンプカード：
+                </p>
+                <ul className="text-sm text-purple-700 space-y-1">
+                  <li>• 転送不可のデジタル証明書</li>
+                  <li>• カスタムデザイン対応</li>
+                  <li>• 自動スタンプ付与</li>
+                  <li>• 来店履歴の永続記録</li>
+                  <li>• 偽造防止・不正利用防止</li>
+                </ul>
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h3 className="font-bold text-yellow-900 mb-2">管理機能</h3>
+                <ul className="text-sm text-yellow-700 space-y-1">
+                  <li>• 店舗別スタンプカード作成</li>
+                  <li>• 顧客データ分析</li>
+                  <li>• 特典・キャンペーン設定</li>
+                  <li>• 発行履歴・統計表示</li>
+                </ul>
               </div>
             </div>
           </div>

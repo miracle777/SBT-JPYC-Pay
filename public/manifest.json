@@ -1,7 +1,7 @@
 {
-  "name": "SBT JPYC Pay - 店舗スタンプカード管理",
-  "short_name": "SBT Pay",
-  "description": "SBTスタンプカード発行・QR決済管理システム。PWA対応でオフライン作業、画像ローカル保存、データエクスポート可能。パソコン・タブレット・スマートフォンで使用できます。",
+  "name": "SBT JPYC Pay - JPYC決済 & スタンプカード管理",
+  "short_name": "SBT JPYC Pay",
+  "description": "JPYC QR決済とSBTスタンプカード発行・管理システム。PWA対応でオフライン作業、画像ローカル保存、データエクスポート可能。パソコン・タブレット・スマートフォンで使用できます。",
   "id": "sbt-jpyc-pay-wallet",
   "start_url": "/",
   "scope": "/",

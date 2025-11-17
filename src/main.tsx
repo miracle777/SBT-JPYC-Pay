@@ -119,49 +119,12 @@ if ('serviceWorker' in navigator) {
     }
   });
 
-  // Track app install status
+  // Track app install status (通知は無効化 - ヘッダーにインストールボタンがあるため)
   let deferredPrompt: any;
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    
-    // App install suggestion (delayed)
-    setTimeout(() => {
-      toast((t) => (
-        <div className="flex flex-col gap-2">
-          <p className="font-semibold text-sm">📱 アプリとしてインストール可能</p>
-          <p className="text-xs text-gray-600">ホーム画面に追加してより便利にご利用ください</p>
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={async () => {
-                if (deferredPrompt) {
-                  deferredPrompt.prompt();
-                  const { outcome } = await deferredPrompt.userChoice;
-                  console.log('📱 App install outcome:', outcome);
-                  deferredPrompt = null;
-                }
-                toast.dismiss(t.id);
-              }}
-              className="px-3 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600"
-            >
-              インストール
-            </button>
-            <button
-              onClick={() => toast.dismiss(t.id)}
-              className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
-            >
-              スキップ
-            </button>
-          </div>
-        </div>
-      ), {
-        duration: 10000,
-        icon: '✨',
-        style: {
-          maxWidth: '400px',
-        },
-      });
-    }, 5000); // 5秒後に表示
+    // インストール通知は表示しない（ヘッダーのインストールボタンを使用）
   });
 }
 
