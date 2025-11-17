@@ -19,7 +19,7 @@ function App() {
           <Outlet />
         </main>
         <Footer />
-        <PWAStatus />
+        {/* <PWAStatus /> */}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
       </div>
     </WalletProvider>

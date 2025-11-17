@@ -203,7 +203,10 @@ const router = createBrowserRouter([
         element: <Settings />,
       },
     ],
-    errorElement: <NotFound />,
+  },
+  {
+    path: "*",
+    element: <NotFound />,
   },
 ], {
   future: {
