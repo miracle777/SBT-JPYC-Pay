@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" fill="#7c3aed"/>
+  <g transform="translate(16, 16)">
+    <!-- Simplified stamp -->
+    <rect x="-10" y="-6" width="20" height="12" rx="2" fill="white"/>
+    <circle cx="-5" cy="-2" r="2" fill="none" stroke="#ec4899" stroke-width="1"/>
+    <circle cx="0" cy="-2" r="2" fill="none" stroke="#ec4899" stroke-width="1"/>
+    <circle cx="5" cy="-2" r="2" fill="none" stroke="#ec4899" stroke-width="1"/>
+    <text x="0" y="5" font-size="6" font-weight="bold" fill="#7c3aed" text-anchor="middle" font-family="Arial, sans-serif">SBT</text>
+  </g>
+</svg>

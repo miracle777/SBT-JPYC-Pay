@@ -10,6 +10,7 @@ import Header from './components/layout/Header';
 import HelpModal from './components/HelpModal';
 import { DisclaimerBanner } from './components/DisclaimerBanner';
 import { Footer } from './components/layout/Footer';
+import PWAStatus from './components/PWAStatus';
 
 function App() {
   const [showHelp, setShowHelp] = useState(false);
@@ -29,6 +30,7 @@ function App() {
           </Routes>
         </main>
         <Footer />
+        <PWAStatus />
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
       </div>
     </WalletProvider>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+  <rect width="96" height="96" rx="20" fill="#6366f1"/>
+  <!-- Database/Data icon -->
+  <g transform="translate(48, 48)">
+    <!-- Folder icon -->
+    <path d="M -20 -15 L -10 -20 L 15 -20 L 20 -15 L 20 15 L -20 15 Z" fill="white" stroke="white" stroke-width="1"/>
+    <!-- Arrow up (export) -->
+    <path d="M -5 5 L 0 -5 L 5 5" stroke="#6366f1" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 0 -5 L 0 10" stroke="#6366f1" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>
