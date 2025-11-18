@@ -8,6 +8,7 @@ import { sbtStorage } from '../utils/storage';
 import { pinataService } from '../utils/pinata';
 import { generateNewShopId } from '../utils/shopSettings';
 import WalletSelector from '../components/WalletSelector';
+import StorageCompatibilityChecker from '../components/StorageCompatibilityChecker';
 
 const Settings: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
@@ -370,6 +371,17 @@ const Settings: React.FC = () => {
           title="ウォレット & ネットワーク設定"
           showChainSelector={true}
         />
+
+        {/* ストレージ互換性チェック */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-6">ストレージ互換性</h2>
+          <div className="mb-4">
+            <p className="text-sm text-gray-600">
+              PWAとブラウザ間でのデータ共有状況を確認し、必要に応じて対処方法を提案します。
+            </p>
+          </div>
+          <StorageCompatibilityChecker />
+        </div>
 
         {/* 🔐 IPFS/Pinata設定 */}
         <div className="bg-white rounded-xl shadow-lg p-8">

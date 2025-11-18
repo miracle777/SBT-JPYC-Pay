@@ -9,6 +9,7 @@ import { getSBTContractAddress } from '../config/contracts';
 import { BrowserProvider } from 'ethers';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
 import SBTCard from '../components/SBTCard';
+import PWAWalletHandler from '../components/PWAWalletHandler';
 import { pinataService } from '../utils/pinata';
 import { formatShopIdAsHex, generateNonConflictingShopId, generateUniqueShopId } from '../utils/shopIdGenerator';
 import { getShopSettings } from '../utils/shopSettings';
@@ -66,7 +67,12 @@ const getNetworkDisplayInfo = (chainId: number | null) => {
 };
 
 const SBTManagement: React.FC = () => {
-  const { address: walletAddress, chainId: currentChainId } = useWallet();
+  const { 
+    address: walletAddress, 
+    chainId: currentChainId,
+    isConnected,
+    isPWA
+  } = useWallet();
   
   // ネットワーク情報を取得
   const currentNetworkInfo = getNetworkDisplayInfo(currentChainId);
@@ -1195,6 +1201,15 @@ const SBTManagement: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-2 sm:p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
+        {/* PWA ウォレット接続ハンドラー */}
+        <PWAWalletHandler 
+          isConnected={isConnected}
+          onBrowserRedirect={() => {
+            // ブラウザリダイレクト時の処理
+            toast.success('ブラウザ版でウォレット接続をお試しください');
+          }}
+        />
+
         {/* MetaMask 接続チェック警告 */}
         {!window.ethereum ? (
           <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border-2 border-red-200 rounded-lg">

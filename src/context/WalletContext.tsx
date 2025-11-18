@@ -13,6 +13,8 @@ export interface WalletContextType {
   switchAccount: () => Promise<void>;
   hasMultipleAccounts: boolean;
   supportedChains: Array<{ chainId: number; name: string; isTestnet: boolean }>;
+  isPWA: boolean;
+  isMetaMaskAvailable: boolean;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -24,12 +26,47 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isConnecting, setIsConnecting] = useState(false);
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [hasMultipleAccounts, setHasMultipleAccounts] = useState(false);
+  const [isPWA, setIsPWA] = useState(false);
+  const [isMetaMaskAvailable, setIsMetaMaskAvailable] = useState(false);
   
   // サポートされるチェーンの定義
   const supportedChains = [
     { chainId: 137, name: 'Polygon Mainnet', isTestnet: false },
     { chainId: 80002, name: 'Polygon Amoy Testnet', isTestnet: true },
   ];
+
+  // PWA環境とMetaMaskの可用性をチェック
+  useEffect(() => {
+    const checkEnvironment = () => {
+      // PWA環境の検出
+      const isPWAMode = window.matchMedia('(display-mode: standalone)').matches 
+        || (window.navigator as any).standalone === true
+        || window.matchMedia('(display-mode: window-controls-overlay)').matches;
+      
+      setIsPWA(isPWAMode);
+
+      // MetaMaskの可用性チェック
+      const metaMaskAvailable = typeof window.ethereum !== 'undefined' 
+        && window.ethereum.isMetaMask;
+      
+      setIsMetaMaskAvailable(metaMaskAvailable);
+
+      // PWAでMetaMaskが利用できない場合の警告
+      if (isPWAMode && !metaMaskAvailable) {
+        console.warn('🔄 PWA環境: MetaMaskブラウザ拡張機能にアクセスできません');
+      }
+    };
+
+    checkEnvironment();
+
+    // display-modeの変更を監視
+    const standaloneQuery = window.matchMedia('(display-mode: standalone)');
+    standaloneQuery.addListener(checkEnvironment);
+
+    return () => {
+      standaloneQuery.removeListener(checkEnvironment);
+    };
+  }, []);
 
   // ローカルストレージから接続情報を復元
   useEffect(() => {
@@ -103,8 +140,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const connect = async () => {
     if (!window.ethereum) {
-      alert('MetaMaskまたはWeb3互換のウォレットをインストールしてください');
-      return;
+      if (isPWA) {
+        throw new Error('PWA_NO_METAMASK');
+      } else {
+        alert('MetaMaskまたはWeb3互換のウォレットをインストールしてください');
+        return;
+      }
     }
 
     setIsConnecting(true);
@@ -133,7 +174,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.error('ウォレット接続エラー:', error);
       if (error.code !== 4001) {
         // ユーザーがキャンセルした場合以外はアラート表示
-        alert(`ウォレット接続エラー: ${error.message}`);
+        if (isPWA) {
+          throw new Error('PWA_CONNECTION_FAILED');
+        } else {
+          alert(`ウォレット接続エラー: ${error.message}`);
+        }
       }
     } finally {
       setIsConnecting(false);
@@ -214,6 +259,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         switchAccount,
         hasMultipleAccounts,
         supportedChains,
+        isPWA,
+        isMetaMaskAvailable,
       }}
     >
       {children}
