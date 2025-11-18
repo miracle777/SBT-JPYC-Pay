@@ -136,7 +136,7 @@ const SBTManagement: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [shopSettings, setShopSettings] = useState({ name: '', id: '', description: '' });
+  const [shopSettings, setShopSettings] = useState({ name: '', id: '', category: '', description: '' });
 
   // マウント時: IndexedDB + localStorage からデータを読み込み
   useEffect(() => {
@@ -243,6 +243,7 @@ const SBTManagement: React.FC = () => {
             setShopSettings({
               name: shop.name || 'SBT JPYC Pay Demo Store',
               id: shop.id || 'shop-001',
+              category: shop.category || '',
               description: shop.description || 'デモンストレーション用の店舗'
             });
             console.log('✅ 店舗設定読み込み完了:', shop);
@@ -453,6 +454,7 @@ const SBTManagement: React.FC = () => {
           setShopSettings({
             name: shop.name || 'SBT JPYC Pay Demo Store',
             id: shop.id || 'shop-001',
+            category: shop.category || '',
             description: shop.description || 'デモンストレーション用の店舗'
           });
           console.log('🔄 店舗設定が更新されました:', shop);
