@@ -76,7 +76,12 @@ export const PWAWalletInfo: React.FC = () => {
 export const PWAWalletBanner: React.FC = () => {
   const { isPWA, pwaWalletInfo } = useWallet();
   
-  if (!isPWA || pwaWalletInfo.isCompatible) return null;
+  // MetaMaskアプリ内ブラウザの場合は警告バナーを表示しない
+  const isMetaMaskBrowser = navigator.userAgent.toLowerCase().includes('metamask') ||
+    (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask && 
+     (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)));
+  
+  if (!isPWA || pwaWalletInfo.isCompatible || isMetaMaskBrowser) return null;
   
   const handleOpenInBrowser = () => {
     const url = window.location.href.replace(/\?.*/, '') + '?fromPWA=true';

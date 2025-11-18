@@ -8,6 +8,7 @@ import { Footer } from './components/layout/Footer';
 import PWAStatus from './components/PWAStatus';
 import PWAInstallButton from './components/PWAInstallButton';
 import { PWAWalletBanner } from './components/PWAWalletInfo';
+import MetaMaskBrowserInfo from './components/MetaMaskBrowserInfo';
 
 function App() {
   const [showHelp, setShowHelp] = useState(false);
@@ -16,6 +17,8 @@ function App() {
     <WalletProvider>
       <div className="App min-h-screen bg-gray-50 flex flex-col">
         <Header onHelpClick={() => setShowHelp(true)} />
+        <MetaMaskBrowserInfo />
+        <PWAWalletBanner />
         <DisclaimerBanner />
         <PWAWalletBanner />
         <main className="flex-1">

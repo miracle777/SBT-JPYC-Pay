@@ -8,6 +8,7 @@ export interface PWAWalletDetectionResult {
   isStandaloneMode: boolean;
   shouldUseDeeplink: boolean;
   fallbackRequired: boolean;
+  isMetaMaskBrowser: boolean;
   errorType?: 'PWA_INJECTION_FAILED' | 'STANDALONE_RESTRICTION' | 'MOBILE_PWA_LIMIT';
 }
 
@@ -15,6 +16,23 @@ export interface WalletConnectionStrategy {
   method: 'DIRECT' | 'DEEPLINK' | 'WALLETCONNECT' | 'BROWSER_REDIRECT';
   reason: string;
   action: () => Promise<void>;
+}
+
+/**
+ * MetaMaskアプリ内ブラウザかどうかを検出
+ */
+function isMetaMaskInAppBrowser(): boolean {
+  const userAgent = navigator.userAgent.toLowerCase();
+  
+  // MetaMaskアプリ内ブラウザの特徴的なユーザーエージェント文字列をチェック
+  return (
+    userAgent.includes('metamask') ||
+    (window as any).ethereum?.isMetaMask === true && (
+      userAgent.includes('mobile') ||
+      userAgent.includes('android') ||
+      userAgent.includes('iphone')
+    )
+  );
 }
 
 /**
@@ -27,6 +45,7 @@ export async function detectPWAWalletAvailability(): Promise<PWAWalletDetectionR
     window.matchMedia('(display-mode: window-controls-overlay)').matches;
 
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const isMetaMaskBrowser = isMetaMaskInAppBrowser();
   
   // 複数回の検出試行
   let isMetaMaskAvailable = false;
@@ -79,6 +98,7 @@ export async function detectPWAWalletAvailability(): Promise<PWAWalletDetectionR
     isStandaloneMode,
     shouldUseDeeplink: isMobile && isStandaloneMode && !isMetaMaskAvailable,
     fallbackRequired: isStandaloneMode && !isMetaMaskAvailable,
+    isMetaMaskBrowser,
   };
 
   // エラータイプの判定
@@ -257,6 +277,29 @@ export function getPWAWalletCompatibilityInfo(): {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   const hasMetaMask = typeof window.ethereum !== 'undefined';
+  const isMetaMaskBrowser = isMetaMaskInAppBrowser();
+  
+  // MetaMaskアプリ内ブラウザの場合の特別な処理
+  if (isMetaMaskBrowser) {
+    if (hasMetaMask) {
+      return {
+        title: '✅ MetaMaskアプリ内ブラウザ',
+        message: 'MetaMaskアプリ内ブラウザで動作中です。ウォレット機能は完全に利用できます。',
+        solutions: [],
+        isCompatible: true
+      };
+    } else {
+      return {
+        title: '🔄 MetaMaskアプリ内ブラウザ（初期化中）',
+        message: 'MetaMask環境を初期化しています。少し待ってから再度お試しください。',
+        solutions: [
+          'ページを再読み込みする',
+          'MetaMaskアプリを再起動する'
+        ],
+        isCompatible: true
+      };
+    }
+  }
   
   if (isStandalone && !hasMetaMask) {
     if (isMobile) {
@@ -264,7 +307,7 @@ export function getPWAWalletCompatibilityInfo(): {
         title: '🔄 モバイルPWA環境',
         message: 'スタンドアロンモードではMetaMask拡張機能にアクセスできません。',
         solutions: [
-          'MetaMaskアプリを使用（ディープリンク接続）',
+          'MetaMaskアプリ内ブラウザで開く',
           'ブラウザで直接アプリを開く',
           'WalletConnect対応ウォレットを使用'
         ],
