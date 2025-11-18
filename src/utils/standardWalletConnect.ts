@@ -156,9 +156,9 @@ export function detectWallets(): Promise<DetectedWallet[]> {
 
     // ============================================
     // Step 3: タイムアウト処理
-    // モバイルではより長い時間待つ（EIP-6963対応ウォレット対応）
+    // モバイルではより長い時間待つ（ウォレット初期化対応）
     // ============================================
-    const detectionTimeout = isMobile ? 2500 : 1500;
+    const detectionTimeout = isMobile ? 4000 : 2000;
 
     // タイムアウト処理
     setTimeout(() => {
