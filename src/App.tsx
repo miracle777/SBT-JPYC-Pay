@@ -21,7 +21,6 @@ const AppContent: React.FC = () => {
       <MetaMaskBrowserInfo />
       <PWAWalletBanner />
       <DisclaimerBanner />
-      <PWAWalletBanner />
       <main className="flex-1">
         <Outlet />
       </main>

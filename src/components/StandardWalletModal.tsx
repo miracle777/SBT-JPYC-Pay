@@ -294,23 +294,19 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
                   {detectedWallets.length > 0 ? 'その他のオプション' : 'ウォレットオプション'}
                 </h3>
                 <div className="space-y-2">
-                  {recommendedWallets
-                    .filter(recommended => !detectedWallets.find(detected => 
-                      detected.info.name.toLowerCase().includes(recommended.name.toLowerCase()) ||
-                      recommended.name.toLowerCase().includes(detected.info.name.toLowerCase())
-                    ))
-                    .map((wallet) => (
+                  {/* 推奨ウォレットは常に表示（フィルタリングなし） */}
+                  {recommendedWallets.length > 0 ? (
+                    recommendedWallets.map((wallet) => (
                       <WalletOption
                         key={wallet.id}
                         wallet={wallet}
                         isConnecting={isConnecting === wallet.id}
                         onClick={() => handleWalletClick(wallet)}
-                        showInstallHint={wallet.id !== 'walletconnect'}
+                        showInstallHint={wallet.id !== 'walletconnect' && !wallet.installed}
                       />
-                    ))}
-                  
-                  {/* 緊急フォールバック: 最低限のオプションを保証 */}
-                  {detectedWallets.length === 0 && recommendedWallets.length === 0 && (
+                    ))
+                  ) : (
+                    // 推奨ウォレットがない場合はフォールバック
                     <>
                       <WalletOption
                         wallet={{
