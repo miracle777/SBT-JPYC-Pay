@@ -5,6 +5,7 @@ import { getMobileBrowserInfo } from '../utils/smartphoneWallet';
 import { detectPWAWalletAvailability } from '../utils/pwaWalletHandler';
 import { BrowserRedirectGuide } from '../components/BrowserRedirectGuide';
 import { analyzeMetaMaskConnectionFlow, implementRootSolution } from '../utils/walletConnectionAnalysis';
+import { clearAllWalletCache, prepareForWalletSwitch, verifyNewWalletConnection, forceWalletReset } from '../utils/pwaWalletCache';
 import { 
   connectWalletInPWA, 
   getPWAWalletCompatibilityInfo,
@@ -38,6 +39,8 @@ export interface WalletContextType {
   pendingConnection: boolean;
   forceConnect: () => Promise<void>;
   closeBrowserRedirect: () => void;
+  clearCache: () => Promise<void>;
+  forceReset: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -369,6 +372,15 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (accounts && accounts.length > 0) {
         console.log('✅ アカウント取得成功:', accounts[0]);
         
+        // PWA環境でのキャッシュ検証
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+          const isValidConnection = verifyNewWalletConnection(accounts[0]);
+          if (!isValidConnection) {
+            console.warn('⚠️ キャッシュされたウォレットとの不整合を検出');
+            await prepareForWalletSwitch();
+          }
+        }
+        
         const chainIdHex = await window.ethereum.request({
           method: 'eth_chainId',
         });
@@ -488,14 +500,51 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setPendingConnection(false);
   };
 
-  const disconnect = () => {
+  const disconnect = async () => {
+    console.log('🔌 ウォレット接続解除開始');
+    
+    // PWA環境での完全なキャッシュクリア
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('📱 PWA環境 - 完全キャッシュクリア実行');
+      await clearAllWalletCache();
+    }
+    
+    // 状態のリセット
     setAddress(null);
     setChainId(null);
     setIsConnected(false);
     setProvider(null);
     setLastConnectionStrategy(null);
+    setShowBrowserRedirect(false);
+    setPendingConnection(false);
+    
+    // ローカルストレージのクリア
     localStorage.removeItem('walletAddress');
     localStorage.removeItem('walletChainId');
+    localStorage.removeItem('lastConnectionStrategy');
+    
+    // MetaMaskイベントリスナーのクリア
+    if (window.ethereum) {
+      try {
+        window.ethereum.removeListener?.('accountsChanged', () => {});
+        window.ethereum.removeListener?.('chainChanged', () => {});
+      } catch (error) {
+        console.warn('⚠️ イベントリスナークリアエラー:', error);
+      }
+    }
+    
+    console.log('✅ ウォレット接続解除完了');
+  };
+
+  const clearCache = async () => {
+    console.log('🧹 手動キャッシュクリア開始');
+    await clearAllWalletCache();
+    console.log('✅ 手動キャッシュクリア完了');
+  };
+
+  const forceReset = async () => {
+    console.log('🔄 強制リセット開始');
+    await forceWalletReset();
   };
 
   const switchAccount = async () => {
@@ -601,6 +650,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         pendingConnection,
         forceConnect,
         closeBrowserRedirect,
+        clearCache,
+        forceReset,
       }}
     >
       {children}

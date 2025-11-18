@@ -9,6 +9,7 @@ import { pinataService } from '../utils/pinata';
 import { generateNewShopId } from '../utils/shopSettings';
 import WalletSelector from '../components/WalletSelector';
 import StorageCompatibilityChecker from '../components/StorageCompatibilityChecker';
+import { PWAWalletCacheManager } from '../components/PWAWalletCacheManager';
 
 const Settings: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
@@ -371,6 +372,17 @@ const Settings: React.FC = () => {
           title="ウォレット & ネットワーク設定"
           showChainSelector={true}
         />
+
+        {/* PWAキャッシュ管理 */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-6">PWA キャッシュ管理</h2>
+          <div className="mb-4">
+            <p className="text-sm text-gray-600">
+              PWA環境でウォレット接続に問題がある場合、キャッシュをクリアして解決できます。
+            </p>
+          </div>
+          <PWAWalletCacheManager />
+        </div>
 
         {/* ストレージ互換性チェック */}
         <div className="bg-white rounded-xl shadow-lg p-8">
