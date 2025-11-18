@@ -245,6 +245,15 @@ const transports = {
   [sepolia.id]: http(sepolia.rpcUrls.default.http[0] ?? 'https://rpc.ankr.com/eth_sepolia'),
 };
 
+// Get app URL - use hardcoded production URL, fallback to location.origin for development
+const appUrl = typeof window !== 'undefined' 
+  ? (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+      ? window.location.origin
+      : 'https://shop.jpyc-pay.app')
+  : 'https://shop.jpyc-pay.app';
+
+const appIcon = `${appUrl}/icons/icon-192x192.png`;
+
 const connectors = [
   injected({
     shimDisconnect: true,
@@ -252,16 +261,16 @@ const connectors = [
   metaMask({
     dappMetadata: {
       name: 'SBT JPYC Pay',
-      url: typeof window !== 'undefined' ? window.location.origin : '',
+      url: appUrl,
     },
   }),
   walletConnect({
     projectId,
     metadata: {
       name: 'SBT JPYC Pay',
-      description: 'SBT Stamp Card & JPYC Payment System',
-      url: typeof window !== 'undefined' ? window.location.origin : '',
-      icons: [`${typeof window !== 'undefined' ? window.location.origin : ''}/icons/icon-192x192.png`],
+      description: 'JPYC QR決済 & 店舗SBT管理システム',
+      url: appUrl,
+      icons: [appIcon],
     },
   }),
 ];
