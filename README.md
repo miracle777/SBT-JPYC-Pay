@@ -104,6 +104,38 @@ VITE_PINATA_API_SECRET=your_pinata_api_secret
 VITE_WALLET_CONNECT_PROJECT_ID=your_wallet_connect_project_id
 ```
 
+#### 🔑 WalletConnect プロジェクトID の取得方法
+
+**WalletConnect のプロジェクトID**は、WalletConnect に対応したウォレット（WalletConnect経由）でアプリに接続するために必要です。以下の手順で取得できます：
+
+1. **[WalletConnect Cloud](https://walletconnect.com/) にアクセス**
+   - https://walletconnect.com/ を開く
+
+2. **アカウント登録またはログイン**
+   - 「Sign Up」または「Sign In」をクリック
+   - メールアドレスで登録（または Google/GitHub でのログイン）
+
+3. **新しいプロジェクトを作成**
+   - ダッシュボードで「Create Project」をクリック
+   - プロジェクト名（例：「SBT-JPYC-Pay」）を入力
+   - 「Create」をクリック
+
+4. **プロジェクトID をコピー**
+   - プロジェクト詳細画面に表示される **Project ID** をコピー
+   - 形式例：`a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6`
+
+5. **環境変数に設定**
+   - ローカル開発: `.env` ファイルに設定
+     ```env
+     VITE_WALLET_CONNECT_PROJECT_ID=your_project_id_here
+     ```
+   - Vercel デプロイ: Vercel のプロジェクト設定から環境変数として登録
+     - プロジェクト → Settings → Environment Variables
+     - Key: `VITE_WALLET_CONNECT_PROJECT_ID`
+     - Value: コピーしたプロジェクトID
+
+**参考**: [WalletConnect 公式ドキュメント](https://docs.walletconnect.com/)
+
 ### 3. スマートコントラクトのデプロイ
 
 ```bash

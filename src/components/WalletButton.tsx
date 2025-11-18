@@ -1,18 +1,39 @@
-"use client";
-
 import React from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount } from "wagmi";
+import { useAccount, useDisconnect } from "wagmi";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, AlertCircle, CheckCircle2, X } from "lucide-react";
+import { Wallet, AlertCircle, CheckCircle2, X, LogOut } from "lucide-react";
 
 export const WalletButton: React.FC = () => {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const { disconnect } = useDisconnect();
   const [error, setError] = React.useState<string | null>(null);
 
   const clearError = () => setError(null);
 
-  if (isConnected) return null;
+  // 接続済み時のアドレス表示コンポーネント
+  if (isConnected && address) {
+    const displayAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
+    return (
+      <div className="flex flex-col items-center p-2">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex items-center gap-2 bg-green-50 text-green-800 px-4 py-2 rounded-lg border border-green-200"
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          <span className="text-sm font-medium">{displayAddress}</span>
+          <button
+            onClick={() => disconnect()}
+            className="ml-2 p-1 hover:bg-green-100 rounded transition-colors"
+            title="ウォレットを切断"
+          >
+            <LogOut className="h-4 w-4 text-green-700" />
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center p-2">
