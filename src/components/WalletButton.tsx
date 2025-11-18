@@ -1,8 +1,8 @@
 import React from 'react';
-import { Wallet, LogOut, Smartphone } from 'lucide-react';
+import { Wallet, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
-import { getMobileBrowserInfo } from '../utils/smartphoneWallet';
+import { connectWithNativeWallet } from '../utils/standardWalletConnect';
 
 export const WalletButton: React.FC = () => {
   const { 
@@ -10,16 +10,30 @@ export const WalletButton: React.FC = () => {
     isConnected, 
     isConnecting, 
     disconnect,
-    openWalletModal
+    setConnecting,
+    login
   } = useWallet();
 
-  // モバイル環境の判定
-  const browserInfo = getMobileBrowserInfo();
-  const isMobile = browserInfo.isIOS || browserInfo.isAndroid;
-
   const handleConnect = async () => {
-    console.log('🔗 WalletButton - ウォレット接続クリック (モバイル:', isMobile, ')');
-    openWalletModal();
+    console.log('🔗 WalletButton - ネイティブウォレット接続開始');
+    setConnecting(true);
+    
+    try {
+      const result = await connectWithNativeWallet();
+      
+      if (result.success && result.address) {
+        // WalletContext に接続情報を登録
+        login(result.address, result.provider!, result.chainId || 1);
+        toast.success('ウォレットを接続しました');
+      } else {
+        toast.error(result.error || 'ウォレット接続に失敗しました');
+      }
+    } catch (error) {
+      console.error('接続エラー:', error);
+      toast.error('ウォレット接続エラー');
+    } finally {
+      setConnecting(false);
+    }
   };
 
   const handleDisconnect = () => {
@@ -51,8 +65,8 @@ export const WalletButton: React.FC = () => {
           disabled={isConnecting}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold rounded-lg transition duration-200"
         >
-          {isMobile ? <Smartphone className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
-          {isConnecting ? '接続中...' : 'ウォレットを選択'}
+          <Wallet className="w-5 h-5" />
+          {isConnecting ? '接続中...' : 'ウォレットを接続'}
         </button>
       )}
     </div>

@@ -6,7 +6,6 @@ import { detectPWAWalletAvailability } from '../utils/pwaWalletHandler';
 import { BrowserRedirectGuide } from '../components/BrowserRedirectGuide';
 import { analyzeMetaMaskConnectionFlow, implementRootSolution } from '../utils/walletConnectionAnalysis';
 import { clearAllWalletCache, prepareForWalletSwitch, verifyNewWalletConnection, forceWalletReset } from '../utils/pwaWalletCache';
-import { StandardWalletModal } from '../components/StandardWalletModal';
 import { 
   connectWalletInPWA, 
   getPWAWalletCompatibilityInfo,
@@ -45,6 +44,8 @@ export interface WalletContextType {
   showWalletModal: boolean;
   openWalletModal: () => void;
   closeWalletModal: () => void;
+  setConnecting: (value: boolean) => void;
+  login: (address: string, provider: BrowserProvider, chainId: number) => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -391,6 +392,22 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     await forceWalletReset();
   };
 
+  const login = (address: string, provider: BrowserProvider, chainId: number) => {
+    console.log('🔑 ログイン:', address);
+    setAddress(address);
+    setProvider(provider);
+    setChainId(chainId);
+    setIsConnected(true);
+    
+    // ローカルストレージに保存
+    localStorage.setItem('walletAddress', address);
+    localStorage.setItem('walletChainId', chainId.toString());
+  };
+
+  const setConnectingState = (value: boolean) => {
+    setIsConnecting(value);
+  };
+
   const switchAccount = async () => {
     if (!window.ethereum) {
       throw new Error('ウォレットが接続されていません');
@@ -499,15 +516,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         showWalletModal,
         openWalletModal,
         closeWalletModal,
+        setConnecting: setConnectingState,
+        login,
       }}
     >
       {children}
-      
-      <StandardWalletModal
-        isOpen={showWalletModal}
-        onClose={closeWalletModal}
-        onWalletSelect={handleWalletSelect}
-      />
     </WalletContext.Provider>
   );
 };
