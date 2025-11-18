@@ -34,15 +34,28 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
   const loadWallets = async () => {
     setIsLoading(true);
     try {
-      const [detected, recommended] = await Promise.all([
-        detectWallets(),
-        Promise.resolve(getRecommendedWallets())
-      ]);
+      console.log('🔍 ウォレット検出開始...');
       
-      setDetectedWallets(detected);
+      const detected = await detectWallets();
+      const recommended = getRecommendedWallets();
+      
+      console.log('📱 検出されたウォレット:', detected.length, 'つ');
+      console.log('💡 推奨ウォレット:', recommended.length, 'つ');
+      
+      // MetaMaskが検出された場合は先頭に配置
+      const sortedDetected = detected.sort((a, b) => {
+        if (a.info.name.includes('MetaMask')) return -1;
+        if (b.info.name.includes('MetaMask')) return 1;
+        return 0;
+      });
+      
+      setDetectedWallets(sortedDetected);
       setRecommendedWallets(recommended);
+      
     } catch (error) {
-      console.error('ウォレット検出エラー:', error);
+      console.error('❌ ウォレット検出エラー:', error);
+      // エラー時もデフォルトウォレットを表示
+      setRecommendedWallets(getRecommendedWallets());
     } finally {
       setIsLoading(false);
     }
@@ -52,6 +65,8 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
     const walletId = 'provider' in wallet ? wallet.info.id : wallet.id;
     const walletName = 'provider' in wallet ? wallet.info.name : wallet.name;
     
+    console.log(`🔌 ウォレット選択:`, walletName, 'ID:', walletId);
+    
     setIsConnecting(walletId);
     
     try {
@@ -59,9 +74,11 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
       
       if ('provider' in wallet) {
         // 検出されたウォレット
+        console.log('✅ 検出済みウォレットで接続開始');
         result = await connectWithWallet(wallet);
       } else {
         // 推奨ウォレット（未インストール）
+        console.log('📥 推奨ウォレット処理:', wallet.id);
         if (wallet.id === 'walletconnect') {
           const mockDetected: DetectedWallet = {
             provider: null,
@@ -71,6 +88,7 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
         } else {
           // インストールページに誘導
           const installUrl = getWalletInstallUrl(wallet.id);
+          console.log('🌐 インストールURLに誘導:', installUrl);
           window.open(installUrl, '_blank');
           setIsConnecting(null);
           return;
@@ -82,16 +100,18 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
         walletName
       };
       
+      console.log('🎯 接続結果:', finalResult);
       onWalletSelect(finalResult);
       
       if (result.success) {
         onClose();
       }
     } catch (error) {
-      console.error('ウォレット接続エラー:', error);
+      console.error('❌ ウォレット接続エラー:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       onWalletSelect({
         success: false,
-        error: `${walletName}の接続に失敗しました`,
+        error: `${walletName}の接続に失敗しました: ${errorMessage}`,
         walletName
       });
     } finally {
@@ -153,7 +173,7 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
                 <div className="mb-6">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
                     <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    インストール済み
+                    利用可能なウォレット
                   </h3>
                   <div className="space-y-2">
                     {detectedWallets.map((wallet) => (
@@ -168,26 +188,35 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
                 </div>
               )}
 
-              {/* 推奨ウォレット */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                  おすすめ
-                </h3>
-                <div className="space-y-2">
-                  {recommendedWallets
-                    .filter(recommended => !detectedWallets.find(detected => detected.info.name === recommended.name))
-                    .map((wallet) => (
-                      <WalletOption
-                        key={wallet.id}
-                        wallet={wallet}
-                        isConnecting={isConnecting === wallet.id}
-                        onClick={() => handleWalletClick(wallet)}
-                        showInstallHint={wallet.id !== 'walletconnect'}
-                      />
-                    ))}
+              {/* 推奨ウォレット（未インストール） */}
+              {recommendedWallets
+                .filter(recommended => !detectedWallets.find(detected => 
+                  detected.info.name.toLowerCase().includes(recommended.name.toLowerCase()) ||
+                  recommended.name.toLowerCase().includes(detected.info.name.toLowerCase())
+                )).length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                    その他のオプション
+                  </h3>
+                  <div className="space-y-2">
+                    {recommendedWallets
+                      .filter(recommended => !detectedWallets.find(detected => 
+                        detected.info.name.toLowerCase().includes(recommended.name.toLowerCase()) ||
+                        recommended.name.toLowerCase().includes(detected.info.name.toLowerCase())
+                      ))
+                      .map((wallet) => (
+                        <WalletOption
+                          key={wallet.id}
+                          wallet={wallet}
+                          isConnecting={isConnecting === wallet.id}
+                          onClick={() => handleWalletClick(wallet)}
+                          showInstallHint={wallet.id !== 'walletconnect'}
+                        />
+                      ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-800">

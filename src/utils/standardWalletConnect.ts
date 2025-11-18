@@ -51,22 +51,52 @@ export function detectWallets(): Promise<DetectedWallet[]> {
     window.addEventListener('eip6963:announceProvider', onAnnouncement);
     window.dispatchEvent(new Event('eip6963:requestProvider'));
 
+    // モバイル環境での追加検出時間
+    const detectionTimeout = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 1000 : 500;
+
     // 既知のウォレットも追加（フォールバック）
     setTimeout(() => {
-      // MetaMaskの検出（レガシー方式）
-      if (window.ethereum && !wallets.find(w => w.info.name.includes('MetaMask'))) {
-        if (window.ethereum.isMetaMask) {
-          wallets.push({
-            provider: window.ethereum,
+      const isMobile = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent);
+      
+      // MetaMaskの検出（複数の方式）
+      if (!wallets.find(w => w.info.name.includes('MetaMask'))) {
+        let metaMaskProvider = null;
+        let metaMaskInstalled = false;
+        
+        // 1. 標準的なwindow.ethereum
+        if (window.ethereum?.isMetaMask) {
+          metaMaskProvider = window.ethereum;
+          metaMaskInstalled = true;
+        }
+        // 2. 複数プロバイダーがある場合
+        else if ((window as any).ethereum?.providers) {
+          const metaMask = (window as any).ethereum.providers.find((p: any) => p.isMetaMask);
+          if (metaMask) {
+            metaMaskProvider = metaMask;
+            metaMaskInstalled = true;
+          }
+        }
+        // 3. 直接MetaMaskオブジェクト
+        else if ((window as any).ethereum && (window as any).ethereum._metamask) {
+          metaMaskProvider = (window as any).ethereum;
+          metaMaskInstalled = true;
+        }
+        
+        if (metaMaskInstalled && metaMaskProvider) {
+          console.log('🦊 MetaMask検出成功 (レガシー方式)');
+          wallets.unshift({ // 先頭に追加
+            provider: metaMaskProvider,
             info: {
               id: 'metamask-legacy',
               name: 'MetaMask',
               icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTMwLjA3IDIuOTNsLTYuNjQgNC45NC0xLjE0IDguOTRIMTAuNzFsLTEuMTQtOC45NC02LjY0LTQuOTRMMS45NSA5LjJWMjdoMjkuMVY5LjJsLTEtNi4yN1oiIGZpbGw9IiNmNjY1MjEiLz48L3N2Zz4=',
               installed: true,
-              mobile: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent),
-              desktop: !/Mobile|Android|iPhone|iPad/.test(navigator.userAgent)
+              mobile: isMobile,
+              desktop: !isMobile
             }
           });
+        } else {
+          console.log('🦊 MetaMaskが見つかりません - インストールオプションを表示');
         }
       }
 
@@ -102,7 +132,7 @@ export function detectWallets(): Promise<DetectedWallet[]> {
       
       console.log('📋 検出されたウォレット一覧:', wallets.map(w => w.info.name));
       resolve(wallets);
-    }, 500);
+    }, detectionTimeout);
   });
 }
 
