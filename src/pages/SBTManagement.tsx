@@ -587,6 +587,14 @@ const SBTManagement: React.FC = () => {
   const checkAndRegisterInitialShops = async () => {
     if (!selectedChainForSBT || !walletAddress) return;
     
+    // 既に実行済みかチェック(同じチェーン+ウォレットの組み合わせでは一度だけ実行)
+    const checkKey = `shop-check-${selectedChainForSBT}-${walletAddress}`;
+    const lastCheck = sessionStorage.getItem(checkKey);
+    if (lastCheck) {
+      console.log(`✅ ショップ登録チェックは既に実行済みです`);
+      return;
+    }
+    
     console.log(`🔍 初期ショップの登録状況を確認中: Chain ${selectedChainForSBT}`);
     
     // 初期テンプレートのショップIDが登録されているか確認
@@ -641,6 +649,9 @@ const SBTManagement: React.FC = () => {
         console.error(`❌ ショップ${shopId}の確認エラー:`, error);
       }
     }
+    
+    // 実行済みフラグを設定
+    sessionStorage.setItem(checkKey, new Date().toISOString());
   };
 
   const addTemplate = (e: React.FormEvent) => {
@@ -2007,17 +2018,19 @@ const SBTManagement: React.FC = () => {
                             ))}
                           </select>
                           <button
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               const selectedTemplateId = paymentTemplateSelection[payment.id];
                               if (!selectedTemplateId) {
                                 toast.error('発行するテンプレートを選択してください');
                                 return;
                               }
+                              
+                              // 選択を先にリセット(重複呼び出し防止)
+                              setPaymentTemplateSelection(prev => ({ ...prev, [payment.id]: '' }));
+                              
                               // issueSBT は form submit ハンドラを期待するため、Event を渡す
                               const fakeEvent = new Event('submit') as any;
-                              issueSBT(fakeEvent, payment.id, selectedTemplateId);
-                              // 発行後に選択をリセット
-                              setPaymentTemplateSelection(prev => ({ ...prev, [payment.id]: '' }));
+                              await issueSBT(fakeEvent, payment.id, selectedTemplateId);
                             }}
                             className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
                             disabled={!walletAddress || paymentSBTStatus[payment.id]?.status === 'issuing'}
