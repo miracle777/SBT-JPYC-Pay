@@ -50,7 +50,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "/icons/icon-192x192-maskable.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
@@ -68,7 +68,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "/icons/icon-512x512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -98,7 +98,7 @@
       "url": "/sbt",
       "icons": [
         {
-          "src": "/icons/icon-96x96.png",
+          "src": "/icons/shortcut-sbt-96x96.png",
           "sizes": "96x96",
           "type": "image/png"
         }
@@ -111,7 +111,7 @@
       "url": "/payment",
       "icons": [
         {
-          "src": "/icons/icon-96x96.png",
+          "src": "/icons/shortcut-payment-96x96.png",
           "sizes": "96x96",
           "type": "image/png"
         }
@@ -124,7 +124,7 @@
       "url": "/?tab=export",
       "icons": [
         {
-          "src": "/icons/icon-96x96.png",
+          "src": "/icons/shortcut-data-96x96.png",
           "sizes": "96x96",
           "type": "image/png"
         }
@@ -132,20 +132,20 @@
     }
   ],
   "categories": [
-    "business",
+    "business", 
     "productivity",
     "finance"
   ],
   "prefer_related_applications": false,
   "related_applications": [],
   "display_override": [
-    "window-controls-overlay",
     "standalone",
-    "minimal-ui",
+    "minimal-ui", 
     "browser"
   ],
-  "edge_side_panel": {
-    "preferred_width": 400
+  "handle_links": "auto",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
   },
   "protocol_handlers": [
     {

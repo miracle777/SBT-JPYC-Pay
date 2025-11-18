@@ -16,6 +16,7 @@ export default defineConfig({
         'browserconfig.xml',
       ],
       manifest: false, // 外部manifest.jsonを使用
+      injectRegister: 'auto',
       workbox: {
         globPatterns: [
           '**/*.{js,css,html,png,svg,ico,webp}',
@@ -77,6 +78,9 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
+        // PWA登録エラーを防ぐ
+        disableDevLogs: false,
+        mode: 'production',
       },
       devOptions: {
         enabled: true,

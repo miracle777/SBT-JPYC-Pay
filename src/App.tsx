@@ -6,6 +6,7 @@ import HelpModal from './components/HelpModal';
 import { DisclaimerBanner } from './components/DisclaimerBanner';
 import { Footer } from './components/layout/Footer';
 import PWAStatus from './components/PWAStatus';
+import PWAInstallButton from './components/PWAInstallButton';
 
 function App() {
   const [showHelp, setShowHelp] = useState(false);
@@ -19,7 +20,13 @@ function App() {
           <Outlet />
         </main>
         <Footer />
-        {/* <PWAStatus /> */}
+        <PWAStatus />
+        
+        {/* PWA インストールボタン */}
+        <div className="fixed bottom-4 left-4 z-40">
+          <PWAInstallButton />
+        </div>
+        
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
       </div>
     </WalletProvider>
