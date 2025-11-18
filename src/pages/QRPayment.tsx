@@ -696,7 +696,7 @@ const QRPayment: React.FC = () => {
                                   ? 'bg-orange-100 text-orange-700 border border-orange-300'
                                   : 'bg-gray-100 text-gray-700 border border-gray-300'
                               }`}>
-                                {qrCodeFormat === 'jpyc-payment' ? '💰 JPYC_PAYMENT' : qrCodeFormat === 'metamask' ? '🦊 MetaMask' : '💻 Legacy'}
+                                {qrCodeFormat === 'masaru21qr-payment' ? '💰 masaru21QR_PAYMENT' : qrCodeFormat === 'metamask' ? '🦊 MetaMask' : '💻 Legacy'}
                               </div>
                             </div>
                           );
@@ -957,14 +957,14 @@ const QRPayment: React.FC = () => {
                       onChange={(e) => setQrCodeFormat(e.target.value as 'jpyc-payment' | 'metamask' | 'legacy')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     >
-                      <option value="jpyc-payment">💰 JPYC_PAYMENT (統一標準形式)</option>
+                      <option value="jpyc-payment">💰 masaru21QR_PAYMENT (統一標準形式)</option>
                       <option value="metamask">🦊 MetaMask QR対応 (ethereum: URI)</option>
                       <option value="legacy">💻 レガシー形式 (payment)</option>
                     </select>
                     <div className="mt-2">
                       {qrCodeFormat === 'jpyc-payment' ? (
                         <div className="p-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700">
-                          <p className="font-semibold">💰 JPYC_PAYMENT 統一標準形式</p>
+                          <p className="font-semibold">💰 masaru21QR_PAYMENT 統一標準形式</p>
                           <p>jpyc-pay.app や全てのJPYCアプリで対応、テスト・本番統一</p>
                           <p className="mt-1">✅ ネットワーク: {paymentNetwork?.displayName}</p>
                           <p>✅ コントラクト: {paymentContractAddress.slice(0, 10)}...{paymentContractAddress.slice(-8)}</p>

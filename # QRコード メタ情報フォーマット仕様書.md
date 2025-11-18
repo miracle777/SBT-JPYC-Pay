@@ -13,7 +13,7 @@
 | 形式 | 用途 | 推奨度 | 備考 |
 |------|------|--------|------|
 | [JSON形式 - 店舗QRコード（レガシー）](#1-json形式店舗qrコードレガシー) | 店舗決済 | ⭐⭐ | 互換性のため |
-| [JSON形式 - JPYC決済（統一標準）](#2-json形式jpyc決済統一標準形式) | **全環境対応** | ⭐⭐⭐ | **推奨統一形式** |
+| [JSON形式 - masaru21QR決済（統一標準）](#2-json形式masaru21qr決済統一標準形式) | **全環境対応** | ⭐⭐⭐ | **推奨統一形式** |
 | [URLスキーマ形式（簡易）](#3-urlスキーマ形式簡易) | 軽量決済 | ⭐ | シンプル |
 | [主要ウォレット対応形式](#4-主要ウォレット対応形式) | **世界標準対応** | ⭐⭐⭐ | **MetaMask等** |
 
@@ -60,7 +60,7 @@
 | `expiresAt` | number | 有効期限（Unix timestamp） | 1732012800 |
 | `description` | string | 決済内容説明 | "商品購入代金" |
 
-### 2. JSON形式：JPYC決済（統一標準形式）
+### 2. JSON形式：masaru21QR決済（統一標準形式）
 
 **🔥 推奨統一形式**。テスト・本番問わず、すべてこの形式で統一します。ネットワークとコントラクトアドレスで自動判別されるため、別々のtypeは不要です。
 
@@ -68,7 +68,7 @@
 
 ```json
 {
-  "type": "JPYC_PAYMENT",
+  "type": "masaru21QR_PAYMENT",
   "to": "0x1234567890123456789012345678901234567890",
   "amount": "100",
   "network": "sepolia",
@@ -88,7 +88,7 @@
 
 ```json
 {
-  "type": "JPYC_PAYMENT",
+  "type": "masaru21QR_PAYMENT",
   "to": "0x1234567890123456789012345678901234567890",
   "amount": "100",
   "network": "ethereum",
@@ -108,7 +108,7 @@
 
 ```json
 {
-  "type": "JPYC_PAYMENT",
+  "type": "masaru21QR_PAYMENT",
   "to": "0x1234567890123456789012345678901234567890",
   "amount": "100",
   "network": "polygon",
@@ -128,7 +128,7 @@
 
 ```json
 {
-  "type": "JPYC_PAYMENT",
+  "type": "masaru21QR_PAYMENT",
   "to": "0x1234567890123456789012345678901234567890",
   "amount": "100",
   "network": "polygon-amoy",
@@ -148,7 +148,7 @@
 
 ```json
 {
-  "type": "JPYC_PAYMENT",
+  "type": "masaru21QR_PAYMENT",
   "to": "0x1234567890123456789012345678901234567890",
   "amount": "100",
   "network": "avalanche-fuji",
@@ -166,7 +166,7 @@
 
 #### 特徴
 
-- **統一性**: テスト・本番で同じ`type: "JPYC_PAYMENT"`
+- **統一性**: テスト・本番で同じ`type: "masaru21QR_PAYMENT"`
 - **自動判別**: `network`と`contractAddress`で環境を自動判別
 - **JPYC単位**: `amount`は常にJPYC単位（小数点なし）
 - **構造化店舗情報**: `merchant`オブジェクトで店舗情報を管理
@@ -174,7 +174,7 @@
 
 ### 3. URLスキーマ形式（簡易）
 
-**📝 廃止予定**。統一標準形式（JPYC_PAYMENT）への移行を推奨します。軽量な決済専用URL形式です。
+**📝 廃止予定**。統一標準形式（masaru21QR_PAYMENT）への移行を推奨します。軽量な決済専用URL形式です。
 
 #### payment: 形式（汎用）
 
@@ -462,8 +462,8 @@ function getNetworkFromChainId(chainId: number): NetworkType {
 ### JavaScript/TypeScriptでの生成例（統一形式）
 
 ```typescript
-interface JPYCPaymentQRData {
-  type: 'JPYC_PAYMENT';
+interface masaru21QRPaymentQRData {
+  type: 'masaru21QR_PAYMENT';
   to: string;
   amount: string;  // JPYC単位
   network: string;
@@ -478,8 +478,8 @@ interface JPYCPaymentQRData {
   expires: number;
 }
 
-// 統一JPYC決済QRコード生成
-function generateJPYCPaymentQR(params: {
+// 統一masaru21QR決済QRコード生成
+function generatemasaru21QRPaymentQR(params: {
   shopWallet: string;
   amountJPYC: number;
   shopName: string;
@@ -499,8 +499,8 @@ function generateJPYCPaymentQR(params: {
 
   const config = networkConfig[params.network];
   
-  const qrData: JPYCPaymentQRData = {
-    type: 'JPYC_PAYMENT',  // 統一形式
+  const qrData: masaru21QRPaymentQRData = {
+    type: 'masaru21QR_PAYMENT',  // 統一形式
     to: params.shopWallet,
     amount: params.amountJPYC.toString(),
     network: params.network,
@@ -519,7 +519,7 @@ function generateJPYCPaymentQR(params: {
 }
 
 // 使用例（テスト環境）
-const sepoliaQR = generateJPYCPaymentQR({
+const sepoliaQR = generatemasaru21QRPaymentQR({
   shopWallet: '0x1234567890123456789012345678901234567890',
   amountJPYC: 100,
   shopName: 'テスト店舗',
@@ -528,7 +528,7 @@ const sepoliaQR = generateJPYCPaymentQR({
 });
 
 // 使用例（本番環境）
-const mainnetQR = generateJPYCPaymentQR({
+const mainnetQR = generatemasaru21QRPaymentQR({
   shopWallet: '0x1234567890123456789012345678901234567890',
   amountJPYC: 100,
   shopName: '本番店舗',
@@ -537,7 +537,7 @@ const mainnetQR = generateJPYCPaymentQR({
 });
 
 // 使用例（Polygon本番）
-const polygonQR = generateJPYCPaymentQR({
+const polygonQR = generatemasaru21QRPaymentQR({
   shopWallet: '0x1234567890123456789012345678901234567890',
   amountJPYC: 100,
   shopName: 'Polygon店舗',
@@ -559,14 +559,14 @@ from typing import Dict, Any, Literal
 
 NetworkType = Literal['ethereum', 'sepolia', 'polygon', 'polygon-amoy', 'avalanche', 'avalanche-fuji']
 
-def generate_jpyc_payment_qr(
+def generate_masaru21qr_payment_qr(
     shop_wallet: str,
     amount_jpyc: int,
     shop_name: str,
     description: str,
     network: NetworkType = 'sepolia'
 ) -> str:
-    """統一JPYC決済用QRコードデータを生成"""
+    """統一masaru21QR決済用QRコードデータを生成"""
     
     # ネットワーク設定の自動選択
     network_config = {
@@ -581,7 +581,7 @@ def generate_jpyc_payment_qr(
     config = network_config[network]
     
     qr_data = {
-        "type": "JPYC_PAYMENT",  # 統一形式
+        "type": "masaru21QR_PAYMENT",  # 統一形式
         "to": shop_wallet,
         "amount": str(amount_jpyc),
         "network": network,
@@ -599,7 +599,7 @@ def generate_jpyc_payment_qr(
     return json.dumps(qr_data, ensure_ascii=False)
 
 # 使用例（テスト環境）
-sepolia_qr = generate_jpyc_payment_qr(
+sepolia_qr = generate_masaru21qr_payment_qr(
     shop_wallet="0x1234567890123456789012345678901234567890",
     amount_jpyc=100,
     shop_name="テスト店舗",
@@ -608,7 +608,7 @@ sepolia_qr = generate_jpyc_payment_qr(
 )
 
 # 使用例（本番環境）
-mainnet_qr = generate_jpyc_payment_qr(
+mainnet_qr = generate_masaru21qr_payment_qr(
     shop_wallet="0x1234567890123456789012345678901234567890",
     amount_jpyc=100,
     shop_name="本番店舗", 
@@ -633,8 +633,8 @@ print("Mainnet QR:", mainnet_qr)
 
 | 従来 | 統一後 |
 |------|--------|
-| `JPYC_PAYMENT` (本番) | `JPYC_PAYMENT` (全環境) |
-| `tJPYC_PAYMENT` (テスト) | `JPYC_PAYMENT` (全環境) |
+| `JPYC_PAYMENT` (本番) | `masaru21QR_PAYMENT` (全環境) |
+| `tJPYC_PAYMENT` (テスト) | `masaru21QR_PAYMENT` (全環境) |
 | `payment` (店舗) | `payment` (互換性維持) |
 
 ### 🚀 移行ガイド
@@ -647,8 +647,8 @@ const testQR = {type: "tJPYC_PAYMENT", network: "avalanche-fuji", ...};
 const prodQR = {type: "JPYC_PAYMENT", network: "ethereum", ...};
 
 // ✅ 統一後
-const anyQR = {type: "JPYC_PAYMENT", network: "sepolia", ...}; // テスト
-const anyQR2 = {type: "JPYC_PAYMENT", network: "ethereum", ...}; // 本番
+const anyQR = {type: "masaru21QR_PAYMENT", network: "sepolia", ...}; // テスト
+const anyQR2 = {type: "masaru21QR_PAYMENT", network: "ethereum", ...}; // 本番
 ```
 
 ---
