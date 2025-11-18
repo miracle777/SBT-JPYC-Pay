@@ -107,11 +107,18 @@ const SBTManagement: React.FC = () => {
     templateId: templates[0]?.id || '',
     recipientAddress: '',
   });
-  // completedPayments 各行のテンプレート選択状態（自動発行を防ぐために選択と発行を分離）
+  // completedPayments 各行のテンプレート選択状態(自動発行を防ぐために選択と発行を分離)
   const [paymentTemplateSelection, setPaymentTemplateSelection] = useState<Record<string, string>>({});
   
-  // SBT発行先ネットワーク（Polygon Mainnet または Amoy Testnet）
-  const [selectedChainForSBT, setSelectedChainForSBT] = useState(80002); // デフォルトはPolygon Amoy（テストネット）
+  // 各支払いに対するSBT発行状態を管理
+  const [paymentSBTStatus, setPaymentSBTStatus] = useState<Record<string, {
+    status: 'idle' | 'issuing' | 'success' | 'failed';
+    message?: string;
+    txHash?: string;
+  }>>({});
+  
+  // SBT発行先ネットワーク(Polygon Mainnet または Amoy Testnet)
+  const [selectedChainForSBT, setSelectedChainForSBT] = useState(80002); // デフォルトはPolygon Amoy(テストネット)
   
   // 選択されたネットワークの情報を取得
   const selectedNetworkInfo = getNetworkDisplayInfo(selectedChainForSBT);
@@ -2011,7 +2018,7 @@ const SBTManagement: React.FC = () => {
                             </div>
                             {paymentSBTStatus[payment.id].txHash && (
                               <a
-                                href={getBlockExplorerUrl(selectedChainForSBT, paymentSBTStatus[payment.id].txHash!)}
+                                href={getBlockExplorerUrl(paymentSBTStatus[payment.id].txHash!, selectedChainForSBT)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs underline mt-1 block hover:text-green-900"
