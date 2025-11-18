@@ -8,6 +8,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 
 // Wagmi / RainbowKit (adapted for wagmi v2 / @wagmi/connectors)
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createConfig, WagmiConfig } from 'wagmi';
 import { mainnet, polygon, goerli } from 'wagmi/chains';
 import { http } from 'viem';
@@ -255,12 +256,15 @@ const wagmiConfig = createConfig({
   transports,
 });
 
+const queryClient = new QueryClient();
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <WagmiConfig config={wagmiConfig}>
-      <RainbowKitProvider>
-        <RouterProvider router={router} />
-        <Toaster
+    <QueryClientProvider client={queryClient}>
+      <WagmiConfig config={wagmiConfig}>
+        <RainbowKitProvider>
+          <RouterProvider router={router} />
+          <Toaster
           position="top-center"
           toastOptions={{
             duration: 4000,
@@ -287,5 +291,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         />
       </RainbowKitProvider>
     </WagmiConfig>
+    </QueryClientProvider>
   </React.StrictMode>
 );
