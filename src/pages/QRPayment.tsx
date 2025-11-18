@@ -696,7 +696,7 @@ const QRPayment: React.FC = () => {
                                   ? 'bg-orange-100 text-orange-700 border border-orange-300'
                                   : 'bg-gray-100 text-gray-700 border border-gray-300'
                               }`}>
-                                {qrCodeFormat === 'masaru21qr-payment' ? '💰 masaru21QR_PAYMENT' : qrCodeFormat === 'metamask' ? '🦊 MetaMask' : '💻 Legacy'}
+                                {qrCodeFormat === 'jpyc-payment' ? '💰 masaru21QR_PAYMENT' : qrCodeFormat === 'metamask' ? '🦊 MetaMask' : '💻 Legacy'}
                               </div>
                             </div>
                           );
