@@ -23,6 +23,7 @@ export default defineConfig({
           'icons/**/*.png',
           'browserconfig.xml',
           // manifest.json は ここでも除外
+          '!**/*.json',
         ],
         // additionalManifestEntries は空（すべて globPatterns で管理）
         additionalManifestEntries: [],
