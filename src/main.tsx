@@ -5,14 +5,12 @@ import { Toaster, toast } from 'react-hot-toast';
 import App from './App';
 import './index.css';
 import '@rainbow-me/rainbowkit/styles.css';
+import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { WagmiProvider } from 'wagmi';
+import { mainnet, polygon, sepolia } from 'wagmi/chains';
 
 // Wagmi / RainbowKit (adapted for wagmi v2 / @wagmi/connectors)
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createConfig, WagmiConfig } from 'wagmi';
-import { mainnet, polygon, sepolia } from 'wagmi/chains';
-import { http } from 'viem';
-import { metaMask, injected, walletConnect } from '@wagmi/connectors';
 
 // ページコンポーネントのimport
 import Dashboard from './pages/Dashboard';
@@ -262,37 +260,14 @@ if (typeof window !== 'undefined' && (window as any).ethereum) {
   console.log('  ethereum object:', (window as any).ethereum);
 }
 
-const connectors = [
-  // MetaMask として優先表示
-  metaMask({
-    dappMetadata: {
-      name: 'SBT JPYC Pay',
-      url: appUrl,
-      iconUrl: appIcon,
-    },
-  }),
-  // 汎用の注入型ウォレット（MetaMask 以外）
-  injected({
-    shimDisconnect: true,
-  }),
-  // WalletConnect
-  walletConnect({
-    projectId,
-    metadata: {
-      name: 'SBT JPYC Pay',
-      description: 'JPYC QR決済 & 店舗SBT管理システム',
-      url: appUrl,
-      icons: [appIcon],
-    },
-  }),
-];
-
-// Debug: Log connector configuration and RainbowKit setup
-console.log('🔧 Connector Configuration:');
-console.log('  Connector count:', connectors.length);
-connectors.forEach((conn, idx) => {
-  console.log(`  [${idx}] Connector:`, conn);
+const config = getDefaultConfig({
+  appName: 'SBT JPYC Pay',
+  projectId,
+  chains: [mainnet, polygon, sepolia],
+  ssr: false,
 });
+
+console.log('🔧 RainbowKit Config Created:', config ? '✅' : '❌');
 
 console.log('🔑 WalletConnect ProjectID:', projectId ? `✅ Set (${projectId.substring(0, 10)}...)` : '❌ Not set');
 console.log('📊 RainbowKit Setup:');
@@ -328,7 +303,7 @@ if (wagmiConfig?.connectors) {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <WagmiConfig config={wagmiConfig}>
+      <WagmiProvider config={config}>
         <RainbowKitProvider>
           <RouterProvider router={router} />
           <Toaster
@@ -357,7 +332,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           }}
         />
       </RainbowKitProvider>
-    </WagmiConfig>
+    </WagmiProvider>
     </QueryClientProvider>
   </React.StrictMode>
 );
