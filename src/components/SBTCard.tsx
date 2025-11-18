@@ -26,9 +26,10 @@ interface IssuedSBT {
 
 interface SBTCardProps {
   sbt: IssuedSBT;
+  cumulativeStamps?: number; // 累計スタンプ数(親から渡される)
 }
 
-const SBTCard: React.FC<SBTCardProps> = ({ sbt }) => {
+const SBTCard: React.FC<SBTCardProps> = ({ sbt, cumulativeStamps }) => {
   const getStatusColor = (status?: string) => {
     switch (status) {
       case 'success':
@@ -82,18 +83,26 @@ const SBTCard: React.FC<SBTCardProps> = ({ sbt }) => {
 
       {/* 本体 */}
       <div className="p-6 space-y-4">
-        {/* スタンプ進捗 */}
+        {/* 発行状況 */}
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-green-900">今回の発行</span>
+            <span className="text-sm font-bold text-green-600">✅ 1個発行</span>
+          </div>
+        </div>
+
+        {/* 累計スタンプ進捗 */}
         <div>
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700">スタンプ進捗</span>
+            <span className="text-sm font-medium text-gray-700">累計スタンプ</span>
             <span className="text-sm font-bold text-orange-600">
-              {sbt.currentStamps}/{sbt.maxStamps}
+              {cumulativeStamps || sbt.currentStamps}/{sbt.maxStamps}
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-gradient-to-r from-orange-400 to-orange-600 h-2 rounded-full transition-all"
-              style={{ width: `${(sbt.currentStamps / sbt.maxStamps) * 100}%` }}
+              style={{ width: `${((cumulativeStamps || sbt.currentStamps) / sbt.maxStamps) * 100}%` }}
             />
           </div>
         </div>

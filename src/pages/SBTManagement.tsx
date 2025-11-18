@@ -1141,9 +1141,9 @@ const SBTManagement: React.FC = () => {
       toast.success(`🎉 マイルストーン達成！${template.maxStamps}回到達 → SBT発行`);
       
     } else {
-      // 🎁 スタンプカード方式: 毎回スタンプ累計
+      // 🎁 スタンプカード方式: 毎回新規SBT発行 + スタンプ累計更新
       
-      // 同じウォレット + 同じテンプレートの既存SBTを検索
+      // 同じウォレット + 同じテンプレートの既存SBTを検索してスタンプをカウント
       const existingSBT = issuedSBTs.find(
         (sbt) => sbt.recipientAddress.toLowerCase() === recipientAddress.toLowerCase() && 
                  sbt.templateId === template.id &&
@@ -1151,34 +1151,26 @@ const SBTManagement: React.FC = () => {
       );
 
       if (existingSBT) {
-        // 既存のSBTが見つかった場合、スタンプを+1
+        // 既存のSBTが見つかった場合、スタンプを+1して更新
         console.log('✅ 既存SBT発見 - スタンプを累計します:', existingSBT);
         
-        // currentStampsを+1
         existingSBT.currentStamps += 1;
         
         // maxStampsに達したかチェック
         if (existingSBT.currentStamps >= existingSBT.maxStamps) {
           existingSBT.status = 'redeemed';
           toast.success(`🎉 スタンプカード完成！ ${existingSBT.currentStamps}/${existingSBT.maxStamps} - 特典を受け取れます！`);
-        } else {
-          toast.success(`✅ スタンプ+1！ ${existingSBT.currentStamps}/${existingSBT.maxStamps}`);
         }
 
-        // IndexedDBとlocalStorageを更新
+        // IndexedDBを更新
         try {
           await sbtStorage.saveSBT(existingSBT);
+          setIssuedSBTs(issuedSBTs.map(s => s.id === existingSBT.id ? existingSBT : s));
         } catch (error) {
           console.error('SBT保存エラー:', error);
         }
-        
-        // 状態更新
-        setIssuedSBTs(issuedSBTs.map(s => s.id === existingSBT.id ? existingSBT : s));
-        setNewIssuance({ templateId: templates[0]?.id || '', recipientAddress: '' });
-        setShowIssuanceForm(false);
-        
-        return; // 既存SBT更新の場合、ここで終了（新規mint不要）
       }
+      // ここで return しない → 新規SBTも発行される
     }
 
     // 新規SBTを作成
@@ -2459,14 +2451,23 @@ const SBTManagement: React.FC = () => {
                         <tr className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
                           <th className="px-6 py-3 text-left text-sm font-semibold">配布先ウォレット</th>
                           <th className="px-6 py-3 text-left text-sm font-semibold">SBT名</th>
-                          <th className="px-6 py-3 text-center text-sm font-semibold">スタンプ</th>
+                          <th className="px-6 py-3 text-center text-sm font-semibold">発行状況</th>
+                          <th className="px-6 py-3 text-center text-sm font-semibold">累計スタンプ</th>
                           <th className="px-6 py-3 text-center text-sm font-semibold">発行日</th>
                           <th className="px-6 py-3 text-center text-sm font-semibold">ステータス</th>
                           <th className="px-6 py-3 text-center text-sm font-semibold">進捗</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {issuedSBTs.map((sbt, idx) => (
+                        {issuedSBTs.map((sbt, idx) => {
+                          // 同じウォレット+テンプレートの累計スタンプ数を計算
+                          const cumulativeStamps = issuedSBTs.filter(
+                            s => s.recipientAddress.toLowerCase() === sbt.recipientAddress.toLowerCase() &&
+                                 s.templateId === sbt.templateId &&
+                                 new Date(s.issuedAt) <= new Date(sbt.issuedAt)
+                          ).length;
+                          
+                          return (
                           <tr
                             key={sbt.id}
                             onClick={() => setSelectedSBT(sbt)}
@@ -2485,8 +2486,13 @@ const SBTManagement: React.FC = () => {
                               {sbt.templateName}
                             </td>
                             <td className="px-6 py-4 text-sm text-center">
+                              <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full font-semibold">
+                                ✅ 1個発行
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-center">
                               <span className="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full font-semibold">
-                                {sbt.currentStamps}/{sbt.maxStamps}
+                                {cumulativeStamps}/{sbt.maxStamps}
                               </span>
                             </td>
                             <td className="px-6 py-4 text-sm text-center text-gray-600">
@@ -2507,12 +2513,13 @@ const SBTManagement: React.FC = () => {
                               <div className="w-24 bg-gray-200 rounded-full h-2">
                                 <div
                                   className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full"
-                                  style={{ width: `${(sbt.currentStamps / sbt.maxStamps) * 100}%` }}
+                                  style={{ width: `${(cumulativeStamps / sbt.maxStamps) * 100}%` }}
                                 ></div>
                               </div>
                             </td>
                           </tr>
-                        ))}
+                        );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -2668,9 +2675,18 @@ const SBTManagement: React.FC = () => {
                         <p className="font-mono text-sm break-all">{address}</p>
                       </div>
                       <div className="space-y-4">
-                        {sbtsForAddress.map((sbt) => (
-                          <SBTCard key={sbt.id} sbt={sbt} />
-                        ))}
+                        {sbtsForAddress.map((sbt) => {
+                          // 同じウォレット+テンプレートの累計スタンプ数を計算
+                          const cumulativeStamps = issuedSBTs.filter(
+                            s => s.recipientAddress.toLowerCase() === sbt.recipientAddress.toLowerCase() &&
+                                 s.templateId === sbt.templateId &&
+                                 new Date(s.issuedAt) <= new Date(sbt.issuedAt)
+                          ).length;
+                          
+                          return (
+                            <SBTCard key={sbt.id} sbt={sbt} cumulativeStamps={cumulativeStamps} />
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
