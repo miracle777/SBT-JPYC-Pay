@@ -6,6 +6,7 @@ import { detectPWAWalletAvailability } from '../utils/pwaWalletHandler';
 import { BrowserRedirectGuide } from '../components/BrowserRedirectGuide';
 import { analyzeMetaMaskConnectionFlow, implementRootSolution } from '../utils/walletConnectionAnalysis';
 import { clearAllWalletCache, prepareForWalletSwitch, verifyNewWalletConnection, forceWalletReset } from '../utils/pwaWalletCache';
+import { StandardWalletModal } from '../components/StandardWalletModal';
 import { 
   connectWalletInPWA, 
   getPWAWalletCompatibilityInfo,
@@ -41,6 +42,9 @@ export interface WalletContextType {
   closeBrowserRedirect: () => void;
   clearCache: () => Promise<void>;
   forceReset: () => Promise<void>;
+  showWalletModal: boolean;
+  openWalletModal: () => void;
+  closeWalletModal: () => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -58,6 +62,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [lastConnectionStrategy, setLastConnectionStrategy] = useState<string | null>(null);
   const [showBrowserRedirect, setShowBrowserRedirect] = useState(false);
   const [pendingConnection, setPendingConnection] = useState(false);
+  const [showWalletModal, setShowWalletModal] = useState(false);
   
   // サポートされるチェーンの定義 - 豊富なネットワーク選択肢
   const supportedChains = [
@@ -228,228 +233,59 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const connect = async () => {
     if (isConnecting) return;
 
+    console.log('🔗 標準ウォレット接続開始');
+    
+    // 標準ウォレット選択モーダルを表示
+    setShowWalletModal(true);
+  };
+
+  const handleWalletSelect = async (result: {
+    success: boolean;
+    provider?: any;
+    address?: string;
+    chainId?: number;
+    error?: string;
+    walletName?: string;
+  }) => {
     setIsConnecting(true);
-    console.log('🔗 ウォレット接続開始');
-
+    
     try {
-      // まず根本原因を分析
-      console.log('🔍 MetaMask接続フロー分析を実行...');
-      const analysis = analyzeMetaMaskConnectionFlow();
-      
-      console.log('📋 分析結果:', {
-        trigger: analysis.connectionTrigger,
-        context: analysis.browserContext,
-        reasons: analysis.reasons,
-        solutions: analysis.solutions
-      });
-
-      const browserInfo = getMobileBrowserInfo();
-      const isMobile = browserInfo.isIOS || browserInfo.isAndroid;
-      
-      console.log('🌐 環境情報:', {
-        isMobile,
-        isMetaMaskBrowser: browserInfo.isMetaMaskBrowser,
-        userAgent: navigator.userAgent,
-        isPWA: window.matchMedia('(display-mode: standalone)').matches,
-        referrer: document.referrer,
-        currentURL: window.location.href
-      });
-
-      // PWAのprotocol_handlerが原因の可能性をチェック
-      if (analysis.browserContext === 'IN_APP_BROWSER' && analysis.connectionTrigger === 'DEEPLINK') {
-        console.warn('🚨 原因特定: PWAのprotocol_handlerがMetaMaskアプリ内ブラウザを起動している');
-        
-        // 根本的解決策を実装
-        console.log('🛠️ 根本的解決策を実装中...');
-        await implementRootSolution();
-        
-        alert('PWAの設定に問題があります。ページを再読み込みして、ネイティブブラウザからアクセスしてください。');
-        setIsConnecting(false);
-        return;
-      }
-
-      // MetaMaskアプリ内ブラウザの場合、根本原因を表示して対処
-      if (browserInfo.isMetaMaskBrowser) {
-        console.log('🚨 MetaMaskアプリ内ブラウザ検出');
-        console.log('💡 推定原因:', analysis.reasons.join(', '));
-        console.log('🔧 推奨解決策:', analysis.solutions.join(', '));
-        
-        // 根本原因に基づいた適切なメッセージを表示
-        const rootCauseMessage = analysis.reasons.length > 0 
-          ? `原因: ${analysis.reasons.join('、')}\n\n推奨解決策: ${analysis.solutions.join('、')}`
-          : 'MetaMaskアプリ内ブラウザが使用されています。';
-        
-        if (confirm(`${rootCauseMessage}\n\nネイティブブラウザへの移行を実行しますか？`)) {
-          await implementRootSolution();
-          return;
-        } else {
-          setPendingConnection(true);
-          setShowBrowserRedirect(true);
-          setIsConnecting(false);
-          return;
-        }
-      }
-
-      // PWA環境での最適化された接続処理を使用
-      if (isPWA) {
-        console.log('🔄 PWA環境でのウォレット接続を開始');
-        
-        const result = await connectWalletInPWA();
-        setLastConnectionStrategy(result.strategy);
-        
-        if (!result.success) {
-          throw new Error(result.error || 'PWA環境でのウォレット接続に失敗しました');
-        }
-        
-        // ディープリンクやブラウザリダイレクトの場合は成功として扱う
-        if (result.strategy === 'DEEPLINK' || result.strategy === 'BROWSER_REDIRECT') {
-          console.log(`✅ ${result.strategy} による接続処理を実行しました`);
-          return;
-        }
-        
-        // 直接接続の場合は結果を設定
-        if (result.address && result.chainId) {
-          setAddress(result.address);
-          setChainId(result.chainId);
-          setIsConnected(true);
-
-          const ethProvider = new BrowserProvider(window.ethereum!);
-          setProvider(ethProvider);
-
-          localStorage.setItem('walletAddress', result.address);
-          localStorage.setItem('walletChainId', result.chainId.toString());
-          console.log('✅ PWA環境でのウォレット接続に成功');
-          return;
-        }
-      }
-
-      // モバイル環境での特別な処理
-      if (isMobile) {
-        console.log('📱 モバイル環境での接続処理');
-        
-        // MetaMask検出の再試行（タイムアウト付き）
-        const detectionTimeout = setTimeout(() => {
-          console.warn('⏰ MetaMask検出タイムアウト');
-        }, 5000);
-        
-        const metaMaskAvailable = await detectMetaMaskWithRetry();
-        clearTimeout(detectionTimeout);
-        
-        console.log('🔍 MetaMask検出結果:', metaMaskAvailable);
-        
-        if (!metaMaskAvailable && !window.ethereum) {
-          if (browserInfo.isInAppBrowser) {
-            throw new Error('IN_APP_BROWSER_LIMITATION');
-          } else {
-            throw new Error('NO_METAMASK_MOBILE');
-          }
-        }
-      } else {
-        // デスクトップ環境
-        if (!window.ethereum) {
-          throw new Error('NO_WALLET_EXTENSION');
-        }
-      }
-
-      // window.ethereumの存在を再確認
-      if (!window.ethereum) {
-        throw new Error('WALLET_NOT_AVAILABLE');
-      }
-
-      console.log('🔐 ウォレット接続要求を送信中...');
-      
-      // タイムアウト付きでアカウント要求
-      const accountsPromise = window.ethereum.request({
-        method: 'eth_requestAccounts',
-      });
-      
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('CONNECTION_TIMEOUT')), 15000);
-      });
-      
-      const accounts = await Promise.race([accountsPromise, timeoutPromise]);
-
-      if (accounts && accounts.length > 0) {
-        console.log('✅ アカウント取得成功:', accounts[0]);
+      if (result.success && result.address && result.chainId && result.provider) {
+        console.log(`✅ ${result.walletName} 接続成功:`, result.address);
         
         // PWA環境でのキャッシュ検証
         if (window.matchMedia('(display-mode: standalone)').matches) {
-          const isValidConnection = verifyNewWalletConnection(accounts[0]);
+          const isValidConnection = verifyNewWalletConnection(result.address);
           if (!isValidConnection) {
             console.warn('⚠️ キャッシュされたウォレットとの不整合を検出');
             await prepareForWalletSwitch();
           }
         }
         
-        const chainIdHex = await window.ethereum.request({
-          method: 'eth_chainId',
-        });
-        const newChainId = parseInt(chainIdHex, 16);
-
-        setAddress(accounts[0]);
-        setChainId(newChainId);
+        // 状態更新
+        setAddress(result.address);
+        setChainId(result.chainId);
         setIsConnected(true);
-        setLastConnectionStrategy('DIRECT');
-
-        const ethProvider = new BrowserProvider(window.ethereum);
-        setProvider(ethProvider);
-
-        localStorage.setItem('walletAddress', accounts[0]);
-        localStorage.setItem('walletChainId', newChainId.toString());
+        setProvider(result.provider);
+        setLastConnectionStrategy(result.walletName?.toUpperCase() || 'STANDARD');
         
-        console.log('✅ ウォレット接続完了');
+        // ローカルストレージに保存
+        localStorage.setItem('walletAddress', result.address);
+        localStorage.setItem('walletChainId', result.chainId.toString());
+        localStorage.setItem('lastConnectionStrategy', result.walletName || 'STANDARD');
+        
+        console.log('✅ 標準ウォレット接続完了');
+        
       } else {
-        throw new Error('NO_ACCOUNTS_RETURNED');
+        console.error('❌ ウォレット接続エラー:', result.error);
+        alert(result.error || 'ウォレット接続に失敗しました');
       }
-    } catch (error: any) {
-      console.error('ウォレット接続エラー:', error);
-      setLastConnectionStrategy('ERROR');
-      
-      // エラータイプに基づいて適切なメッセージを表示
-      let errorMessage = '';
-      
-      switch (error.message) {
-        case 'NO_METAMASK_MOBILE':
-          errorMessage = 'モバイル環境でMetaMaskが検出されませんでした。MetaMaskアプリをインストールして、アプリ内ブラウザからアクセスしてください。';
-          break;
-        case 'IN_APP_BROWSER_LIMITATION':
-          errorMessage = 'このアプリ内ブラウザではウォレット接続に制限があります。専用ブラウザアプリ（Chrome、Safari等）でアクセスすることをお勧めします。';
-          break;
-        case 'CONNECTION_TIMEOUT':
-          errorMessage = 'ウォレット接続がタイムアウトしました。ネットワーク状況を確認して、もう一度お試しください。';
-          break;
-        case 'NO_ACCOUNTS_RETURNED':
-          errorMessage = 'ウォレットからアカウント情報を取得できませんでした。ウォレットの設定を確認してください。';
-          break;
-        case 'WALLET_NOT_AVAILABLE':
-          errorMessage = 'ウォレットが利用できません。ブラウザを再読み込みしてお試しください。';
-          break;
-        case 'NO_WALLET_EXTENSION':
-          errorMessage = 'Web3ウォレット拡張機能がインストールされていません。MetaMaskなどのウォレットをインストールしてください。';
-          break;
-        default:
-          if (error.code === 4001) {
-            errorMessage = '接続がユーザーによってキャンセルされました。';
-          } else if (error.code === -32002) {
-            errorMessage = '既にウォレット接続のリクエストが処理中です。しばらくお待ちください。';
-          } else {
-            errorMessage = `ウォレット接続エラー: ${error.message}`;
-          }
-          break;
-      }
-      
-      // ユーザーキャンセル以外はアラートを表示
-      if (error.code !== 4001) {
-        alert(errorMessage);
-        const browserInfo = getMobileBrowserInfo();
-        if (browserInfo.isIOS || browserInfo.isAndroid) {
-          console.log('📱 モバイル環境での接続エラー処理完了');
-        } else if (isPWA) {
-          console.log('📱 PWA環境での接続エラー処理完了');
-        }
-      }
+    } catch (error) {
+      console.error('❌ ウォレット接続処理エラー:', error);
+      alert('ウォレット接続の処理中にエラーが発生しました');
     } finally {
       setIsConnecting(false);
+      setShowWalletModal(false);
     }
   };
 
@@ -534,6 +370,14 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     
     console.log('✅ ウォレット接続解除完了');
+  };
+
+  const openWalletModal = () => {
+    setShowWalletModal(true);
+  };
+
+  const closeWalletModal = () => {
+    setShowWalletModal(false);
   };
 
   const clearCache = async () => {
@@ -652,9 +496,18 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         closeBrowserRedirect,
         clearCache,
         forceReset,
+        showWalletModal,
+        openWalletModal,
+        closeWalletModal,
       }}
     >
       {children}
+      
+      <StandardWalletModal
+        isOpen={showWalletModal}
+        onClose={closeWalletModal}
+        onWalletSelect={handleWalletSelect}
+      />
     </WalletContext.Provider>
   );
 };
