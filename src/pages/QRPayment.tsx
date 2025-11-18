@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { BrowserProvider, ethers } from 'ethers';
 import { NETWORKS, JPYC, getContractAddress, getJpycContracts, getJpycContractMeta } from '../config/networks';
 import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
-import { createPaymentPayload, encodePaymentPayload } from '../types/payment';
+import { createPaymentPayload, encodePaymentPayload, encodePaymentPayloadForJPYCPay, encodePaymentPayloadForMetaMask } from '../types/payment';
 import { useWallet } from '../context/WalletContext';
 import QRCodeDisplay from '../components/QRCodeDisplay';
 import QRCodeWindow from '../components/QRCodeWindow';
@@ -32,11 +32,12 @@ const QRPayment: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
   const [amount, setAmount] = useState('');
   const [selectedChainForPayment, setSelectedChainForPayment] = useState(
-    Object.values(NETWORKS)[0].chainId
+    NETWORKS.POLYGON_AMOY.chainId  // デフォルトでPolygon Amoyを選択
   );
   const [selectedJpycContract, setSelectedJpycContract] = useState<string>(''); // 選択されたJPYCコントラクトアドレス
   const [paymentSessions, setPaymentSessions] = useState<PaymentSession[]>([]);
   const [expiryTimeMinutes, setExpiryTimeMinutes] = useState(15); // デフォルト15分
+  const [qrCodeFormat, setQrCodeFormat] = useState<'jpyc-payment' | 'metamask' | 'legacy'>('jpyc-payment'); // QRコード形式
   const [selectedSessionForWindow, setSelectedSessionForWindow] = useState<string | null>(null);
   const [estimatedGasPOL, setEstimatedGasPOL] = useState<string>('0.002275'); // デフォルト値（Polygon 35 Gwei, 65000 gas）
   const [gasPrice, setGasPrice] = useState<string>('35.00'); // デフォルト値（Polygon標準）
@@ -435,7 +436,29 @@ const QRPayment: React.FC = () => {
         `Payment from ${DEFAULT_SHOP_INFO.name}`
       );
 
-      const encodedPayload = encodePaymentPayload(payload);
+      console.log('QRコード生成:', {
+        selectedChain: selectedChainForPayment,
+        networkName: paymentNetwork.displayName,
+        contractAddress: paymentContractAddress,
+        amount: amountNum,
+        payloadChainId: payload.chainId
+      });
+
+      // QRコード形式に応じてエンコード
+      let encodedPayload: string;
+      
+      switch (qrCodeFormat) {
+        case 'jpyc-payment':
+          encodedPayload = encodePaymentPayloadForJPYCPay(payload);
+          break;
+        case 'metamask':
+          encodedPayload = encodePaymentPayloadForMetaMask(payload);
+          break;
+        case 'legacy':
+        default:
+          encodedPayload = encodePaymentPayload(payload);
+          break;
+      }
 
       const newSession: PaymentSession = {
         id: paymentId,
@@ -582,6 +605,7 @@ const QRPayment: React.FC = () => {
                           <div>
                             <p className="text-xs text-gray-600">ネットワーク</p>
                             <p className="text-xs sm:text-sm font-semibold text-gray-900">{session.chainName}</p>
+                            <p className="text-xs text-gray-500">ChainID: {session.chainId}</p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-600">残り時間</p>
@@ -598,12 +622,23 @@ const QRPayment: React.FC = () => {
                         {(() => {
                           const contractMeta = getJpycContractMeta(session.chainId, paymentContractAddress);
                           return (
-                            <div className={`text-center text-xs px-2 py-1 rounded-full inline-block ${
-                              contractMeta.type === 'official'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-blue-100 text-blue-700'
-                            }`}>
-                              {contractMeta.label}
+                            <div className="flex flex-wrap justify-center gap-2 mt-2">
+                              <div className={`text-center text-xs px-3 py-1 rounded-full ${
+                                contractMeta.type === 'official'
+                                  ? 'bg-green-100 text-green-700 border border-green-300'
+                                  : 'bg-blue-100 text-blue-700 border border-blue-300'
+                              }`}>
+                                {contractMeta.label}
+                              </div>
+                              <div className={`text-center text-xs px-3 py-1 rounded-full ${
+                                qrCodeFormat === 'jpyc-payment'
+                                  ? 'bg-green-100 text-green-700 border border-green-300'
+                                  : qrCodeFormat === 'metamask'
+                                  ? 'bg-orange-100 text-orange-700 border border-orange-300'
+                                  : 'bg-gray-100 text-gray-700 border border-gray-300'
+                              }`}>
+                                {qrCodeFormat === 'jpyc-payment' ? '💰 JPYC_PAYMENT' : qrCodeFormat === 'metamask' ? '🦊 MetaMask' : '💻 Legacy'}
+                              </div>
                             </div>
                           );
                         })()}
@@ -629,7 +664,19 @@ const QRPayment: React.FC = () => {
                           />
                         </div>
                         <p className="text-xs text-gray-500 mt-2 sm:mt-3 text-center px-4">
-                          スマートフォンでスキャンしてください
+                          {qrCodeFormat === 'jpyc-payment' ? (
+                            <>
+                              💰 <strong>JPYC対応アプリ</strong>でスキャンしてください<br />
+                              <span className="text-gray-400">統一標準形式 | {paymentNetwork?.displayName} | {paymentContractAddress.slice(0, 8)}...</span>
+                            </>
+                          ) : qrCodeFormat === 'metamask' ? (
+                            <>
+                              🦊 <strong>MetaMaskアプリ</strong>のQRスキャンで読み取ってください<br />
+                              <span className="text-gray-400">ethereum: URI形式 | ガス代: 65,000 gas</span>
+                            </>
+                          ) : (
+                            '💻 レガシーQRコード（互換性維持用、新規非推奨）'
+                          )}
                         </p>
                       </div>
 
@@ -673,10 +720,32 @@ const QRPayment: React.FC = () => {
 
                       {/* ペイロード情報 */}
                       <div className="bg-gray-50 p-3 rounded-lg mt-4">
-                        <p className="text-xs text-gray-600 mb-2">ペイロード:</p>
-                        <p className="text-xs text-gray-500 break-all font-mono">
-                          {session.qrCodeData.substring(0, 80)}...
-                        </p>
+                        <p className="text-xs text-gray-600 mb-2">ペイロード詳細:</p>
+                        {(() => {
+                          try {
+                            const payloadObj = JSON.parse(session.qrCodeData);
+                            return (
+                              <div className="text-xs text-gray-500 space-y-1">
+                                <div><strong>ChainID:</strong> {payloadObj.chainId}</div>
+                                <div><strong>Contract:</strong> {payloadObj.contractAddress.slice(0, 10)}...{payloadObj.contractAddress.slice(-8)}</div>
+                                <div><strong>Shop:</strong> {payloadObj.shopWallet.slice(0, 8)}...{payloadObj.shopWallet.slice(-6)}</div>
+                                <div><strong>Amount:</strong> {payloadObj.amount} Wei</div>
+                                <details className="mt-2">
+                                  <summary className="cursor-pointer text-blue-600">完全なペイロード</summary>
+                                  <pre className="mt-1 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-32 font-mono">
+                                    {JSON.stringify(payloadObj, null, 2)}
+                                  </pre>
+                                </details>
+                              </div>
+                            );
+                          } catch (e) {
+                            return (
+                              <p className="text-xs text-gray-500 break-all font-mono">
+                                {session.qrCodeData.substring(0, 80)}...
+                              </p>
+                            );
+                          }
+                        })()}
                       </div>
                     </div>
                   ))}
@@ -798,6 +867,43 @@ const QRPayment: React.FC = () => {
                       placeholder="例: 100"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     />
+                  </div>
+
+                  {/* QRコード形式選択 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      QRコード形式
+                    </label>
+                    <select
+                      value={qrCodeFormat}
+                      onChange={(e) => setQrCodeFormat(e.target.value as 'jpyc-payment' | 'metamask' | 'legacy')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    >
+                      <option value="jpyc-payment">💰 JPYC_PAYMENT (統一標準形式)</option>
+                      <option value="metamask">🦊 MetaMask QR対応 (ethereum: URI)</option>
+                      <option value="legacy">💻 レガシー形式 (payment)</option>
+                    </select>
+                    <div className="mt-2">
+                      {qrCodeFormat === 'jpyc-payment' ? (
+                        <div className="p-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700">
+                          <p className="font-semibold">💰 JPYC_PAYMENT 統一標準形式</p>
+                          <p>jpyc-pay.app や全てのJPYCアプリで対応、テスト・本番統一</p>
+                          <p className="mt-1">✅ ネットワーク: {paymentNetwork?.displayName}</p>
+                          <p>✅ コントラクト: {paymentContractAddress.slice(0, 10)}...{paymentContractAddress.slice(-8)}</p>
+                        </div>
+                      ) : qrCodeFormat === 'metamask' ? (
+                        <div className="p-2 bg-orange-50 border border-orange-200 rounded-lg text-xs text-orange-700">
+                          <p className="font-semibold">🦊 MetaMask QR機能</p>
+                          <p>MetaMaskアプリのQRスキャンで直接トランザクション実行</p>
+                          <p className="mt-1 font-mono text-orange-600">ethereum:{paymentContractAddress.slice(0, 10)}...@{selectedChainForPayment}</p>
+                        </div>
+                      ) : (
+                        <div className="p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700">
+                          <p className="font-semibold">💻 レガシー形式</p>
+                          <p>互換性維持用の旧payment形式（新規開発非推奨）</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* ガス代表示 */}
