@@ -1032,7 +1032,7 @@ const SBTManagement: React.FC = () => {
       // 🔢 マイルストーン方式: N回達成時のみSBT発行
       
       // このウォレット+テンプレートの支払い回数をカウント
-      const paymentCount = completedPayments.filter(
+      const paymentCount = (completedPayments || []).filter(
         (p) => p.payerAddress?.toLowerCase() === recipientAddress.toLowerCase()
       ).length;
       
@@ -1091,7 +1091,11 @@ const SBTManagement: React.FC = () => {
         }
 
         // IndexedDBとlocalStorageを更新
-        await sbtStorage.saveSBT(existingSBT);
+        try {
+          await sbtStorage.saveSBT(existingSBT);
+        } catch (error) {
+          console.error('SBT保存エラー:', error);
+        }
         
         // 状態更新
         setIssuedSBTs(issuedSBTs.map(s => s.id === existingSBT.id ? existingSBT : s));
