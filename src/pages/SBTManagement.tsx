@@ -1000,10 +1000,24 @@ const SBTManagement: React.FC = () => {
   const issueSBT = async (e: React.FormEvent, selectedPaymentId?: string, selectedTemplateId?: string) => {
     e.preventDefault();
 
+    // 支払いセッションから発行する場合、発行中状態を設定
+    if (selectedPaymentId) {
+      setPaymentSBTStatus(prev => ({
+        ...prev,
+        [selectedPaymentId]: { status: 'issuing', message: 'SBT発行中...' }
+      }));
+    }
+
     // テンプレートIDの決定（引数から渡された場合はそれを優先、なければnewIssuanceから）
     const templateId = selectedTemplateId || newIssuance.templateId;
     const template = templates.find((t) => t.id === templateId);
     if (!template) {
+      if (selectedPaymentId) {
+        setPaymentSBTStatus(prev => ({
+          ...prev,
+          [selectedPaymentId]: { status: 'failed', message: 'テンプレートが見つかりません' }
+        }));
+      }
       toast.error('テンプレートが見つかりません');
       return;
     }
@@ -1016,6 +1030,12 @@ const SBTManagement: React.FC = () => {
       
       if (now < startDate || now > endDate) {
         const periodStr = `${template.periodStartDate} ～ ${template.periodEndDate}`;
+        if (selectedPaymentId) {
+          setPaymentSBTStatus(prev => ({
+            ...prev,
+            [selectedPaymentId]: { status: 'failed', message: `期間外のため発行できません(${periodStr})` }
+          }));
+        }
         toast.error(`このテンプレートは指定期間（${periodStr}）内でのみ発行できます`);
         return;
       }
@@ -1030,6 +1050,10 @@ const SBTManagement: React.FC = () => {
       // 支払いセッションから発行する場合
       const payment = completedPayments.find((p) => p.id === selectedPaymentId);
       if (!payment || !payment.payerAddress) {
+        setPaymentSBTStatus(prev => ({
+          ...prev,
+          [selectedPaymentId]: { status: 'failed', message: '支払者アドレスが見つかりません' }
+        }));
         toast.error('支払者アドレスが見つかりません');
         return;
       }
@@ -1058,6 +1082,15 @@ const SBTManagement: React.FC = () => {
       
       if (paymentCount < template.maxStamps) {
         // まだ達成していない
+        if (selectedPaymentId) {
+          setPaymentSBTStatus(prev => ({
+            ...prev,
+            [selectedPaymentId]: { 
+              status: 'failed', 
+              message: `マイルストーン進捗: ${paymentCount}/${template.maxStamps}回 (あと${template.maxStamps - paymentCount}回)` 
+            }
+          }));
+        }
         toast(`📊 マイルストーン進捗: ${paymentCount}/${template.maxStamps}回\nあと${template.maxStamps - paymentCount}回で達成です！`, {
           icon: '🎯',
           duration: 4000,
@@ -1074,6 +1107,12 @@ const SBTManagement: React.FC = () => {
       );
       
       if (alreadyIssued) {
+        if (selectedPaymentId) {
+          setPaymentSBTStatus(prev => ({
+            ...prev,
+            [selectedPaymentId]: { status: 'failed', message: 'このマイルストーンSBTは既に発行済みです' }
+          }));
+        }
         toast.error(`このマイルストーンSBTは既に発行済みです`);
         setNewIssuance({ templateId: templates[0]?.id || '', recipientAddress: '' });
         setShowIssuanceForm(false);
@@ -1241,6 +1280,18 @@ const SBTManagement: React.FC = () => {
           prev.map(s => (s.id === sbt.id ? sbt : s))
         );
 
+        // 支払いセッションから発行した場合、成功状態を更新
+        if (selectedPaymentId) {
+          setPaymentSBTStatus(prev => ({
+            ...prev,
+            [selectedPaymentId]: { 
+              status: 'success', 
+              message: 'SBT発行完了！',
+              txHash: result.transactionHash
+            }
+          }));
+        }
+
         toast.success(
           `🎉 SBT を ${shopSettings.name} としてブロックチェーンに記録しました！\n🆔 店舗: ${shopSettings.name}\n📋 ショップID: ${shopSettings.id}\n💿 Tx: ${result.transactionHash.slice(0, 12)}...`,
           { 
@@ -1265,6 +1316,17 @@ const SBTManagement: React.FC = () => {
         // ネットワーク問題かどうかを判定
         const isNetworkIssue = result.error?.includes('RPC接続') || result.error?.includes('Internal JSON-RPC error');
         
+        // 支払いセッションから発行した場合、失敗状態を更新
+        if (selectedPaymentId) {
+          setPaymentSBTStatus(prev => ({
+            ...prev,
+            [selectedPaymentId]: { 
+              status: 'failed', 
+              message: isNetworkIssue ? 'ネットワーク接続エラー' : `発行失敗: ${result.error || 'Unknown error'}`
+            }
+          }));
+        }
+
         if (isNetworkIssue) {
           toast.error(
             `🌐 ネットワーク接続に問題があります\n💾 SBTデータはローカルに保存済み\n🔧 MetaMaskのネットワーク設定を確認してください`,
@@ -1287,6 +1349,17 @@ const SBTManagement: React.FC = () => {
       setIssuedSBTs(prev =>
         prev.map(s => (s.id === sbt.id ? sbt : s))
       );
+
+      // 支払いセッションから発行した場合、失敗状態を更新
+      if (selectedPaymentId) {
+        setPaymentSBTStatus(prev => ({
+          ...prev,
+          [selectedPaymentId]: { 
+            status: 'failed', 
+            message: `エラー: ${error.message || 'Unknown error'}`
+          }
+        }));
+      }
 
       console.error('SBT mint エラー:', error);
       toast.error(
@@ -1883,37 +1956,71 @@ const SBTManagement: React.FC = () => {
                       </div>
                     </div>
                     <div className="ml-4">
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={paymentTemplateSelection[payment.id] || ''}
-                          onChange={(e) => setPaymentTemplateSelection(prev => ({ ...prev, [payment.id]: e.target.value }))}
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
-                        >
-                          <option value="">テンプレートを選択</option>
-                          {templates.map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {t.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={(e) => {
-                            const selectedTemplateId = paymentTemplateSelection[payment.id];
-                            if (!selectedTemplateId) {
-                              toast.error('発行するテンプレートを選択してください');
-                              return;
-                            }
-                            // issueSBT は form submit ハンドラを期待するため、Event を渡す
-                            const fakeEvent = new Event('submit') as any;
-                            issueSBT(fakeEvent, payment.id, selectedTemplateId);
-                            // 発行後に選択をリセット
-                            setPaymentTemplateSelection(prev => ({ ...prev, [payment.id]: '' }));
-                          }}
-                          className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm"
-                          disabled={!walletAddress}
-                        >
-                          発行
-                        </button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={paymentTemplateSelection[payment.id] || ''}
+                            onChange={(e) => setPaymentTemplateSelection(prev => ({ ...prev, [payment.id]: e.target.value }))}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
+                            disabled={paymentSBTStatus[payment.id]?.status === 'issuing'}
+                          >
+                            <option value="">テンプレートを選択</option>
+                            {templates.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.name}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={(e) => {
+                              const selectedTemplateId = paymentTemplateSelection[payment.id];
+                              if (!selectedTemplateId) {
+                                toast.error('発行するテンプレートを選択してください');
+                                return;
+                              }
+                              // issueSBT は form submit ハンドラを期待するため、Event を渡す
+                              const fakeEvent = new Event('submit') as any;
+                              issueSBT(fakeEvent, payment.id, selectedTemplateId);
+                              // 発行後に選択をリセット
+                              setPaymentTemplateSelection(prev => ({ ...prev, [payment.id]: '' }));
+                            }}
+                            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            disabled={!walletAddress || paymentSBTStatus[payment.id]?.status === 'issuing'}
+                          >
+                            {paymentSBTStatus[payment.id]?.status === 'issuing' ? '発行中...' : '発行'}
+                          </button>
+                        </div>
+                        {/* SBT発行状態の表示 */}
+                        {paymentSBTStatus[payment.id] && paymentSBTStatus[payment.id].status !== 'idle' && (
+                          <div className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                            paymentSBTStatus[payment.id].status === 'issuing' ? 'bg-blue-50 text-blue-700' :
+                            paymentSBTStatus[payment.id].status === 'success' ? 'bg-green-50 text-green-700' :
+                            'bg-red-50 text-red-700'
+                          }`}>
+                            <div className="flex items-center gap-2">
+                              {paymentSBTStatus[payment.id].status === 'issuing' && (
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                              )}
+                              {paymentSBTStatus[payment.id].status === 'success' && (
+                                <CheckCircle className="w-4 h-4" />
+                              )}
+                              {paymentSBTStatus[payment.id].status === 'failed' && (
+                                <AlertCircle className="w-4 h-4" />
+                              )}
+                              <span>{paymentSBTStatus[payment.id].message}</span>
+                            </div>
+                            {paymentSBTStatus[payment.id].txHash && (
+                              <a
+                                href={getBlockExplorerUrl(selectedChainForSBT, paymentSBTStatus[payment.id].txHash!)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs underline mt-1 block hover:text-green-900"
+                              >
+                                トランザクションを確認 ↗
+                              </a>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
