@@ -230,9 +230,10 @@ const router = createBrowserRouter([
 });
 
 // Configure chains and transports for wagmi v2
-const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '';
+const projectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID || '';
 if (!projectId) {
-  console.warn('VITE_WALLETCONNECT_PROJECT_ID is not set. WalletConnect may not work.');
+  console.warn('⚠️ VITE_WALLET_CONNECT_PROJECT_ID is not set. WalletConnect may not work.');
+  console.log('📝 環境変数を設定してください: VITE_WALLET_CONNECT_PROJECT_ID=your_project_id');
 }
 
 const chains = [mainnet, polygon, sepolia] as const;
@@ -265,12 +266,17 @@ const connectors = [
   }),
 ];
 
-// Debug: Log wallet detection
+// Debug: Log wallet detection and config
 if (typeof window !== 'undefined') {
   console.log('🔍 Wallet Detection:');
   console.log('  ethereum:', (window as any).ethereum ? '✅ Found' : '❌ Not found');
   console.log('  ethereum.isMetaMask:', (window as any).ethereum?.isMetaMask ? '✅ MetaMask' : '❌ Not MetaMask');
   console.log('  Connectors:', connectors.length, 'enabled');
+  console.log('🔑 WalletConnect ProjectID:', projectId ? `✅ ${projectId.substring(0, 10)}...` : '❌ Not set');
+  console.log('📊 RainbowKit Config:', {
+    chains: chains.map(c => c.name),
+    projectId: projectId ? 'SET' : 'MISSING',
+  });
 }
 
 const wagmiConfig = createConfig({
