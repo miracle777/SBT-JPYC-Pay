@@ -8,6 +8,7 @@ import { createPaymentPayload, encodePaymentPayload, encodePaymentPayloadForJPYC
 import { useWallet } from '../context/WalletContext';
 import QRCodeDisplay from '../components/QRCodeDisplay';
 import QRCodeWindow from '../components/QRCodeWindow';
+import WalletSelector from '../components/WalletSelector';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
 
 interface PaymentSession {
@@ -616,7 +617,17 @@ const QRPayment: React.FC = () => {
           <p className="text-xs sm:text-sm md:text-base text-gray-600">JPYC/tJPYC対応のQRコード決済を生成・管理します</p>
         </div>
 
-        {/* メインコンテナ: QRコード表示エリアが最優先 */}
+        {/* ウォレット & ネットワーク管理 */}
+        <div className="mb-6">
+          <WalletSelector
+            title="ウォレット & 決済ネットワーク"
+            showChainSelector={true}
+            onNetworkChange={(chainId) => {
+              setSelectedChainForPayment(chainId);
+              console.log(`🔄 決済ネットワークを変更: Chain ID ${chainId}`);
+            }}
+          />
+        </div>
         <div className="space-y-4">
           {/* QRコード表示エリア（上部） */}
           <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-8">

@@ -12,6 +12,7 @@ import SBTCard from '../components/SBTCard';
 import { pinataService } from '../utils/pinata';
 import { formatShopIdAsHex, generateNonConflictingShopId, generateUniqueShopId } from '../utils/shopIdGenerator';
 import { getShopSettings } from '../utils/shopSettings';
+import WalletSelector from '../components/WalletSelector';
 
 type IssuePattern = 'per_payment' | 'after_count' | 'time_period' | 'period_range';
 
@@ -135,6 +136,7 @@ const SBTManagement: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [shopSettings, setShopSettings] = useState({ name: '', id: '', description: '' });
 
   // マウント時: IndexedDB + localStorage からデータを読み込み
   useEffect(() => {
@@ -231,6 +233,22 @@ const SBTManagement: React.FC = () => {
           }
         } catch (pinataError) {
           console.warn('⚠️ Pinata 接続テストエラー:', pinataError);
+        }
+
+        // 店舗設定を読み込み
+        try {
+          const savedShopInfo = localStorage.getItem('shop-info');
+          if (savedShopInfo) {
+            const shop = JSON.parse(savedShopInfo);
+            setShopSettings({
+              name: shop.name || 'SBT JPYC Pay Demo Store',
+              id: shop.id || 'shop-001',
+              description: shop.description || 'デモンストレーション用の店舗'
+            });
+            console.log('✅ 店舗設定読み込み完了:', shop);
+          }
+        } catch (error) {
+          console.warn('店舗設定読み込みエラー:', error);
         }
 
         // コントラクト所有者を確認（Polygon Amoy testnet を確認）
@@ -423,6 +441,29 @@ const SBTManagement: React.FC = () => {
         console.error('Failed to load completed payments:', error);
       }
     }
+  }, []);
+
+  // LocalStorageの店舗設定変更を監視
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const savedShopInfo = localStorage.getItem('shop-info');
+        if (savedShopInfo) {
+          const shop = JSON.parse(savedShopInfo);
+          setShopSettings({
+            name: shop.name || 'SBT JPYC Pay Demo Store',
+            id: shop.id || 'shop-001',
+            description: shop.description || 'デモンストレーション用の店舗'
+          });
+          console.log('🔄 店舗設定が更新されました:', shop);
+        }
+      } catch (error) {
+        console.warn('店舗設定更新エラー:', error);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // completedPayments を監視して、LocalStorage の変更を反映
@@ -1039,9 +1080,7 @@ const SBTManagement: React.FC = () => {
 
         toast.loading('📤 画像とメタデータをIPFSにアップロード中...', { id: mintingToast });
 
-        // 店舗設定を取得
-        const shopSettings = getShopSettings();
-        console.log('📋 店舗設定:', shopSettings);
+        console.log('📋 使用される店舗設定:', shopSettings);
 
         // 動的メタデータでPinataにアップロード
         const result = await pinataService.createDynamicSBTWithImage(
@@ -1097,8 +1136,17 @@ const SBTManagement: React.FC = () => {
         );
 
         toast.success(
-          `✅ SBT をブロックチェーンに記録しました！\nTx: ${result.transactionHash.slice(0, 10)}...`,
-          { id: mintingToast }
+          `🎉 SBT を ${shopSettings.name} としてブロックチェーンに記録しました！\n🆔 店舗: ${shopSettings.name}\n📋 ショップID: ${shopSettings.id}\n💿 Tx: ${result.transactionHash.slice(0, 12)}...`,
+          { 
+            id: mintingToast,
+            duration: 8000,
+            style: {
+              background: '#10B981',
+              color: 'white',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }
+          }
         );
       } else {
         // ❌ mint 失敗
@@ -1242,42 +1290,15 @@ const SBTManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* ネットワーク情報表示 */}
-        <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-            {/* 現在のネットワーク */}
-            <div className="bg-white p-2 sm:p-3 rounded border">
-              <h3 className="font-semibold text-blue-900 mb-1 sm:mb-2 flex items-center gap-2 text-sm sm:text-base">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                現在接続中のネットワーク
-              </h3>
-              <div className="space-y-1 text-xs sm:text-sm">
-                <p><span className="text-gray-600">ネットワーク:</span> <span className={`font-medium ${currentChainId ? (getNetworkByChainId(currentChainId)?.isTestnet ? 'text-orange-600' : 'text-green-600') : 'text-gray-600'}`}>
-                  {getNetworkDisplayInfo(currentChainId).displayName}
-                  {currentChainId && (getNetworkByChainId(currentChainId)?.isTestnet ? ' (テスト用)' : ' (本番用)')}
-                </span></p>
-                <p><span className="text-gray-600">Chain ID:</span> <span className="font-mono">{currentChainId || '未接続'}</span></p>
-                <p><span className="text-gray-600">SBTコントラクト:</span> <span className="font-mono text-xs break-all">{getNetworkDisplayInfo(currentChainId).contractAddress}</span></p>
-              </div>
-            </div>
-            
-            {/* SBT発行対象ネットワーク */}
-            <div className="bg-white p-3 rounded border">
-              <h3 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
-                <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                SBT発行対象ネットワーク
-              </h3>
-              <div className="space-y-1 text-sm">
-                <p><span className="text-gray-600">ネットワーク:</span> <span className={`font-medium ${getNetworkByChainId(selectedChainForSBT)?.isTestnet ? 'text-orange-600' : 'text-green-600'}`}>
-                  {getNetworkDisplayInfo(selectedChainForSBT).displayName}
-                  {getNetworkByChainId(selectedChainForSBT)?.isTestnet ? ' (テスト用)' : ' (本番用)'}
-                </span></p>
-                <p><span className="text-gray-600">Chain ID:</span> <span className="font-mono">{selectedChainForSBT}</span></p>
-                <p><span className="text-gray-600">SBTコントラクト:</span> <span className="font-mono text-xs break-all">{getNetworkDisplayInfo(selectedChainForSBT).contractAddress}</span></p>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* ウォレット & ネットワーク管理 */}
+        <WalletSelector
+          title="ウォレット & ネットワーク選択"
+          showChainSelector={true}
+          onNetworkChange={(chainId) => {
+            setSelectedChainForSBT(chainId);
+            console.log(`🔄 SBT発行先ネットワークを変更: Chain ID ${chainId}`);
+          }}
+        />
 
         {/* ヘッダー */}
         <div className="mb-4 sm:mb-6 md:mb-8">
@@ -1791,18 +1812,6 @@ const SBTManagement: React.FC = () => {
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">SBT発行</h2>
-            {/* 発行先ネットワーク選択 */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">発行先チェーン:</label>
-              <select
-                value={selectedChainForSBT}
-                onChange={(e) => setSelectedChainForSBT(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
-              >
-                <option value={137}>Polygon Mainnet（本番用）</option>
-                <option value={80002}>Polygon Amoy（テスト用）</option>
-              </select>
-            </div>
           </div>
 
           {/* ⚠️ コントラクト認可警告 */}
@@ -2251,9 +2260,6 @@ const SBTManagement: React.FC = () => {
                           
                           setIsRegisteringShop(true);
                           
-                          // 設定画面の店舗情報を取得
-                          const shopSettings = getShopSettings();
-                          
                           const result = await registerShop({
                             shopId: 1,
                             shopName: shopSettings.name,
@@ -2280,10 +2286,9 @@ const SBTManagement: React.FC = () => {
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                           <h4 className="font-medium text-blue-900 mb-2">使用される店舗情報</h4>
                           <div className="text-sm text-blue-800 space-y-1">
-                            <p><strong>店舗名:</strong> {getShopSettings().name}</p>
-                            <p><strong>店舗ID:</strong> {getShopSettings().id}</p>
-                            <p><strong>カテゴリ:</strong> {getShopSettings().category || '未設定'}</p>
-                            <p><strong>説明:</strong> {getShopSettings().description || 'SBT対応店舗'}</p>
+                            <p><strong>店舗名:</strong> {shopSettings.name}</p>
+                            <p><strong>店舗ID:</strong> {shopSettings.id}</p>
+                            <p><strong>説明:</strong> {shopSettings.description || 'SBT対応店舗'}</p>
                           </div>
                           <p className="text-xs text-blue-600 mt-2">
                             ⚙️ これらの設定は「設定」画面で変更できます

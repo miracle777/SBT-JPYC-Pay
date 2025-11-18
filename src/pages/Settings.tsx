@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, Save, Copy, ExternalLink, Download, Upload, Eye, EyeOff, CheckCircle, AlertCircle, Key } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { NETWORKS } from '../config/networks';
-import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
+import { DEFAULT_SHOP_INFO, getShopWalletAddress, getShopInfo } from '../config/shop';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
 import { pinataService } from '../utils/pinata';
 import { generateNewShopId } from '../utils/shopSettings';
+import WalletSelector from '../components/WalletSelector';
 
 const Settings: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
@@ -364,187 +365,11 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* ウォレット情報 */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-6">ウォレット情報</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">接続状態</label>
-              <div className={`p-3 rounded-lg ${walletAddress ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'}`}>
-                <p className={`text-sm font-semibold ${walletAddress ? 'text-green-800' : 'text-yellow-800'}`}>
-                  {walletAddress ? '✓ ウォレット接続済み' : '⚠ ウォレット未接続'}
-                </p>
-              </div>
-            </div>
-
-            {walletAddress && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ユーザーウォレットアドレス（支払い元）</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={walletAddress}
-                      disabled
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 font-mono text-sm"
-                    />
-                    <button
-                      onClick={() => copyToClipboard(walletAddress, 'ウォレットアドレス')}
-                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    このアドレスが支払い元となり、SBT発行時に記録されます
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">店舗受取ウォレットアドレス</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={shopWalletAddress || '未設定'}
-                      disabled
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 font-mono text-sm"
-                    />
-                    {shopWalletAddress && (
-                      <button
-                        onClick={() => copyToClipboard(shopWalletAddress, '店舗受取アドレス')}
-                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    JPYC決済の受取アドレスです
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* ネットワーク情報 */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-6">ネットワーク情報</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">現在のネットワーク</label>
-              <div className={`p-4 rounded-lg border ${currentNetwork ? 'bg-blue-50 border-blue-200' : 'bg-yellow-50 border-yellow-200'}`}>
-                <p className={`font-semibold ${currentNetwork ? 'text-blue-900' : 'text-yellow-900'}`}>
-                  {currentNetwork?.displayName || 'ネットワーク未接続'}
-                </p>
-                {currentNetwork && (
-                  <>
-                    <p className="text-sm text-blue-700 mt-2">Chain ID: {currentNetwork.chainId}</p>
-                    <p className="text-sm text-blue-700">RPC: {currentNetwork.rpcUrl}</p>
-                    {currentNetwork.isTestnet && (
-                      <p className="text-sm text-orange-600 font-semibold mt-2">⚠ テストネット（開発・テスト用）</p>
-                    )}
-                    {!currentNetwork.isTestnet && currentNetwork.chainId === 137 && (
-                      <p className="text-sm text-green-600 font-semibold mt-2">✅ 本番ネットワーク</p>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* RPC接続トラブルシューティング - Polygon Amoyの場合のみ表示 */}
-            {currentChainId === 80002 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <AlertCircle className="w-5 h-5 text-amber-600" />
-                  <h3 className="font-bold text-amber-900">⚠️ RPC接続が不安定な場合の解決方法</h3>
-                </div>
-                
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-700">
-                    <strong>Internal JSON-RPC error</strong> が発生する場合、MetaMaskのRPCエンドポイントを変更してください：
-                  </p>
-                  
-                  <div className="bg-white rounded-lg p-4 border">
-                    <h4 className="font-semibold text-gray-900 mb-3">🔄 推奨RPCエンドポイント（優先順）</h4>
-                    <div className="space-y-2 font-mono text-sm">
-                      <div className="flex items-center justify-between bg-green-50 p-2 rounded border border-green-200">
-                        <span className="text-green-800">https://polygon-amoy-bor-rpc.publicnode.com</span>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText('https://polygon-amoy-bor-rpc.publicnode.com');
-                            toast.success('📋 RPCアドレスをコピーしました');
-                          }}
-                          className="text-green-600 hover:text-green-800"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="flex items-center justify-between bg-blue-50 p-2 rounded border border-blue-200">
-                        <span className="text-blue-800">https://rpc.ankr.com/polygon_amoy</span>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText('https://rpc.ankr.com/polygon_amoy');
-                            toast.success('📋 RPCアドレスをコピーしました');
-                          }}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-blue-50 rounded p-3 border border-blue-200">
-                    <h4 className="font-semibold text-blue-900 mb-2">📝 MetaMask設定変更手順</h4>
-                    <ol className="text-sm text-blue-800 space-y-1">
-                      <li>1. MetaMask → ネットワーク → 「ネットワークを編集」</li>
-                      <li>2. 「RPC URL」を上記の推奨アドレスに変更</li>
-                      <li>3. 「保存」をクリック</li>
-                      <li>4. MetaMaskを一度閉じて再度開く</li>
-                      <li>5. SBT記録を再試行</li>
-                    </ol>
-                  </div>
-                  
-                  <div className="bg-green-50 rounded p-3 border border-green-200">
-                    <p className="text-sm text-green-800">
-                      💡 <strong>重要:</strong> SBTデータは既にローカルストレージに保存されています。
-                      ネットワーク接続の問題が解決されれば、ブロックチェーンへの記録が可能になります。
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">利用可能なネットワーク</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {Object.values(NETWORKS).map((network) => (
-                  <div
-                    key={network.chainId}
-                    className={`p-3 rounded-lg border ${
-                      network.chainId === currentChainId
-                        ? 'bg-indigo-50 border-indigo-200'
-                        : 'bg-gray-50 border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-gray-900">{network.displayName}</p>
-                        <p className="text-xs text-gray-600">Chain ID: {network.chainId}</p>
-                      </div>
-                      {network.chainId === currentChainId && (
-                        <span className="px-2 py-1 bg-indigo-600 text-white text-xs font-semibold rounded">
-                          接続中
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* ウォレット & ネットワーク情報 */}
+        <WalletSelector
+          title="ウォレット & ネットワーク設定"
+          showChainSelector={true}
+        />
 
         {/* 🔐 IPFS/Pinata設定 */}
         <div className="bg-white rounded-xl shadow-lg p-8">

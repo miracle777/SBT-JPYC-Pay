@@ -10,6 +10,9 @@ export interface WalletContextType {
   connect: () => Promise<void>;
   disconnect: () => void;
   switchChain: (chainId: number) => Promise<void>;
+  switchAccount: () => Promise<void>;
+  hasMultipleAccounts: boolean;
+  supportedChains: Array<{ chainId: number; name: string; isTestnet: boolean }>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -20,6 +23,13 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
+  const [hasMultipleAccounts, setHasMultipleAccounts] = useState(false);
+  
+  // サポートされるチェーンの定義
+  const supportedChains = [
+    { chainId: 137, name: 'Polygon Mainnet', isTestnet: false },
+    { chainId: 80002, name: 'Polygon Amoy Testnet', isTestnet: true },
+  ];
 
   // ローカルストレージから接続情報を復元
   useEffect(() => {
@@ -139,6 +149,35 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.removeItem('walletChainId');
   };
 
+  const switchAccount = async () => {
+    if (!window.ethereum) {
+      throw new Error('ウォレットが接続されていません');
+    }
+
+    try {
+      // MetaMaskのアカウント選択ダイアログを表示
+      await window.ethereum.request({
+        method: 'wallet_requestPermissions',
+        params: [{ eth_accounts: {} }],
+      });
+      
+      // 新しいアカウント情報を取得
+      const accounts = await window.ethereum.request({
+        method: 'eth_accounts',
+      });
+      
+      if (accounts && accounts.length > 0) {
+        setAddress(accounts[0]);
+        setHasMultipleAccounts(accounts.length > 1);
+        localStorage.setItem('walletAddress', accounts[0]);
+      }
+    } catch (error: any) {
+      if (error.code !== 4001) {
+        throw new Error(`アカウント切り替えエラー: ${error.message}`);
+      }
+    }
+  };
+
   const switchChain = async (targetChainId: number) => {
     if (!window.ethereum) {
       throw new Error('Ethereum プロバイダーが利用できません');
@@ -172,6 +211,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         connect,
         disconnect,
         switchChain,
+        switchAccount,
+        hasMultipleAccounts,
+        supportedChains,
       }}
     >
       {children}
