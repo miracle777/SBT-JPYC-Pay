@@ -130,7 +130,7 @@ export const PWAStatus: React.FC = () => {
       <Button
         onClick={() => setIsVisible(true)}
         variant="outline"
-        className="fixed bottom-2 xs:bottom-4 right-2 xs:right-4 z-50 bg-white shadow-lg text-xs xs:text-sm py-1 px-2 xs:py-2 xs:px-3 landscape:bottom-1 landscape:right-1 landscape:text-xs landscape:py-0.5 landscape:px-1.5"
+        className="fixed bottom-2 xs:bottom-4 right-2 xs:right-4 z-50 bg-white bg-opacity-95 backdrop-blur-sm shadow-lg border-gray-200 text-xs xs:text-sm py-1 px-2 xs:py-2 xs:px-3 landscape:bottom-1 landscape:right-1 landscape:text-xs landscape:py-0.5 landscape:px-1.5"
       >
         <span className="hidden xs:inline">PWA状態確認</span>
         <span className="xs:hidden">PWA</span>
@@ -139,12 +139,12 @@ export const PWAStatus: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-2 xs:bottom-4 right-2 xs:right-4 z-50 bg-white shadow-2xl rounded-lg p-3 xs:p-4 max-w-xs xs:max-w-sm border landscape:bottom-1 landscape:right-1 landscape:p-2 landscape:max-w-xs">
+    <div className="fixed bottom-2 xs:bottom-4 right-2 xs:right-4 z-50 bg-white bg-opacity-95 backdrop-blur-sm shadow-2xl rounded-lg p-3 xs:p-4 max-w-xs xs:max-w-sm border border-gray-200 landscape:bottom-1 landscape:right-1 landscape:p-2 landscape:max-w-xs">
       <div className="flex justify-between items-center mb-2 xs:mb-3 landscape:mb-1">
-        <h3 className="font-semibold text-sm xs:text-lg landscape:text-sm">PWA状態</h3>
+        <h3 className="font-semibold text-sm xs:text-lg landscape:text-sm text-gray-800">PWA状態</h3>
         <button
           onClick={() => setIsVisible(false)}
-          className="text-gray-500 hover:text-gray-700 text-lg xs:text-xl leading-none landscape:text-base"
+          className="text-gray-500 hover:text-gray-700 text-lg xs:text-xl leading-none landscape:text-base bg-gray-100 hover:bg-gray-200 rounded-full w-6 h-6 xs:w-7 xs:h-7 flex items-center justify-center"
         >
           ×
         </button>
@@ -152,38 +152,46 @@ export const PWAStatus: React.FC = () => {
       
       <div className="space-y-1 xs:space-y-2 text-xs xs:text-sm landscape:space-y-0.5 landscape:text-xs">
         <div className="flex justify-between">
-          <span>プラットフォーム:</span>
-          <span className="font-mono">{pwaInfo.platform}</span>
+          <span className="text-gray-600">プラットフォーム:</span>
+          <span className="font-mono text-gray-800">{pwaInfo.platform}</span>
         </div>
         
         <div className="flex justify-between">
-          <span>表示モード:</span>
-          <span className={`font-mono ${pwaInfo.isInstalled ? 'text-green-600' : 'text-gray-600'}`}>
+          <span className="text-gray-600">表示モード:</span>
+          <span className={`font-mono ${pwaInfo.isInstalled ? 'text-green-600' : 'text-gray-800'}`}>
             {pwaInfo.displayMode}
           </span>
         </div>
         
         <div className="flex justify-between">
-          <span>インストール状態:</span>
-          <span className={pwaInfo.isInstalled ? 'text-green-600' : 'text-gray-600'}>
+          <span className="text-gray-600">インストール状態:</span>
+          <span className={pwaInfo.isInstalled ? 'text-green-600' : 'text-gray-800'}>
             {pwaInfo.isInstalled ? '✅ インストール済み' : '❌ 未インストール'}
           </span>
         </div>
         
         <div className="flex justify-between">
-          <span>Service Worker:</span>
+          <span className="text-gray-600">Service Worker:</span>
           <span className={getStatusColor(pwaInfo.swStatus)}>
             {pwaInfo.swStatus}
           </span>
         </div>
         
         <div className="flex justify-between">
-          <span>キャッシュサイズ:</span>
-          <span className="font-mono">{pwaInfo.cacheSize} MB</span>
+          <span className="text-gray-600">キャッシュサイズ:</span>
+          <span className="font-mono text-gray-800">{pwaInfo.cacheSize} MB</span>
         </div>
         
-        {pwaInfo.isInstallable && !pwaInfo.isInstalled && (
-          <div className="mt-3 p-2 bg-blue-50 rounded text-blue-700 text-xs">
+        {/* iOS制限の説明 */}
+        {/iPhone|iPad|iPod/i.test(navigator.userAgent) && (
+          <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-blue-800 text-xs landscape:mt-2">
+            <p className="font-medium mb-1">📱 iOS PWA制限</p>
+            <p>iOSでは自動インストールプロンプトは表示されません。Safari の「共有」→「ホーム画面に追加」で手動インストールしてください。</p>
+          </div>
+        )}
+        
+        {pwaInfo.isInstallable && !pwaInfo.isInstalled && !/iPhone|iPad|iPod/i.test(navigator.userAgent) && (
+          <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-green-800 text-xs landscape:mt-2">
             💡 このアプリはインストール可能です
           </div>
         )}
