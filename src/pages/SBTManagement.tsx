@@ -258,39 +258,8 @@ const SBTManagement: React.FC = () => {
           console.warn('店舗設定読み込みエラー:', error);
         }
 
-        // コントラクト所有者を確認（Polygon Amoy testnet を確認）
-        if (selectedChainForSBT) {
-          try {
-            const ownerResult = await getContractOwner(selectedChainForSBT);
-            if (ownerResult.owner) {
-              setContractOwner(ownerResult.owner);
-              
-              // 現在のウォレットがオーナーか確認
-              if (walletAddress && ownerResult.owner.toLowerCase() === walletAddress.toLowerCase()) {
-                setIsContractOwner(true);
-                console.log('✅ 現在のウォレットはコントラクトオーナーです');
-              } else {
-                setIsContractOwner(false);
-              }
-
-              // ショップ情報を取得（shopId = 1 を確認）
-              const shopResult = await getShopInfo(1, selectedChainForSBT);
-              if (shopResult.owner) {
-                setShopInfo(shopResult);
-                if (walletAddress && shopResult.owner.toLowerCase() === walletAddress.toLowerCase()) {
-                  setIsShopOwner(true);
-                  console.log('✅ 現在のウォレットはショップオーナー（ID: 1）です');
-                } else {
-                  setIsShopOwner(false);
-                }
-              }
-            } else if (ownerResult.error) {
-              console.warn('⚠️ コントラクト所有者取得エラー:', ownerResult.error);
-            }
-          } catch (ownerError) {
-            console.warn('⚠️ コントラクト所有者確認エラー:', ownerError);
-          }
-        }
+        // 注意: コントラクト所有者とショップオーナーのチェックは
+        // useEffect (行375付近) で実行されます
 
         // ショップ登録状況を確認（データロード後）
         setTimeout(() => checkAndRegisterInitialShops(), 1000); // 1秒後に実行
