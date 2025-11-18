@@ -245,9 +245,24 @@ const transports = {
 };
 
 const connectors = [
-  metaMask(),
-  injected(),
-  walletConnect({ projectId }),
+  metaMask({
+    dappMetadata: {
+      name: 'SBT JPYC Pay',
+      url: typeof window !== 'undefined' ? window.location.origin : '',
+    },
+  }),
+  injected({
+    shimDisconnect: true,
+  }),
+  walletConnect({
+    projectId,
+    metadata: {
+      name: 'SBT JPYC Pay',
+      description: 'SBT Stamp Card & JPYC Payment System',
+      url: typeof window !== 'undefined' ? window.location.origin : '',
+      icons: [`${typeof window !== 'undefined' ? window.location.origin : ''}/icons/icon-192x192.png`],
+    },
+  }),
 ];
 
 const wagmiConfig = createConfig({
