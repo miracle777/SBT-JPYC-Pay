@@ -16,12 +16,12 @@ const AppContent: React.FC = () => {
   const { showBrowserRedirect, closeBrowserRedirect, forceConnect } = useWallet();
 
   return (
-    <div className="App min-h-screen bg-gray-50 flex flex-col">
+    <div className="App min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">
       <Header onHelpClick={() => setShowHelp(true)} />
       <MetaMaskBrowserInfo />
       <PWAWalletBanner />
       <DisclaimerBanner />
-      <main className="flex-1">
+      <main className="flex-1 overflow-x-hidden">
         <Outlet />
       </main>
       <Footer />

@@ -83,7 +83,7 @@ const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
 
         {/* モバイルナビゲーション */}
         {isMenuOpen && (
-          <nav className="md:hidden mt-3 xs:mt-4 space-y-1 xs:space-y-2 border-t border-gray-200 pt-3 xs:pt-4 landscape:mt-2 landscape:pt-2 relative z-40 -mx-3 xs:-mx-4 sm:-mx-6 px-3 xs:px-4 sm:px-6 overflow-x-hidden max-w-full">
+          <nav className="md:hidden mt-3 xs:mt-4 space-y-1 xs:space-y-2 border-t border-gray-200 pt-3 xs:pt-4 landscape:mt-2 landscape:pt-2 relative z-40 overflow-x-hidden">
             <Link
               to="/"
               className="block px-3 xs:px-4 py-1.5 xs:py-2 text-sm xs:text-base text-gray-600 hover:bg-gray-100 rounded-lg transition truncate"

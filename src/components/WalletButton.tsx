@@ -37,49 +37,51 @@ export const WalletButton: React.FC = () => {
     <ConnectButton.Custom>
       {({ account, chain, openChainModal, openConnectModal, authenticationStatus, mounted }) => {
         const ready = mounted && authenticationStatus !== 'loading';
-        const connected = ready && account && chain && (!authenticationStatus || authenticationStatus === 'authenticated');
+        const connected = ready && account && chain;
 
         return (
-          <div {...(!ready && { 'aria-hidden': true, style: { opacity: 0, pointerEvents: 'none', userSelect: 'none' } })}>
-            {(() => {
-              if (!connected) {
-                return (
-                  <button
-                    onClick={() => {
-                      try {
-                        clearError();
-                        openConnectModal?.();
-                      } catch (err: unknown) {
-                        console.error('Connect error:', err);
-                        const errorMessage = err instanceof Error ? err.message : String(err);
-                        setError(errorMessage?.includes('User rejected') || errorMessage?.includes('user rejected') ? 'ウォレットでの接続要求が拒否されました。再度お試しください。' : 'ウォレット接続中にエラーが発生しました。');
-                      }
-                    }}
-                    type="button"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 xs:px-6 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 mx-auto text-sm xs:text-base whitespace-nowrap"
-                  >
-                    <Wallet className="h-4 w-4" />
-                    ウォレット接続
-                  </button>
-                );
-              }
-
-              if (chain?.unsupported) {
-                return (
-                  <div className="space-y-2">
-                    <div className="p-2 xs:p-3 bg-yellow-50 rounded border border-yellow-200">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
-                        <span className="text-xs font-medium text-yellow-800">サポートされていないネットワークです</span>
-                      </div>
-                    </div>
-                    <button onClick={() => openChainModal?.()} type="button" className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-3 rounded text-xs">ネットワークを切り替え</button>
+          <div>
+            {!ready ? (
+              // ローディング状態
+              <button
+                disabled
+                type="button"
+                className="bg-gray-300 text-white font-semibold py-2 px-4 xs:px-6 rounded-lg opacity-50 cursor-not-allowed flex items-center gap-2 text-sm xs:text-base whitespace-nowrap"
+              >
+                <Wallet className="h-4 w-4" />
+                読込中...
+              </button>
+            ) : !connected ? (
+              // 接続していない状態
+              <button
+                onClick={() => {
+                  try {
+                    clearError();
+                    openConnectModal?.();
+                  } catch (err: unknown) {
+                    console.error('Connect error:', err);
+                    const errorMessage = err instanceof Error ? err.message : String(err);
+                    setError(errorMessage?.includes('User rejected') || errorMessage?.includes('user rejected') ? 'ウォレットでの接続要求が拒否されました。再度お試しください。' : 'ウォレット接続中にエラーが発生しました。');
+                  }
+                }}
+                type="button"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 xs:px-6 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 mx-auto text-sm xs:text-base whitespace-nowrap"
+              >
+                <Wallet className="h-4 w-4" />
+                ウォレット接続
+              </button>
+            ) : chain?.unsupported ? (
+              // サポートされていないチェーン
+              <div className="space-y-2">
+                <div className="p-2 xs:p-3 bg-yellow-50 rounded border border-yellow-200">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
+                    <span className="text-xs font-medium text-yellow-800">サポートされていないネットワークです</span>
                   </div>
-                );
-              }
-
-              return null;
-            })()}
+                </div>
+                <button onClick={() => openChainModal?.()} type="button" className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-3 rounded text-xs">ネットワークを切り替え</button>
+              </div>
+            ) : null}
           </div>
         );
       }}
