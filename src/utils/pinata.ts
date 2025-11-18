@@ -1,6 +1,7 @@
 import { PinataUploadResponse, PinataMetadata, SBTMetadata } from '../types';
 import { PINATA_CONFIG } from '../config';
 import { getErrorMessage } from '../utils/helpers';
+import { getSBTRank, generateBenefits, type ShopSettings } from './shopSettings';
 
 interface PinataApiResponse {
   IpfsHash: string;
@@ -300,12 +301,7 @@ export class PinataService {
     imageFile: File,
     sbtName: string,
     sbtDescription: string,
-    shopSettings: {
-      name: string;
-      id: string;
-      category: string;
-      description: string;
-    },
+    shopSettings: ShopSettings,
     template: {
       shopId: number;
       maxStamps: number;
@@ -320,27 +316,10 @@ export class PinataService {
         description: `Image for SBT: ${sbtName}`,
       });
 
-      // 2. ランクを決定
-      const getSBTRank = (requiredVisits: number): 'bronze' | 'silver' | 'gold' | 'platinum' => {
-        if (requiredVisits >= 50) return 'platinum';
-        if (requiredVisits >= 20) return 'gold';
-        if (requiredVisits >= 10) return 'silver';
-        return 'bronze';
-      };
+      // 2. ランクを決定（shopSettingsのカスタム閾値を使用）
+      const rank = getSBTRank(template.maxStamps, shopSettings);
 
       // 3. 特典リストを生成
-      const generateBenefits = (rewardDescription: string): string[] => {
-        if (!rewardDescription.trim()) {
-          return ['特典なし'];
-        }
-        const benefits = rewardDescription
-          .split(/[,、\n・]/)
-          .map(item => item.trim())
-          .filter(item => item.length > 0);
-        return benefits.length > 0 ? benefits : [rewardDescription];
-      };
-
-      const rank = getSBTRank(template.maxStamps);
       const benefits = generateBenefits(template.rewardDescription);
 
       // 4. 動的メタデータを作成（ユーザーの要求に従った形式）

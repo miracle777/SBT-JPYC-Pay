@@ -6,7 +6,7 @@ import { DEFAULT_SHOP_INFO, getShopWalletAddress, getShopInfo } from '../config/
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
 import { pinataService } from '../utils/pinata';
-import { generateNewShopId } from '../utils/shopSettings';
+import { generateNewShopId, DEFAULT_RANK_THRESHOLDS, type RankThresholds } from '../utils/shopSettings';
 import WalletSelector from '../components/WalletSelector';
 import StorageCompatibilityChecker from '../components/StorageCompatibilityChecker';
 import { PWAWalletCacheManager } from '../components/PWAWalletCacheManager';
@@ -19,6 +19,9 @@ const Settings: React.FC = () => {
     category: '',
     description: '',
   });
+
+  // 🎖️ ランク設定の状態管理
+  const [rankThresholds, setRankThresholds] = useState<RankThresholds>(DEFAULT_RANK_THRESHOLDS);
 
   // 🔐 Pinata設定の状態管理
   const [pinataConfig, setPinataConfig] = useState({
@@ -49,6 +52,10 @@ const Settings: React.FC = () => {
             category: shop.category || '',
             description: shop.description || '',
           });
+          // ランク設定も読み込み
+          if (shop.rankThresholds) {
+            setRankThresholds(shop.rankThresholds);
+          }
         } else {
           // 初回設定時はUUIDベースの店舗IDを発行
           const newShopId = generateNewShopId();
@@ -198,18 +205,19 @@ const Settings: React.FC = () => {
         return;
       }
 
-      // 店舗設定を保存
+      // 店舗設定を保存（ランク設定含む）
       const shopData = {
         ...shopInfo,
         name: shopInfo.name.trim(),
         category: shopInfo.category.trim(),
         description: shopInfo.description.trim(),
+        rankThresholds: rankThresholds,
         updatedAt: new Date().toISOString(),
       };
       
       localStorage.setItem('shop-info', JSON.stringify(shopData));
       console.log('✅ 店舗設定保存完了:', shopData);
-      toast.success('設定を保存しました');
+      toast.success('設定を保存しました（ランク設定含む）');
     } catch (error) {
       console.error('設定保存エラー:', error);
       toast.error('設定の保存に失敗しました');
@@ -365,6 +373,96 @@ const Settings: React.FC = () => {
               <Save className="w-4 h-4" /> 保存
             </button>
           </div>
+        </div>
+
+        {/* 🎖️ SBTランク設定 */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-6">🎖️ SBTランク設定</h2>
+          
+          <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+            <h3 className="font-semibold text-purple-900 mb-2">📊 ランク自動判定について</h3>
+            <p className="text-sm text-purple-800 mb-2">
+              スタンプカードの必要訪問回数に応じて、SBTのランク（Bronze/Silver/Gold/Platinum）が自動的に決定されます。
+            </p>
+            <p className="text-sm text-purple-800">
+              例: 必要訪問回数が15回の場合 → Silverランク（10回以上20回未満）
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                🥉 ブロンズ（最小訪問回数）
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={rankThresholds.bronzeMin}
+                onChange={(e) => setRankThresholds({ ...rankThresholds, bronzeMin: parseInt(e.target.value) || 1 })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">デフォルト: 1回</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                🥈 シルバー（最小訪問回数）
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={rankThresholds.silverMin}
+                onChange={(e) => setRankThresholds({ ...rankThresholds, silverMin: parseInt(e.target.value) || 10 })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">デフォルト: 10回</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                🥇 ゴールド（最小訪問回数）
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={rankThresholds.goldMin}
+                onChange={(e) => setRankThresholds({ ...rankThresholds, goldMin: parseInt(e.target.value) || 20 })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">デフォルト: 20回</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                💎 プラチナ（最小訪問回数）
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={rankThresholds.platinumMin}
+                onChange={(e) => setRankThresholds({ ...rankThresholds, platinumMin: parseInt(e.target.value) || 50 })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">デフォルト: 50回</p>
+            </div>
+          </div>
+
+          <div className="mt-6 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <p className="text-sm font-semibold text-gray-700 mb-2">現在の設定:</p>
+            <div className="text-xs text-gray-600 space-y-1">
+              <p>• 🥉 ブロンズ: {rankThresholds.bronzeMin}～{rankThresholds.silverMin - 1}回</p>
+              <p>• 🥈 シルバー: {rankThresholds.silverMin}～{rankThresholds.goldMin - 1}回</p>
+              <p>• 🥇 ゴールド: {rankThresholds.goldMin}～{rankThresholds.platinumMin - 1}回</p>
+              <p>• 💎 プラチナ: {rankThresholds.platinumMin}回以上</p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleSave}
+            className="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2"
+          >
+            <Save className="w-4 h-4" /> ランク設定を保存
+          </button>
         </div>
 
         {/* ウォレット & ネットワーク情報 */}

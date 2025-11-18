@@ -4,12 +4,30 @@
 
 import { DEFAULT_SHOP_INFO } from '../config/shop';
 
+export interface RankThresholds {
+  bronzeMin: number;
+  silverMin: number;
+  goldMin: number;
+  platinumMin: number;
+}
+
 export interface ShopSettings {
   name: string;
   id: string;
   category: string;
   description: string;
+  rankThresholds?: RankThresholds;
 }
+
+/**
+ * デフォルトのランク閾値
+ */
+export const DEFAULT_RANK_THRESHOLDS: RankThresholds = {
+  bronzeMin: 1,
+  silverMin: 10,
+  goldMin: 20,
+  platinumMin: 50,
+};
 
 /**
  * 店舗設定をローカルストレージから取得
@@ -24,6 +42,7 @@ export function getShopSettings(): ShopSettings {
         id: config.id || generateNewShopId(), // デフォルトのshop-001を使わず、新しいIDを生成
         category: config.category || '',
         description: config.description || '',
+        rankThresholds: config.rankThresholds || DEFAULT_RANK_THRESHOLDS,
       };
     }
   } catch (error) {
@@ -32,11 +51,12 @@ export function getShopSettings(): ShopSettings {
 
   // デフォルト値を返す際も新しいIDを生成
   const newShopId = generateNewShopId();
-  const defaultSettings = {
+  const defaultSettings: ShopSettings = {
     name: DEFAULT_SHOP_INFO.name,
     id: newShopId,
     category: '',
     description: '',
+    rankThresholds: DEFAULT_RANK_THRESHOLDS,
   };
 
   // 自動的に保存してしまう
@@ -71,11 +91,18 @@ export function saveShopSettings(settings: ShopSettings): boolean {
 /**
  * SBTランクを決定
  * 必要訪問回数に応じてランクを自動設定
+ * @param requiredVisits 必要訪問回数
+ * @param shopSettings 店舗設定（ランク閾値を含む）
  */
-export function getSBTRank(requiredVisits: number): 'bronze' | 'silver' | 'gold' | 'platinum' {
-  if (requiredVisits >= 50) return 'platinum';
-  if (requiredVisits >= 20) return 'gold';
-  if (requiredVisits >= 10) return 'silver';
+export function getSBTRank(
+  requiredVisits: number,
+  shopSettings?: ShopSettings
+): 'bronze' | 'silver' | 'gold' | 'platinum' {
+  const thresholds = shopSettings?.rankThresholds || DEFAULT_RANK_THRESHOLDS;
+  
+  if (requiredVisits >= thresholds.platinumMin) return 'platinum';
+  if (requiredVisits >= thresholds.goldMin) return 'gold';
+  if (requiredVisits >= thresholds.silverMin) return 'silver';
   return 'bronze';
 }
 

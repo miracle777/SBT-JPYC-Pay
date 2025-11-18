@@ -1027,16 +1027,92 @@ const SBTManagement: React.FC = () => {
       recipientAddress = walletAddress;
     }
 
-    // 基本的な SBT オブジェクトを作成
+    // ⭐ 発行パターンによって処理を分岐
+    if (template.issuePattern === 'after_count') {
+      // 🔢 マイルストーン方式: N回達成時のみSBT発行
+      
+      // このウォレット+テンプレートの支払い回数をカウント
+      const paymentCount = completedPayments.filter(
+        (p) => p.payerAddress?.toLowerCase() === recipientAddress.toLowerCase()
+      ).length;
+      
+      console.log(`🔢 マイルストーン進捗: ${paymentCount}/${template.maxStamps}回`);
+      
+      if (paymentCount < template.maxStamps) {
+        // まだ達成していない
+        toast(`📊 マイルストーン進捗: ${paymentCount}/${template.maxStamps}回\nあと${template.maxStamps - paymentCount}回で達成です！`, {
+          icon: '🎯',
+          duration: 4000,
+        });
+        setNewIssuance({ templateId: templates[0]?.id || '', recipientAddress: '' });
+        setShowIssuanceForm(false);
+        return; // SBT発行しない
+      }
+      
+      // ちょうど達成 → SBT発行（既に発行済みでないかチェック）
+      const alreadyIssued = issuedSBTs.find(
+        (sbt) => sbt.recipientAddress.toLowerCase() === recipientAddress.toLowerCase() && 
+                 sbt.templateId === template.id
+      );
+      
+      if (alreadyIssued) {
+        toast.error(`このマイルストーンSBTは既に発行済みです`);
+        setNewIssuance({ templateId: templates[0]?.id || '', recipientAddress: '' });
+        setShowIssuanceForm(false);
+        return;
+      }
+      
+      // 🎉 マイルストーン達成 → SBT発行
+      toast.success(`🎉 マイルストーン達成！${template.maxStamps}回到達 → SBT発行`);
+      
+    } else {
+      // 🎁 スタンプカード方式: 毎回スタンプ累計
+      
+      // 同じウォレット + 同じテンプレートの既存SBTを検索
+      const existingSBT = issuedSBTs.find(
+        (sbt) => sbt.recipientAddress.toLowerCase() === recipientAddress.toLowerCase() && 
+                 sbt.templateId === template.id &&
+                 sbt.status === 'active' // 有効なSBTのみカウント
+      );
+
+      if (existingSBT) {
+        // 既存のSBTが見つかった場合、スタンプを+1
+        console.log('✅ 既存SBT発見 - スタンプを累計します:', existingSBT);
+        
+        // currentStampsを+1
+        existingSBT.currentStamps += 1;
+        
+        // maxStampsに達したかチェック
+        if (existingSBT.currentStamps >= existingSBT.maxStamps) {
+          existingSBT.status = 'redeemed';
+          toast.success(`🎉 スタンプカード完成！ ${existingSBT.currentStamps}/${existingSBT.maxStamps} - 特典を受け取れます！`);
+        } else {
+          toast.success(`✅ スタンプ+1！ ${existingSBT.currentStamps}/${existingSBT.maxStamps}`);
+        }
+
+        // IndexedDBとlocalStorageを更新
+        await sbtStorage.saveSBT(existingSBT);
+        
+        // 状態更新
+        setIssuedSBTs(issuedSBTs.map(s => s.id === existingSBT.id ? existingSBT : s));
+        setNewIssuance({ templateId: templates[0]?.id || '', recipientAddress: '' });
+        setShowIssuanceForm(false);
+        
+        return; // 既存SBT更新の場合、ここで終了（新規mint不要）
+      }
+    }
+
+    // 新規SBTを作成
+    console.log('🆕 新規SBT発行');
     const sbt: IssuedSBT = {
       id: `sbt-${Date.now()}`,
       templateId: template.id,
       templateName: template.name,
       recipientAddress,
-      currentStamps: 0,
+      currentStamps: template.issuePattern === 'after_count' ? template.maxStamps : 1, // マイルストーンは達成済み、スタンプカードは1
       maxStamps: template.maxStamps,
       issuedAt: new Date().toISOString().split('T')[0],
-      status: 'active',
+      status: template.issuePattern === 'after_count' ? 'redeemed' : 'active', // マイルストーンは即完了
       sourcePaymentId,
       transactionHash,
       sbtMintStatus: 'pending',
