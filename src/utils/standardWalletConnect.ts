@@ -28,6 +28,7 @@ export interface DetectedWallet {
 export function detectWallets(): Promise<DetectedWallet[]> {
   return new Promise((resolve) => {
     const wallets: DetectedWallet[] = [];
+    const detectedIds = new Set<string>(); // 重複排除用ID セット
     const isMobile = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent);
     
     // ============================================
@@ -41,12 +42,13 @@ export function detectWallets(): Promise<DetectedWallet[]> {
       });
       
       // 1-1: MetaMask直接
-      if (window.ethereum.isMetaMask && !wallets.find(w => w.info.name.includes('MetaMask'))) {
+      if (window.ethereum.isMetaMask && !detectedIds.has('metamask')) {
         console.log('🦊 MetaMask (window.ethereum.isMetaMask) 検出');
+        detectedIds.add('metamask');
         wallets.push({
           provider: window.ethereum,
           info: {
-            id: 'metamask-direct',
+            id: 'metamask',
             name: 'MetaMask',
             icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTMwLjA3IDIuOTNsLTYuNjQgNC45NC0xLjE0IDguOTRIMTAuNzFsLTEuMTQtOC45NC02LjY0LTQuOTRMMS45NSA5LjJWMjdoMjkuMVY5LjJsLTEtNi4yN1oiIGZpbGw9IiNmNjY1MjEiLz48L3N2Zz4=',
             installed: true,
@@ -57,12 +59,13 @@ export function detectWallets(): Promise<DetectedWallet[]> {
       }
       
       // 1-2: Coinbase Wallet直接
-      if ((window.ethereum as any).isCoinbaseWallet && !wallets.find(w => w.info.name.includes('Coinbase'))) {
+      if ((window.ethereum as any).isCoinbaseWallet && !detectedIds.has('coinbase-wallet')) {
         console.log('🪙 Coinbase Wallet (window.ethereum.isCoinbaseWallet) 検出');
+        detectedIds.add('coinbase-wallet');
         wallets.push({
           provider: window.ethereum,
           info: {
-            id: 'coinbase-direct',
+            id: 'coinbase-wallet',
             name: 'Coinbase Wallet',
             icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTYuNSIgY3k9IjE2LjUiIHI9IjE2LjUiIGZpbGw9IiMwMDUyZmYiLz48L3N2Zz4=',
             installed: true,
@@ -77,12 +80,15 @@ export function detectWallets(): Promise<DetectedWallet[]> {
         console.log('📦 複数プロバイダー検出:', (window.ethereum as any).providers.length);
         
         for (const provider of (window.ethereum as any).providers) {
-          if (provider.isMetaMask && !wallets.find(w => w.info.name.includes('MetaMask'))) {
-            console.log('🦊 MetaMask (providers[]) 検出');
+          // MetaMask: provider.rdns == 'io.metamask' の場合もある
+          const isMetaMaskProvider = provider.isMetaMask || provider.rdns === 'io.metamask';
+          if (isMetaMaskProvider && !detectedIds.has('metamask')) {
+            console.log('🦊 MetaMask (providers[] または rdns) 検出');
+            detectedIds.add('metamask');
             wallets.push({
               provider,
               info: {
-                id: 'metamask-providers',
+                id: 'metamask',
                 name: 'MetaMask',
                 icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTMwLjA3IDIuOTNsLTYuNjQgNC45NC0xLjE0IDguOTRIMTAuNzFsLTEuMTQtOC45NC02LjY0LTQuOTRMMS45NSA5LjJWMjdoMjkuMVY5LjJsLTEtNi4yN1oiIGZpbGw9IiNmNjY1MjEiLz48L3N2Zz4=',
                 installed: true,
@@ -91,12 +97,13 @@ export function detectWallets(): Promise<DetectedWallet[]> {
               }
             });
           }
-          if ((provider as any).isCoinbaseWallet && !wallets.find(w => w.info.name.includes('Coinbase'))) {
+          if ((provider as any).isCoinbaseWallet && !detectedIds.has('coinbase-wallet')) {
             console.log('🪙 Coinbase Wallet (providers[]) 検出');
+            detectedIds.add('coinbase-wallet');
             wallets.push({
               provider,
               info: {
-                id: 'coinbase-providers',
+                id: 'coinbase-wallet',
                 name: 'Coinbase Wallet',
                 icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTYuNSIgY3k9IjE2LjUiIHI9IjE2LjUiIGZpbGw9IiMwMDUyZmYiLz48L3N2Zz4=',
                 installed: true,
@@ -118,12 +125,17 @@ export function detectWallets(): Promise<DetectedWallet[]> {
       const { info, provider } = event.detail;
       console.log('🔍 EIP-6963 ウォレット検出:', info.name);
       
-      // 重複チェック
-      if (!wallets.find(w => w.info.id === (info.uuid || info.rdns || info.name))) {
+      // ウォレット名をID化（MetaMask, Coinbase Wallet など）
+      let walletId = info.rdns || info.name.toLowerCase().replace(/\s+/g, '-');
+      
+      // 既に検出されているか確認（ID ベースで判定）
+      if (!detectedIds.has(walletId)) {
+        detectedIds.add(walletId);
+        
         wallets.push({
           provider,
           info: {
-            id: info.uuid || info.rdns || info.name,
+            id: walletId,
             name: info.name,
             icon: info.icon,
             installed: true,
@@ -132,6 +144,9 @@ export function detectWallets(): Promise<DetectedWallet[]> {
             rdns: info.rdns
           }
         });
+        console.log('✅ EIP-6963ウォレット追加:', info.name);
+      } else {
+        console.log('⊘ 重複排除: EIP-6963 ウォレット', info.name, 'はすでに検出済み');
       }
     }
 
