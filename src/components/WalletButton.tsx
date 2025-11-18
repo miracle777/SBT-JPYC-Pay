@@ -39,6 +39,11 @@ export const WalletButton: React.FC = () => {
         const ready = mounted && authenticationStatus !== 'loading';
         const connected = ready && account && chain;
 
+        // Debug modal state
+        if (!ready) {
+          console.log('🔄 ConnectButton: Initializing...');
+        }
+
         return (
           <div>
             {!ready ? (
@@ -57,9 +62,11 @@ export const WalletButton: React.FC = () => {
                 onClick={() => {
                   try {
                     clearError();
+                    console.log('📱 Opening RainbowKit modal...');
+                    console.log('  openConnectModal function exists:', !!openConnectModal);
                     openConnectModal?.();
                   } catch (err: unknown) {
-                    console.error('Connect error:', err);
+                    console.error('❌ Connect error:', err);
                     const errorMessage = err instanceof Error ? err.message : String(err);
                     setError(errorMessage?.includes('User rejected') || errorMessage?.includes('user rejected') ? 'ウォレットでの接続要求が拒否されました。再度お試しください。' : 'ウォレット接続中にエラーが発生しました。');
                   }

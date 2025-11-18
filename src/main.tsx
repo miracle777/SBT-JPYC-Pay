@@ -254,16 +254,28 @@ const appUrl = typeof window !== 'undefined'
 
 const appIcon = `${appUrl}/icons/icon-192x192.png`;
 
+// Debug: Log wallet detection before creating connectors
+console.log('🔍 Wallet Detection (INITIAL):');
+console.log('  window.ethereum:', typeof window !== 'undefined' && (window as any).ethereum ? '✅ Found' : '❌ Not found');
+console.log('  isMetaMask:', typeof window !== 'undefined' && (window as any).ethereum?.isMetaMask ? '✅ true' : '❌ false');
+if (typeof window !== 'undefined' && (window as any).ethereum) {
+  console.log('  ethereum object:', (window as any).ethereum);
+}
+
 const connectors = [
-  injected({
-    shimDisconnect: true,
-  }),
+  // MetaMask として優先表示
   metaMask({
     dappMetadata: {
       name: 'SBT JPYC Pay',
       url: appUrl,
+      iconUrl: appIcon,
     },
   }),
+  // 汎用の注入型ウォレット（MetaMask 以外）
+  injected({
+    shimDisconnect: true,
+  }),
+  // WalletConnect
   walletConnect({
     projectId,
     metadata: {
@@ -275,18 +287,18 @@ const connectors = [
   }),
 ];
 
-// Debug: Log wallet detection and config
-if (typeof window !== 'undefined') {
-  console.log('🔍 Wallet Detection:');
-  console.log('  ethereum:', (window as any).ethereum ? '✅ Found' : '❌ Not found');
-  console.log('  ethereum.isMetaMask:', (window as any).ethereum?.isMetaMask ? '✅ MetaMask' : '❌ Not MetaMask');
-  console.log('  Connectors:', connectors.length, 'enabled');
-  console.log('🔑 WalletConnect ProjectID:', projectId ? `✅ ${projectId.substring(0, 10)}...` : '❌ Not set');
-  console.log('📊 RainbowKit Config:', {
-    chains: chains.map(c => c.name),
-    projectId: projectId ? 'SET' : 'MISSING',
-  });
-}
+// Debug: Log connector configuration and RainbowKit setup
+console.log('🔧 Connector Configuration:');
+console.log('  Connector count:', connectors.length);
+connectors.forEach((conn, idx) => {
+  console.log(`  [${idx}] Connector:`, conn);
+});
+
+console.log('🔑 WalletConnect ProjectID:', projectId ? `✅ Set (${projectId.substring(0, 10)}...)` : '❌ Not set');
+console.log('📊 RainbowKit Setup:');
+console.log('  Chains:', chains.map(c => `${c.name} (${c.id})`));
+console.log('  App URL:', appUrl);
+console.log('  Icon URL:', appIcon);
 
 const wagmiConfig = createConfig({
   chains,
@@ -295,6 +307,23 @@ const wagmiConfig = createConfig({
 });
 
 const queryClient = new QueryClient();
+
+// Log when RainbowKit initializes
+console.log('🚀 RainbowKit Initialization:');
+console.log('  wagmiConfig:', wagmiConfig ? 'Created' : 'Failed');
+console.log('  connectors in config:', wagmiConfig?.connectors?.length || 0);
+
+// More detailed connector inspection
+if (wagmiConfig?.connectors) {
+  wagmiConfig.connectors.forEach((conn: any, idx: number) => {
+    console.log(`  Connector[${idx}]:`, {
+      type: conn.type,
+      id: conn.id,
+      name: conn.name,
+      uid: conn.uid,
+    });
+  });
+}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
