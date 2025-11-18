@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ExternalLink, Smartphone, Monitor } from 'lucide-react';
 import { DetectedWallet, WalletProvider, detectWallets, connectWithWallet, getRecommendedWallets } from '../utils/standardWalletConnect';
 import { enableWalletDebugMode, checkNetworkConnectivity } from '../utils/walletDetectionDebug';
+import { getMobileEnvironment, logWalletDetectionDebug, waitForWalletDetection, isMetaMaskDetected } from '../utils/mobileWalletRedirect';
 
 interface StandardWalletModalProps {
   isOpen: boolean;
@@ -39,17 +40,28 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
     setLoadingError(null);
     setHasTimedOut(false);
     
-    const isMobile = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent);
+    const env = getMobileEnvironment();
     
-    console.log('🔍 ウォレット検出開始...', { isMobile, userAgent: navigator.userAgent });
+    console.log('🔍 ウォレット検出開始...', { 
+      isMobile: env.isMobile, 
+      isIOS: env.isIOS,
+      isAndroid: env.isAndroid,
+      userAgent: navigator.userAgent 
+    });
+    
+    // デバッグ情報をログ出力
+    logWalletDetectionDebug();
+    
     console.log('ethereum:', {
       exists: !!window.ethereum,
       isMetaMask: window.ethereum?.isMetaMask,
+      isCoinbase: (window.ethereum as any)?.isCoinbaseWallet,
       chainId: (window.ethereum as any)?.chainId
     });
     
-    // モバイルでは即座にフォールバック（2秒でタイムアウト）
-    const timeout = isMobile ? 2000 : 1500;
+    // モバイル環境ではより長い時間待つ（3秒でタイムアウト）
+    // その前にウォレット検出を待つ
+    const timeout = env.isMobile ? 3000 : 2000;
     
     const timeoutId = setTimeout(() => {
       console.log('⚠️ ウォレット検出タイムアウト - デフォルトオプションを表示');
@@ -62,12 +74,21 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
     }, timeout);
     
     try {
+      // モバイル環境ではウォレット検出の前に初期化を待つ
+      if (env.isMobile && !isMetaMaskDetected()) {
+        console.log('📱 モバイル環境でウォレット初期化を待機中...');
+        const detected = await waitForWalletDetection(1500);
+        console.log('⏱️ ウォレット初期化待機結果:', detected);
+      }
+      
       const detected = await detectWallets();
       
       // 検出が成功したらタイムアウトをクリア
       clearTimeout(timeoutId);
       
-      console.log('📱 検出されたウォレット:', detected.length, 'つ');
+      console.log('📱 検出されたウォレット:', detected.length, 'つ', {
+        names: detected.map(w => w.info.name)
+      });
       
       // MetaMaskが検出された場合は先頭に配置
       const sortedDetected = detected.sort((a, b) => {

@@ -23,114 +23,141 @@ export interface DetectedWallet {
 /**
  * EIP-6963準拠のウォレット検出
  * 標準的なウォレット一覧画面を実現
+ * モバイル環境ではMetaMask直接検出を優先
  */
 export function detectWallets(): Promise<DetectedWallet[]> {
   return new Promise((resolve) => {
     const wallets: DetectedWallet[] = [];
+    const isMobile = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent);
     
-    // EIP-6963イベントリスナー
+    // ============================================
+    // Step 1: window.ethereum直接確認（最優先）
+    // ============================================
+    if (window.ethereum) {
+      console.log('✅ window.ethereum 検出:', {
+        isMetaMask: window.ethereum.isMetaMask,
+        isCoinbase: (window.ethereum as any).isCoinbaseWallet,
+        hasProviders: !!(window.ethereum as any).providers
+      });
+      
+      // 1-1: MetaMask直接
+      if (window.ethereum.isMetaMask && !wallets.find(w => w.info.name.includes('MetaMask'))) {
+        console.log('🦊 MetaMask (window.ethereum.isMetaMask) 検出');
+        wallets.push({
+          provider: window.ethereum,
+          info: {
+            id: 'metamask-direct',
+            name: 'MetaMask',
+            icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTMwLjA3IDIuOTNsLTYuNjQgNC45NC0xLjE0IDguOTRIMTAuNzFsLTEuMTQtOC45NC02LjY0LTQuOTRMMS45NSA5LjJWMjdoMjkuMVY5LjJsLTEtNi4yN1oiIGZpbGw9IiNmNjY1MjEiLz48L3N2Zz4=',
+            installed: true,
+            mobile: isMobile,
+            desktop: !isMobile
+          }
+        });
+      }
+      
+      // 1-2: Coinbase Wallet直接
+      if ((window.ethereum as any).isCoinbaseWallet && !wallets.find(w => w.info.name.includes('Coinbase'))) {
+        console.log('🪙 Coinbase Wallet (window.ethereum.isCoinbaseWallet) 検出');
+        wallets.push({
+          provider: window.ethereum,
+          info: {
+            id: 'coinbase-direct',
+            name: 'Coinbase Wallet',
+            icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTYuNSIgY3k9IjE2LjUiIHI9IjE2LjUiIGZpbGw9IiMwMDUyZmYiLz48L3N2Zz4=',
+            installed: true,
+            mobile: isMobile,
+            desktop: !isMobile
+          }
+        });
+      }
+      
+      // 1-3: 複数プロバイダーがある場合
+      if ((window.ethereum as any).providers && Array.isArray((window.ethereum as any).providers)) {
+        console.log('📦 複数プロバイダー検出:', (window.ethereum as any).providers.length);
+        
+        for (const provider of (window.ethereum as any).providers) {
+          if (provider.isMetaMask && !wallets.find(w => w.info.name.includes('MetaMask'))) {
+            console.log('🦊 MetaMask (providers[]) 検出');
+            wallets.push({
+              provider,
+              info: {
+                id: 'metamask-providers',
+                name: 'MetaMask',
+                icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTMwLjA3IDIuOTNsLTYuNjQgNC45NC0xLjE0IDguOTRIMTAuNzFsLTEuMTQtOC45NC02LjY0LTQuOTRMMS45NSA5LjJWMjdoMjkuMVY5LjJsLTEtNi4yN1oiIGZpbGw9IiNmNjY1MjEiLz48L3N2Zz4=',
+                installed: true,
+                mobile: isMobile,
+                desktop: !isMobile
+              }
+            });
+          }
+          if ((provider as any).isCoinbaseWallet && !wallets.find(w => w.info.name.includes('Coinbase'))) {
+            console.log('🪙 Coinbase Wallet (providers[]) 検出');
+            wallets.push({
+              provider,
+              info: {
+                id: 'coinbase-providers',
+                name: 'Coinbase Wallet',
+                icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTYuNSIgY3k9IjE2LjUiIHI9IjE2LjUiIGZpbGw9IiMwMDUyZmYiLz48L3N2Zz4=',
+                installed: true,
+                mobile: isMobile,
+                desktop: !isMobile
+              }
+            });
+          }
+        }
+      }
+    } else {
+      console.log('⚠️ window.ethereum が見つかりません（MetaMask/ウォレット未インストール）');
+    }
+    
+    // ============================================
+    // Step 2: EIP-6963イベントリスナー
+    // ============================================
     function onAnnouncement(event: any) {
       const { info, provider } = event.detail;
-      console.log('🔍 ウォレット検出:', info.name);
+      console.log('🔍 EIP-6963 ウォレット検出:', info.name);
       
-      wallets.push({
-        provider,
-        info: {
-          id: info.uuid || info.rdns || info.name,
-          name: info.name,
-          icon: info.icon,
-          installed: true,
-          mobile: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent),
-          desktop: !/Mobile|Android|iPhone|iPad/.test(navigator.userAgent),
-          rdns: info.rdns
-        }
-      });
+      // 重複チェック
+      if (!wallets.find(w => w.info.id === (info.uuid || info.rdns || info.name))) {
+        wallets.push({
+          provider,
+          info: {
+            id: info.uuid || info.rdns || info.name,
+            name: info.name,
+            icon: info.icon,
+            installed: true,
+            mobile: isMobile,
+            desktop: !isMobile,
+            rdns: info.rdns
+          }
+        });
+      }
     }
 
     // EIP-6963ウォレット検出イベント
     window.addEventListener('eip6963:announceProvider', onAnnouncement);
     window.dispatchEvent(new Event('eip6963:requestProvider'));
 
-    // モバイル環境での追加検出時間
-    const detectionTimeout = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 1000 : 500;
+    // ============================================
+    // Step 3: タイムアウト処理
+    // モバイルではより長い時間待つ（EIP-6963対応ウォレット対応）
+    // ============================================
+    const detectionTimeout = isMobile ? 2500 : 1500;
 
-    // 既知のウォレットも追加（フォールバック）
+    // タイムアウト処理
     setTimeout(() => {
-      const isMobile = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent);
-      
-      // MetaMaskの検出（複数の方式）
-      if (!wallets.find(w => w.info.name.includes('MetaMask'))) {
-        let metaMaskProvider = null;
-        let metaMaskInstalled = false;
-        
-        // 1. 標準的なwindow.ethereum
-        if (window.ethereum?.isMetaMask) {
-          metaMaskProvider = window.ethereum;
-          metaMaskInstalled = true;
-        }
-        // 2. 複数プロバイダーがある場合
-        else if ((window as any).ethereum?.providers) {
-          const metaMask = (window as any).ethereum.providers.find((p: any) => p.isMetaMask);
-          if (metaMask) {
-            metaMaskProvider = metaMask;
-            metaMaskInstalled = true;
-          }
-        }
-        // 3. 直接MetaMaskオブジェクト
-        else if ((window as any).ethereum && (window as any).ethereum._metamask) {
-          metaMaskProvider = (window as any).ethereum;
-          metaMaskInstalled = true;
-        }
-        
-        if (metaMaskInstalled && metaMaskProvider) {
-          console.log('🦊 MetaMask検出成功 (レガシー方式)');
-          wallets.unshift({ // 先頭に追加
-            provider: metaMaskProvider,
-            info: {
-              id: 'metamask-legacy',
-              name: 'MetaMask',
-              icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTMwLjA3IDIuOTNsLTYuNjQgNC45NC0xLjE0IDguOTRIMTAuNzFsLTEuMTQtOC45NC02LjY0LTQuOTRMMS45NSA5LjJWMjdoMjkuMVY5LjJsLTEtNi4yN1oiIGZpbGw9IiNmNjY1MjEiLz48L3N2Zz4=',
-              installed: true,
-              mobile: isMobile,
-              desktop: !isMobile
-            }
-          });
-        } else {
-          console.log('🦊 MetaMaskが見つかりません - インストールオプションを表示');
-        }
-      }
-
-      // WalletConnectは常に利用可能
-      wallets.push({
-        provider: null, // WalletConnectは後で初期化
-        info: {
-          id: 'walletconnect',
-          name: 'WalletConnect',
-          icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTguNSAxMS41YzQuNjctNC42NyAxMi4yNi00LjY3IDE2LjkzIDBsLjU3LjU3YS4yLjIgMCAwIDEgMCAuMjhMODcgMTQuMjNhLjEuMSAwIDAgMS0uMTQgMGwtLjYyLS42MmMtMy42LTMuNi05LjQzLTMuNi0xMy4wMyAwbC0uNjYuNjZhLjEuMSAwIDAgMS0uMTQgMEw4LjUgMTEuNWEuMi4yIDAgMCAxIDAtLjI4eiIgZmlsbD0iIzM5OTZmZiIvPjwvc3ZnPg==',
-          installed: true,
-          mobile: true,
-          desktop: true
-        }
-      });
-
-      // Coinbase Wallet
-      if ((window as any).coinbaseWalletExtension || (window as any).ethereum?.isCoinbaseWallet) {
-        wallets.push({
-          provider: (window as any).coinbaseWalletExtension || window.ethereum,
-          info: {
-            id: 'coinbase-wallet',
-            name: 'Coinbase Wallet',
-            icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTYuNSIgY3k9IjE2LjUiIHI9IjE2LjUiIGZpbGw9IiMwMDUyZmYiLz48L3N2Zz4=',
-            installed: true,
-            mobile: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent),
-            desktop: !/Mobile|Android|iPhone|iPad/.test(navigator.userAgent)
-          }
-        });
-      }
-
       window.removeEventListener('eip6963:announceProvider', onAnnouncement);
       
-      console.log('📋 検出されたウォレット一覧:', wallets.map(w => w.info.name));
+      console.log('✅ ウォレット検出完了:', {
+        detected: wallets.length,
+        wallets: wallets.map(w => ({
+          name: w.info.name,
+          id: w.info.id,
+          installed: w.info.installed
+        }))
+      });
+      
       resolve(wallets);
     }, detectionTimeout);
   });
@@ -160,41 +187,48 @@ export async function connectWithWallet(wallet: DetectedWallet): Promise<{
     }
 
     // アカウント接続要求
-    const accounts = await wallet.provider.request({
-      method: 'eth_requestAccounts'
-    });
+    try {
+      const accounts = await wallet.provider.request({
+        method: 'eth_requestAccounts'
+      });
 
-    if (!accounts || accounts.length === 0) {
-      throw new Error('アカウントが見つかりません');
+      if (!accounts || accounts.length === 0) {
+        throw new Error('アカウントが見つかりません');
+      }
+
+      // チェーンID取得
+      const chainIdHex = await wallet.provider.request({
+        method: 'eth_chainId'
+      });
+      const chainId = parseInt(chainIdHex, 16);
+
+      // ethers.js プロバイダー作成
+      const ethersProvider = new BrowserProvider(wallet.provider);
+
+      console.log(`✅ ${wallet.info.name} 接続成功:`, accounts[0]);
+
+      return {
+        success: true,
+        provider: ethersProvider,
+        address: accounts[0],
+        chainId,
+      };
+    } catch (requestError: any) {
+      // ウォレットプロバイダーのrequestメソッド呼び出し失敗
+      throw requestError;
     }
-
-    // チェーンID取得
-    const chainIdHex = await wallet.provider.request({
-      method: 'eth_chainId'
-    });
-    const chainId = parseInt(chainIdHex, 16);
-
-    // ethers.js プロバイダー作成
-    const ethersProvider = new BrowserProvider(wallet.provider);
-
-    console.log(`✅ ${wallet.info.name} 接続成功:`, accounts[0]);
-
-    return {
-      success: true,
-      provider: ethersProvider,
-      address: accounts[0],
-      chainId,
-    };
 
   } catch (error: any) {
     console.error(`❌ ${wallet.info.name} 接続エラー:`, error);
     
     let errorMessage = `${wallet.info.name} の接続に失敗しました`;
     
-    if (error.code === 4001) {
+    if (error.code === 4001 || error.message?.includes('rejected')) {
       errorMessage = 'ユーザーによって接続がキャンセルされました';
     } else if (error.code === -32002) {
       errorMessage = '既に接続リクエストが処理中です';
+    } else if (error.message?.includes('User rejected')) {
+      errorMessage = 'ユーザーによって接続がキャンセルされました';
     }
 
     return {
@@ -261,12 +295,12 @@ async function connectWithWalletConnect(): Promise<{
 export function getRecommendedWallets(): WalletProvider[] {
   const isMobile = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent);
   
-  return [
+  const recommended: WalletProvider[] = [
     {
       id: 'metamask',
       name: 'MetaMask',
       icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTMwLjA3IDIuOTNsLTYuNjQgNC45NC0xLjE0IDguOTRIMTAuNzFsLTEuMTQtOC45NC02LjY0LTQuOTRMMS45NSA5LjJWMjdoMjkuMVY5LjJsLTEtNi4yN1oiIGZpbGw9IiNmNjY1MjEiLz48L3N2Zz4=',
-      installed: false,
+      installed: !!window.ethereum?.isMetaMask,
       mobile: isMobile,
       desktop: !isMobile
     },
@@ -282,9 +316,12 @@ export function getRecommendedWallets(): WalletProvider[] {
       id: 'coinbase-wallet',
       name: 'Coinbase Wallet',
       icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTYuNSIgY3k9IjE2LjUiIHI9IjE2LjUiIGZpbGw9IiMwMDUyZmYiLz48L3N2Zz4=',
-      installed: false,
+      installed: !!(window.ethereum as any)?.isCoinbaseWallet,
       mobile: isMobile,
       desktop: !isMobile
     }
   ];
+  
+  // インストール済みのものを先に配置
+  return recommended.sort((a, b) => (b.installed ? 1 : 0) - (a.installed ? 1 : 0));
 }
