@@ -229,10 +229,11 @@ const router = createBrowserRouter([
 });
 
 // Configure chains and transports for wagmi v2
-const projectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID || '';
-if (!projectId) {
-  console.warn('⚠️ VITE_WALLET_CONNECT_PROJECT_ID is not set. WalletConnect may not work.');
-  console.log('📝 環境変数を設定してください: VITE_WALLET_CONNECT_PROJECT_ID=your_project_id');
+const projectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID || 'dummy-project-id-for-development';
+if (!import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID) {
+  console.warn('⚠️ VITE_WALLET_CONNECT_PROJECT_ID is not set. Using dummy projectId.');
+  console.log('📝 WalletConnect機能を使用する場合は環境変数を設定してください: VITE_WALLET_CONNECT_PROJECT_ID=your_project_id');
+  console.log('💡 MetaMaskなど他のウォレットは正常に動作します。');
 }
 
 // Get app URL - use hardcoded production URL, fallback to location.origin for development
