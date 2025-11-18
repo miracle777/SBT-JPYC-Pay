@@ -88,14 +88,26 @@ export const PWAWalletBanner: React.FC = () => {
   
   const handleOpenInBrowser = () => {
     const currentUrl = window.location.href;
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
     
-    if (isMobile) {
-      // モバイルの場合はMetaMaskアプリのディープリンクを使用
-      const hostname = window.location.hostname;
-      const path = window.location.pathname + window.location.search + window.location.hash;
-      const deeplink = `https://metamask.app.link/dapp/${hostname}${path}`;
-      window.location.href = deeplink;
+    // URLをコピーして、ユーザーにブラウザで開くよう案内
+    const copyUrlAndNotify = async () => {
+      try {
+        await navigator.clipboard.writeText(currentUrl);
+        alert('URLをコピーしました！\n\nSafariまたはChromeで新しいタブを開き、URLを貼り付けてアクセスしてください。');
+      } catch (err) {
+        // クリップボードAPIが使えない場合のフォールバック
+        const message = isIOS 
+          ? 'Safari で新しいタブを開いてこのURLにアクセスしてください:\n\n' + currentUrl
+          : 'Chrome で新しいタブを開いてこのURLにアクセスしてください:\n\n' + currentUrl;
+        alert(message);
+      }
+    };
+    
+    // モバイルの場合はURLをコピー
+    if (isIOS || isAndroid) {
+      copyUrlAndNotify();
     } else {
       // デスクトップの場合は新しいタブで開く
       const url = currentUrl.replace(/\?.*/, '') + '?fromPWA=true';
@@ -115,9 +127,9 @@ export const PWAWalletBanner: React.FC = () => {
         
         <button
           onClick={handleOpenInBrowser}
-          className="bg-amber-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-amber-700 transition-colors"
+          className="bg-amber-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-amber-700 transition-colors whitespace-nowrap"
         >
-          ブラウザで開く
+          📋 URLをコピー
         </button>
       </div>
     </div>
