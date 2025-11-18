@@ -393,7 +393,10 @@ const SBTManagement: React.FC = () => {
       try {
         const ownerResult = await getContractOwner(selectedChainForSBT);
         
-        if (!isMounted) return; // アンマウントされていたら中断
+        if (!isMounted) {
+          console.log('⚠️ コンポーネントがアンマウントされました - 処理中断');
+          return; // アンマウントされていたら中断
+        }
         
         if (ownerResult.owner) {
           setContractOwner(ownerResult.owner);
@@ -405,11 +408,9 @@ const SBTManagement: React.FC = () => {
           const isOwner = ownerResult.owner.toLowerCase() === walletAddress.toLowerCase();
           console.log(`📋 比較結果: ${isOwner ? '✅ 一致' : '❌ 不一致'}`);
           
-          if (isMounted) {
-            setContractOwner(ownerResult.owner);
-            setIsContractOwner(isOwner);
-            console.log(`🔄 setIsContractOwner(${isOwner}) 実行完了`);
-          }
+          // 状態を更新
+          setIsContractOwner(isOwner);
+          console.log(`🔄 setIsContractOwner(${isOwner}) を呼び出しました`);
           
           if (isOwner) {
             console.log('✅ 現在のウォレットはコントラクトオーナーです');
@@ -420,20 +421,22 @@ const SBTManagement: React.FC = () => {
           // ショップ情報を取得
           const shopResult = await getShopInfo(1, selectedChainForSBT);
           
-          if (!isMounted) return; // アンマウントされていたら中断
+          if (!isMounted) {
+            console.log('⚠️ コンポーネントがアンマウントされました - ショップ情報処理中断');
+            return; // アンマウントされていたら中断
+          }
           
           if (shopResult.owner) {
+            setShopInfo(shopResult);
             console.log(`📋 ショップオーナー (ID:1): ${shopResult.owner}`);
             
             // アドレス比較を厳密に行う（小文字化して比較）
             const isShopOwner = shopResult.owner.toLowerCase() === walletAddress.toLowerCase();
             console.log(`📋 ショップ比較結果: ${isShopOwner ? '✅ 一致' : '❌ 不一致'}`);
             
-            if (isMounted) {
-              setShopInfo(shopResult);
-              setIsShopOwner(isShopOwner);
-              console.log(`🔄 setIsShopOwner(${isShopOwner}) 実行完了`);
-            }
+            // 状態を更新
+            setIsShopOwner(isShopOwner);
+            console.log(`🔄 setIsShopOwner(${isShopOwner}) を呼び出しました`);
             
             if (isShopOwner) {
               console.log('✅ 現在のウォレットはショップオーナー (ID:1) です');
@@ -441,36 +444,24 @@ const SBTManagement: React.FC = () => {
               console.log('❌ 現在のウォレットはショップオーナー (ID:1) ではありません');
             }
           } else {
-            if (isMounted) {
-              setShopInfo(null);
-              setIsShopOwner(false);
-            }
+            setShopInfo(null);
+            setIsShopOwner(false);
             if (shopResult.error) {
               console.warn(`⚠️ ショップ情報取得エラー: ${shopResult.error}`);
             }
           }
         } else if (ownerResult.error) {
           console.warn(`⚠️ コントラクトオーナー取得エラー: ${ownerResult.error}`);
-          if (isMounted) {
-            setIsContractOwner(false);
-            setIsShopOwner(false);
-          }
-        }
-      } catch (error) {
-        console.error('❌ コントラクト所有者確認エラー:', error);
-        if (isMounted) {
           setIsContractOwner(false);
           setIsShopOwner(false);
         }
+      } catch (error) {
+        console.error('❌ コントラクト所有者確認エラー:', error);
+        setIsContractOwner(false);
+        setIsShopOwner(false);
       }
       
-      // useEffect完了後の状態を確認（デバッグ用）
-      // 注意: setStateは非同期なので、ここでのログは更新前の値を表示する
-      setTimeout(() => {
-        if (isMounted) {
-          console.log(`🏁 権限チェック完了（次回レンダリング時に反映）`);
-        }
-      }, 0);
+      console.log(`🏁 権限チェック処理完了`);
     };
 
     checkContractOwnership();
@@ -486,13 +477,14 @@ const SBTManagement: React.FC = () => {
     
     // クリーンアップ関数
     return () => {
+      console.log('🧹 useEffect クリーンアップ実行');
       isMounted = false;
     };
   }, [selectedChainForSBT, walletAddress]);
 
   // 権限状態が変更されたら確認ログを出力（デバッグ用）
   useEffect(() => {
-    console.log(`🔐 権限状態更新: isContractOwner=${isContractOwner}, isShopOwner=${isShopOwner}`);
+    console.log(`🔐 権限状態更新検知: isContractOwner=${isContractOwner}, isShopOwner=${isShopOwner}`);
   }, [isContractOwner, isShopOwner]);
 
   // LocalStorage から完了した支払いセッションを読み込み
