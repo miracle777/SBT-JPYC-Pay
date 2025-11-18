@@ -187,6 +187,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setIsConnecting(true);
     try {
+      // window.ethereumの存在を再確認
+      if (!window.ethereum) {
+        throw new Error('WALLET_NOT_AVAILABLE');
+      }
+
       const accounts = await window.ethereum.request({
         method: 'eth_requestAccounts',
       });
