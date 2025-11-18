@@ -59,9 +59,12 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
       chainId: (window.ethereum as any)?.chainId
     });
     
-    // モバイル環境ではより長い時間待つ（4秒でタイムアウト）
+    // PWA環境ではより長い時間待つ（ウォレット初期化対応）
     // タイムアウト後は即座に推奨オプションを表示
-    const timeout = env.isMobile ? 4000 : 2000;
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  (window.navigator as any).standalone === true ||
+                  document.referrer.includes('android-app://');
+    const timeout = env.isMobile ? 4000 : (isPWA ? 3000 : 2000);
     let timeoutFired = false;
     
     const timeoutId = setTimeout(() => {
@@ -70,7 +73,8 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
       
       console.log('⏱️ ウォレット検出タイムアウト - デフォルトオプションを表示', {
         timeout,
-        isMobile: env.isMobile
+        isMobile: env.isMobile,
+        isPWA
       });
       
       // 推奨ウォレットを即座に表示
@@ -220,9 +224,15 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
+      style={{ display: 'flex', position: 'fixed', inset: 0, zIndex: 9999 }}
+    >
+      <div 
+        className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col"
+        style={{ backgroundColor: '#ffffff', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+      >
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white">
           <h2 className="text-xl font-bold text-gray-900">ウォレットを選択</h2>
           <button
             onClick={onClose}
@@ -232,7 +242,10 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
           </button>
         </div>
 
-        <div className="p-6 max-h-[calc(90vh-100px)] overflow-y-auto">
+        <div 
+          className="p-6 max-h-[calc(90vh-100px)] overflow-y-auto bg-white"
+          style={{ backgroundColor: '#ffffff', flex: 1, overflowY: 'auto' }}
+        >
           {/* デバッグ: 状態確認 */}
           <div className="hidden">isLoading:{String(isLoading)} hasTimedOut:{String(hasTimedOut)} wallets:{detectedWallets.length}</div>
           

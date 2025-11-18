@@ -32,6 +32,14 @@ export function detectWallets(): Promise<DetectedWallet[]> {
     const isMobile = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent);
     
     // ============================================
+    // Step 0: 初期化ログ
+    // ============================================
+    console.log('🔍 ウォレット検出開始');
+    console.log('window.ethereum 存在:', !!window.ethereum);
+    console.log('window.ethereum?.isMetaMask:', window.ethereum?.isMetaMask);
+    console.log('ブラウザ:', navigator.userAgent.substring(0, 80));
+    
+    // ============================================
     // Step 1: window.ethereum直接確認（最優先）
     // ============================================
     if (window.ethereum) {
