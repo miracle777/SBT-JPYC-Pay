@@ -12,7 +12,7 @@ export const WalletButton: React.FC = () => {
 
   const clearError = () => setError(null);
 
-  if (isConnected) return null;
+  // 接続済みでもボタン領域を表示して接続状態を示す（消えてしまわないようにする）
 
   return (
     <div className="flex flex-col items-center p-2">
