@@ -3,7 +3,7 @@ import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monito
 import toast from 'react-hot-toast';
 import { BrowserProvider, ethers } from 'ethers';
 import { NETWORKS, JPYC, getContractAddress, getJpycContracts, getJpycContractMeta } from '../config/networks';
-import { DEFAULT_SHOP_INFO, getShopWalletAddress } from '../config/shop';
+import { DEFAULT_SHOP_INFO, getShopWalletAddress, getShopInfo } from '../config/shop';
 import { createPaymentPayload, encodePaymentPayload, encodePaymentPayloadForJPYCPay, encodePaymentPayloadForMetaMask } from '../types/payment';
 import { useWallet } from '../context/WalletContext';
 import QRCodeDisplay from '../components/QRCodeDisplay';
@@ -48,6 +48,24 @@ const QRPayment: React.FC = () => {
   const [jpycBalance, setJpycBalance] = useState<string | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [lastBalanceCheck, setLastBalanceCheck] = useState<string>('');
+  const [shopInfo, setShopInfo] = useState({ name: DEFAULT_SHOP_INFO.name, id: DEFAULT_SHOP_INFO.id });
+
+  // 店舗情報をローカルストレージから読み込む
+  useEffect(() => {
+    try {
+      const savedShopInfo = localStorage.getItem('shop-info');
+      if (savedShopInfo) {
+        const shop = JSON.parse(savedShopInfo);
+        setShopInfo({
+          name: shop.name || DEFAULT_SHOP_INFO.name,
+          id: shop.id || DEFAULT_SHOP_INFO.id,
+        });
+        console.log('✅ 店舗情報読み込み完了:', shop);
+      }
+    } catch (error) {
+      console.warn('店舗情報読み込みエラー:', error);
+    }
+  }, []);
 
   // JPYC残高を取得する関数
   const fetchJpycBalance = async () => {
@@ -342,7 +360,37 @@ const QRPayment: React.FC = () => {
                       : s
                   )
                 );
-                toast.success(`✓ 決済完了 (Tx: ${txHash.slice(0, 10)}...)`);
+                
+                // リアルタイム決済完了通知（強化版）
+                toast.success(
+                  `🎉 決済完了！\n💰 ${session.amount} ${(() => {
+                    const contractMeta = getJpycContractMeta(chainId, contractAddress);
+                    return contractMeta.symbol;
+                  })()}\n📋 Tx: ${txHash.slice(0, 12)}...`,
+                  {
+                    duration: 6000,
+                    style: {
+                      background: '#10B981',
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: 'bold'
+                    }
+                  }
+                );
+                
+                // サウンド通知（対応ブラウザのみ）
+                try {
+                  const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApMn+DyvGYeAC1+yujZgyQGV6nn8KCRL...');
+                  audio.volume = 0.3;
+                  audio.play().catch(() => {});
+                } catch (error) {
+                  // サウンド再生エラーは無視
+                }
+                
+                console.log(`🎉 決済完了通知: ${session.amount} ${(() => {
+                  const contractMeta = getJpycContractMeta(chainId, contractAddress);
+                  return contractMeta.symbol;
+                })()} - Tx: ${txHash}`);
                 foundTransaction = true;
                 break; // 見つかったらループを抜ける
               }
@@ -363,7 +411,7 @@ const QRPayment: React.FC = () => {
     // 初回実行（即座に開始）
     monitorTransactions();
     
-    const monitorInterval = setInterval(monitorTransactions, 5000); // 5秒ごとに監視
+    const monitorInterval = setInterval(monitorTransactions, 3000); // 3秒ごとに監視（リアルタイム性向上）
     return () => clearInterval(monitorInterval);
   }, [paymentSessions, shopWalletAddress]);
 
@@ -425,15 +473,15 @@ const QRPayment: React.FC = () => {
       const amountInWei = (BigInt(amountNum) * BigInt(10 ** qrContractMeta.decimals)).toString();
 
       const payload = createPaymentPayload(
-        DEFAULT_SHOP_INFO.id,
-        DEFAULT_SHOP_INFO.name,
+        shopInfo.id,
+        shopInfo.name,
         shopWalletAddress,
         amountInWei,
         selectedChainForPayment,
         paymentContractAddress,
         expiresAtTimestamp,
         paymentId,
-        `Payment from ${DEFAULT_SHOP_INFO.name}`
+        `Payment from ${shopInfo.name}`
       );
 
       console.log('QRコード生成:', {
@@ -708,14 +756,33 @@ const QRPayment: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* トランザクション監視中表示 */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
-                        <p className="text-xs text-blue-700 font-semibold">
-                          🔍 トランザクション監視中...
-                        </p>
-                        <p className="text-xs text-blue-600 mt-1">
-                          スマートフォンからの決済トランザクションを自動検知します
-                        </p>
+                      {/* リアルタイム決済監視状態表示 */}
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-4 mt-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                          <p className="text-sm text-blue-800 font-bold">
+                            📡 リアルタイム決済監視中
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div className="bg-white rounded-lg p-2 border border-blue-100">
+                            <p className="text-blue-600 font-semibold">監視対象</p>
+                            <p className="text-blue-800">{(() => {
+                              const contracts = getJpycContracts(session.chainId);
+                              return `${contracts.length}個のJPYCコントラクト`;
+                            })()}</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-2 border border-blue-100">
+                            <p className="text-blue-600 font-semibold">チェック間隔</p>
+                            <p className="text-blue-800">3秒ごと</p>
+                          </div>
+                        </div>
+                        <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-xs text-green-700">
+                            ✨ <strong>自動検知機能:</strong> スマートフォンからの決済が完了すると、
+                            即座に通知・サウンドでお知らせします
+                          </p>
+                        </div>
                       </div>
 
                       {/* ペイロード情報 */}
@@ -1105,7 +1172,11 @@ const QRPayment: React.FC = () => {
                 <div className="space-y-2 text-xs">
                   <div>
                     <p className="text-gray-600">店舗名</p>
-                    <p className="font-semibold text-gray-900 truncate">{DEFAULT_SHOP_INFO.name}</p>
+                    <p className="font-semibold text-gray-900 truncate">{shopInfo.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">店舗ID</p>
+                    <p className="font-semibold text-gray-900 truncate text-xs font-mono">{shopInfo.id}</p>
                   </div>
                   {shopWalletAddress && shopWalletAddress !== '0x0000000000000000000000000000000000000000' && (
                     <div>
@@ -1122,7 +1193,21 @@ const QRPayment: React.FC = () => {
 
           {/* セッション履歴 */}
           <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">💳 支払い完了一覧</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">💳 支払い完了一覧</h2>
+              <div className="flex items-center gap-2">
+                {paymentSessions.filter(s => s.status === 'completed').length > 0 && (
+                  <div className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-semibold">
+                    {paymentSessions.filter(s => s.status === 'completed').length} 件完了
+                  </div>
+                )}
+                {paymentSessions.filter(s => s.status === 'pending').length > 0 && (
+                  <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-semibold animate-pulse">
+                    {paymentSessions.filter(s => s.status === 'pending').length} 件監視中
+                  </div>
+                )}
+              </div>
+            </div>
             {paymentSessions.filter(s => s.status === 'completed').length === 0 ? (
               <p className="text-gray-500 text-sm">完了した支払いはまだありません</p>
             ) : (
@@ -1203,16 +1288,22 @@ const QRPayment: React.FC = () => {
                         {paymentSessions
                           .filter(s => s.status === 'completed' && s.payerAddress)
                           .sort((a, b) => new Date(b.detectedAt || '').getTime() - new Date(a.detectedAt || '').getTime())
-                          .map((session) => {
+                          .map((session, index) => {
                             const paymentCount = customerPaymentStats.get(session.payerAddress!) || 0;
                             const recommendation = getSBTRecommendation(paymentCount);
+                            const isRecent = index === 0; // 最新の決済を強調
                             
                             return (
                               <tr key={session.id} className={`border-b border-gray-100 hover:bg-gray-50 ${
                                 recommendation.shouldIssue ? 'bg-green-50' : ''
-                              }`}>
+                              } ${isRecent ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-l-4 border-l-orange-400' : ''}`}>
                                 <td className="py-3 px-3 font-mono text-xs text-gray-600">
                                   {session.id.slice(-8)}
+                                  {isRecent && (
+                                    <div className="text-xs text-orange-600 font-bold mt-1">
+                                      🆕 最新
+                                    </div>
+                                  )}
                                 </td>
                                 <td className="py-3 px-3 font-semibold text-gray-900">
                                   {session.amount} {session.currency}
@@ -1341,7 +1432,7 @@ const QRPayment: React.FC = () => {
                   sessionId={session.id}
                   qrData={session.qrCodeData}
                   amount={session.amount}
-                  shopName={DEFAULT_SHOP_INFO.name}
+                  shopName={shopInfo.name}
                   chainName={session.chainName}
                   onClose={() => setSelectedSessionForWindow(null)}
                 />
