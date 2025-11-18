@@ -8,44 +8,45 @@ const Dashboard: React.FC = () => {
   const { isConnected } = useWallet();
 
   return (
-    <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 p-2 xs:p-3 sm:p-6 landscape:p-2">
+      <div className="max-w-7xl mx-auto space-y-4 xs:space-y-6 landscape:space-y-3">
         
         {/* メインヘッダー */}
-        <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 text-center">
-          <Store className="w-12 h-12 sm:w-16 sm:h-16 text-purple-600 mx-auto mb-4" />
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+        <div className="bg-white rounded-xl shadow-lg p-4 xs:p-6 sm:p-8 text-center landscape:p-4">
+          <Store className="w-10 h-10 xs:w-12 xs:h-12 sm:w-16 sm:h-16 text-purple-600 mx-auto mb-3 xs:mb-4 landscape:w-8 landscape:h-8 landscape:mb-2" />
+          <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold text-gray-900 mb-1 xs:mb-2 landscape:text-lg landscape:mb-1">
             SBT JPYC Pay
           </h1>
-          <p className="text-gray-600 text-base sm:text-lg mb-6">
+          <p className="text-gray-600 text-sm xs:text-base sm:text-lg mb-4 xs:mb-6 landscape:text-sm landscape:mb-3">
             JPYC QR決済 & SBTスタンプカード発行・管理システム（デモ版）
           </p>
           
           {!isConnected && (
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4 mb-6">
-              <p className="text-sm text-purple-800 mb-3">
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-3 xs:p-4 mb-4 xs:mb-6 landscape:p-3 landscape:mb-3">
+              <p className="text-xs xs:text-sm text-purple-800 mb-2 xs:mb-3 landscape:text-xs landscape:mb-2">
                 <strong>ウォレット接続前に、下記の重要事項を必ずご確認ください</strong>
               </p>
               <WalletButton />
             </div>
           )}
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 landscape:grid-cols-2 xs:grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
             <Link
               to="/qr-payment"
-              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 xs:px-6 py-2.5 xs:py-3 rounded-lg text-sm xs:text-base font-medium transition-colors landscape:text-sm landscape:py-2"
             >
-              <QrCode className="w-5 h-5" />
-              JPYC QR決済（店舗側）
-              <ArrowRight className="w-4 h-4" />
+              <QrCode className="w-4 h-4 xs:w-5 xs:h-5" />
+              <span className="hidden xs:inline">JPYC QR決済（店舗側）</span>
+              <span className="xs:hidden">QR決済</span>
+              <ArrowRight className="w-3 h-3 xs:w-4 xs:h-4" />
             </Link>
             <Link
               to="/sbt-management"
-              className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 xs:px-6 py-2.5 xs:py-3 rounded-lg text-sm xs:text-base font-medium transition-colors landscape:text-sm landscape:py-2"
             >
-              <Store className="w-5 h-5" />
+              <Store className="w-4 h-4 xs:w-5 xs:h-5" />
               SBT管理
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3 h-3 xs:w-4 xs:h-4" />
             </Link>
           </div>
         </div>

@@ -3,6 +3,11 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      screens: {
+        'xs': '375px',        // iPhone SE
+        'se': '414px',        // iPhone SE Plus
+        'landscape': {'raw': '(orientation: landscape) and (max-height: 500px)'},
+      },
       colors: {
         primary: {
           50: '#eff6ff',
@@ -71,6 +76,9 @@ export default {
       spacing: {
         '18': '4.5rem',
         '88': '22rem',
+        '1.5': '0.375rem',    // iPhone SE用細かい間隔
+        '2.5': '0.625rem',
+        '3.5': '0.875rem',
       },
       borderRadius: {
         'xl': '1rem',

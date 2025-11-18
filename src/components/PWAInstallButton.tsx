@@ -167,48 +167,51 @@ export const PWAInstallButton: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 xs:space-y-4 text-xs xs:text-sm landscape:space-y-1">
       {isInstallable && (
         <Button
           onClick={handleInstallClick}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="bg-blue-600 hover:bg-blue-700 text-white text-xs xs:text-sm py-1.5 px-3 xs:py-2 xs:px-4 landscape:py-1 landscape:px-2 landscape:text-xs"
         >
-          📱 アプリとしてインストール
+          <span className="hidden xs:inline">📱 アプリとしてインストール</span>
+          <span className="xs:hidden">📱 インストール</span>
         </Button>
       )}
 
       {!isInstallable && !isInstalled && (
-        <div className="text-sm text-gray-600 space-y-2">
-          <p>💡 このアプリはPWA（Progressive Web App）として利用できます</p>
+        <div className="text-xs xs:text-sm text-gray-600 space-y-1 xs:space-y-2 landscape:space-y-1">
+          <p className="hidden xs:block">💡 このアプリはPWA（Progressive Web App）として利用できます</p>
+          <p className="xs:hidden">💡 PWA利用可能</p>
           <Button
             onClick={showManualInstallGuidance}
             variant="outline"
-            className="text-sm"
+            className="text-xs py-1 px-2 xs:text-sm xs:py-1.5 xs:px-3 landscape:text-xs landscape:py-0.5"
           >
-            インストール方法を確認
+            <span className="hidden xs:inline">インストール方法を確認</span>
+            <span className="xs:hidden">方法確認</span>
           </Button>
         </div>
       )}
 
       {/* デバッグ用コントロール */}
-      <details className="text-xs text-gray-500">
+      <details className="text-xs text-gray-500 landscape:text-xs">
         <summary>🔧 PWAデバッグ情報</summary>
-        <div className="mt-2 space-y-2">
+        <div className="mt-1 xs:mt-2 space-y-1 xs:space-y-2 landscape:space-y-1">
           <Button
             onClick={testServiceWorker}
             variant="outline"
-            className="text-xs p-1"
+            className="text-xs p-0.5 xs:p-1 landscape:text-xs landscape:p-0.5"
           >
-            Service Worker テスト
+            SWテスト
           </Button>
           <Button
             onClick={copyDebugInfo}
             variant="outline"
-            className="text-xs p-1"
+            className="text-xs p-0.5 xs:p-1 landscape:text-xs landscape:p-0.5"
           >
-            デバッグ情報コピー
+            情報コピー
           </Button>
-          <pre className="bg-gray-50 p-2 rounded text-xs overflow-auto max-h-32">
+          <pre className="bg-gray-50 p-1 xs:p-2 rounded text-xs overflow-auto max-h-20 xs:max-h-32 landscape:max-h-16">
             {JSON.stringify(debugInfo, null, 2)}
           </pre>
         </div>

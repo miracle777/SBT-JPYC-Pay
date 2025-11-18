@@ -130,26 +130,27 @@ export const PWAStatus: React.FC = () => {
       <Button
         onClick={() => setIsVisible(true)}
         variant="outline"
-        className="fixed bottom-4 right-4 z-50 bg-white shadow-lg"
+        className="fixed bottom-2 xs:bottom-4 right-2 xs:right-4 z-50 bg-white shadow-lg text-xs xs:text-sm py-1 px-2 xs:py-2 xs:px-3 landscape:bottom-1 landscape:right-1 landscape:text-xs landscape:py-0.5 landscape:px-1.5"
       >
-        PWA状態確認
+        <span className="hidden xs:inline">PWA状態確認</span>
+        <span className="xs:hidden">PWA</span>
       </Button>
     );
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 bg-white shadow-2xl rounded-lg p-4 max-w-sm border">
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="font-semibold text-lg">PWA状態</h3>
+    <div className="fixed bottom-2 xs:bottom-4 right-2 xs:right-4 z-50 bg-white shadow-2xl rounded-lg p-3 xs:p-4 max-w-xs xs:max-w-sm border landscape:bottom-1 landscape:right-1 landscape:p-2 landscape:max-w-xs">
+      <div className="flex justify-between items-center mb-2 xs:mb-3 landscape:mb-1">
+        <h3 className="font-semibold text-sm xs:text-lg landscape:text-sm">PWA状態</h3>
         <button
           onClick={() => setIsVisible(false)}
-          className="text-gray-500 hover:text-gray-700 text-xl leading-none"
+          className="text-gray-500 hover:text-gray-700 text-lg xs:text-xl leading-none landscape:text-base"
         >
           ×
         </button>
       </div>
       
-      <div className="space-y-2 text-sm">
+      <div className="space-y-1 xs:space-y-2 text-xs xs:text-sm landscape:space-y-0.5 landscape:text-xs">
         <div className="flex justify-between">
           <span>プラットフォーム:</span>
           <span className="font-mono">{pwaInfo.platform}</span>
@@ -187,20 +188,21 @@ export const PWAStatus: React.FC = () => {
           </div>
         )}
         
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-1 xs:gap-2 mt-3 xs:mt-4 landscape:mt-2 landscape:gap-1">
           <Button
             onClick={checkPWAStatus}
             variant="outline"
-            className="text-xs py-1 px-2"
+            className="text-xs py-0.5 px-1.5 xs:text-xs xs:py-1 xs:px-2 landscape:text-xs landscape:py-0.5 landscape:px-1"
           >
             更新
           </Button>
           <Button
             onClick={clearCache}
             variant="outline"
-            className="text-xs py-1 px-2 text-red-600 border-red-300 hover:bg-red-50"
+            className="text-xs py-0.5 px-1.5 xs:text-xs xs:py-1 xs:px-2 text-red-600 border-red-300 hover:bg-red-50 landscape:text-xs landscape:py-0.5 landscape:px-1"
           >
-            キャッシュクリア
+            <span className="hidden xs:inline">キャッシュクリア</span>
+            <span className="xs:hidden">クリア</span>
           </Button>
         </div>
       </div>

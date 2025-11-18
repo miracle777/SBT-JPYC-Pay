@@ -9,3 +9,63 @@
 body {
   font-family: 'Inter', 'Noto Sans JP', sans-serif;
 }
+
+/* iPhone SE特化のレスポンシブ対応 */
+@layer utilities {
+  /* iPhone SE (375px) 専用スタイル */
+  @media (max-width: 414px) {
+    .compact-text {
+      @apply text-sm leading-tight;
+    }
+    
+    .compact-spacing {
+      @apply space-y-2;
+    }
+    
+    .compact-padding {
+      @apply px-3 py-2;
+    }
+  }
+  
+  /* 横画面 (landscape) 専用スタイル - 高さが制限される場合 */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .landscape-compact {
+      @apply py-1 my-1;
+    }
+    
+    .landscape-text {
+      @apply text-sm leading-tight;
+    }
+    
+    .landscape-spacing {
+      @apply space-y-1;
+    }
+    
+    /* PWAボタンの位置調整 */
+    .pwa-controls {
+      @apply bottom-2 text-xs;
+    }
+  }
+  
+  /* iPhone SE固有の調整 */
+  @media (max-width: 375px) {
+    .se-text {
+      @apply text-xs;
+    }
+    
+    .se-button {
+      @apply px-3 py-1.5 text-sm;
+    }
+    
+    .se-spacing {
+      @apply space-y-1.5;
+    }
+  }
+  
+  /* 極小画面での調整 */
+  @media (max-width: 320px) {
+    .xs-minimal {
+      @apply text-xs px-2 py-1;
+    }
+  }
+}

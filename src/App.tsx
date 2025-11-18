@@ -23,7 +23,7 @@ function App() {
         <PWAStatus />
         
         {/* PWA インストールボタン */}
-        <div className="fixed bottom-4 left-4 z-40">
+        <div className="fixed bottom-2 xs:bottom-4 left-2 xs:left-4 z-40 landscape:bottom-1 landscape:left-2">
           <PWAInstallButton />
         </div>
         
