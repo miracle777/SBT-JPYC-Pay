@@ -390,6 +390,8 @@ const SBTManagement: React.FC = () => {
         if (ownerResult.owner) {
           setContractOwner(ownerResult.owner);
           console.log(`📋 コントラクトオーナー: ${ownerResult.owner}`);
+          console.log(`📋 現在のウォレット: ${walletAddress}`);
+          console.log(`📋 比較(小文字): Contract="${ownerResult.owner.toLowerCase()}" vs Wallet="${walletAddress?.toLowerCase()}"`);
           
           if (walletAddress && ownerResult.owner.toLowerCase() === walletAddress.toLowerCase()) {
             setIsContractOwner(true);
@@ -1932,14 +1934,20 @@ const SBTManagement: React.FC = () => {
                   </div>
                   
                   {/* デバッグ用: 権限状態を表示 */}
-                  <div className="bg-yellow-50 rounded p-2 text-xs mb-3">
-                    <p>🔍 デバッグ情報:</p>
-                    <p>Contract Owner: {isContractOwner ? 'true' : 'false'}</p>
-                    <p>Shop Owner: {isShopOwner ? 'true' : 'false'}</p>
-                    <p>Wallet Connected: {walletAddress ? 'true' : 'false'}</p>
-                    <p>Contract Address: {contractOwner?.toLowerCase()}</p>
-                    <p>Wallet Address: {walletAddress?.toLowerCase()}</p>
-                    <p>Shop Owner Address: {shopInfo?.owner?.toLowerCase()}</p>
+                  <div className="bg-yellow-50 rounded p-2 text-xs mb-3 font-mono">
+                    <p className="font-bold mb-2">🔍 デバッグ情報:</p>
+                    <p>Contract Owner Flag: <span className="font-bold">{isContractOwner ? 'true' : 'false'}</span></p>
+                    <p>Shop Owner Flag: <span className="font-bold">{isShopOwner ? 'true' : 'false'}</span></p>
+                    <p>Wallet Connected: <span className="font-bold">{walletAddress ? 'true' : 'false'}</span></p>
+                    <p className="mt-2">Contract Owner Addr:</p>
+                    <p className="break-all">{contractOwner || 'null'}</p>
+                    <p className="mt-1">Wallet Addr:</p>
+                    <p className="break-all">{walletAddress || 'null'}</p>
+                    <p className="mt-1">Shop Owner Addr:</p>
+                    <p className="break-all">{shopInfo?.owner || 'null'}</p>
+                    <p className="mt-2 text-red-600">比較結果:</p>
+                    <p>Contract == Wallet: {contractOwner && walletAddress ? (contractOwner.toLowerCase() === walletAddress.toLowerCase() ? '✅ TRUE' : '❌ FALSE') : 'N/A'}</p>
+                    <p>Shop == Wallet: {shopInfo?.owner && walletAddress ? (shopInfo.owner.toLowerCase() === walletAddress.toLowerCase() ? '✅ TRUE' : '❌ FALSE') : 'N/A'}</p>
                   </div>
                   
                   <button
