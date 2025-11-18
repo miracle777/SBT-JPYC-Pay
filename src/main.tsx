@@ -5,9 +5,10 @@ import { Toaster, toast } from 'react-hot-toast';
 import App from './App';
 import './index.css';
 import '@rainbow-me/rainbowkit/styles.css';
-import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { RainbowKitProvider, getDefaultWallets, connectorsForWallets } from '@rainbow-me/rainbowkit';
+import { metaMaskWallet, rainbowWallet, walletConnectWallet, coinbaseWallet, trustWallet } from '@rainbow-me/rainbowkit/wallets';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WagmiProvider } from 'wagmi';
+import { WagmiProvider, createConfig, http } from 'wagmi';
 import { mainnet, polygon, sepolia } from 'wagmi/chains';
 
 // Wagmi / RainbowKit - Using getDefaultConfig for better compatibility
@@ -251,15 +252,43 @@ if (typeof window !== 'undefined' && (window as any).ethereum) {
   console.log('  ethereum object:', (window as any).ethereum);
 }
 
-const config = getDefaultConfig({
+// チェーン設定
+const chains = [mainnet, polygon, sepolia] as const;
+
+// RainbowKit - 推奨ウォレットを明示的に指定
+const wallets = [
+  {
+    groupName: '推奨',
+    wallets: [
+      metaMaskWallet,
+      rainbowWallet,
+      walletConnectWallet,
+      coinbaseWallet,
+      trustWallet,
+    ],
+  },
+];
+
+const connectors = connectorsForWallets(wallets, {
   appName: 'SBT JPYC Pay',
   projectId,
-  chains: [mainnet, polygon, sepolia],
+});
+
+// Wagmi Config
+const config = createConfig({
+  connectors,
+  chains,
+  transports: {
+    [mainnet.id]: http(),
+    [polygon.id]: http(),
+    [sepolia.id]: http(),
+  },
   ssr: false,
 });
 
 console.log('🔧 RainbowKit Config Created:', config ? '✅' : '❌');
 console.log('🔑 WalletConnect ProjectID:', projectId ? `✅ Set (${projectId.substring(0, 10)}...)` : '❌ Not set');
+console.log('📱 Configured Wallets:', wallets[0].wallets.length);
 
 const queryClient = new QueryClient();
 
