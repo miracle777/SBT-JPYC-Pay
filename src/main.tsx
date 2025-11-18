@@ -4,6 +4,14 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import App from './App';
 import './index.css';
+import '@rainbow-me/rainbowkit/styles.css';
+
+// Wagmi / RainbowKit (adapted for wagmi v2 / @wagmi/connectors)
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { createConfig, WagmiConfig } from 'wagmi';
+import { mainnet, polygon, goerli } from 'wagmi/chains';
+import { http } from 'viem';
+import { metaMask, injected, walletConnect } from '@wagmi/connectors';
 
 // ページコンポーネントのimport
 import Dashboard from './pages/Dashboard';
@@ -220,33 +228,64 @@ const router = createBrowserRouter([
   },
 });
 
+// Configure chains and transports for wagmi v2
+const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '';
+if (!projectId) {
+  console.warn('VITE_WALLETCONNECT_PROJECT_ID is not set. WalletConnect may not work.');
+}
+
+const chains = [mainnet, polygon, goerli] as const;
+
+// Provide simple HTTP transports using chain RPC defaults (fallback to public endpoints)
+const transports = {
+  [mainnet.id]: http(mainnet.rpcUrls.default.http[0] ?? 'https://cloudflare-eth.com'),
+  [polygon.id]: http(polygon.rpcUrls.default.http[0] ?? 'https://polygon-rpc.com'),
+  [goerli.id]: http(goerli.rpcUrls.default.http[0] ?? 'https://rpc.ankr.com/eth_goerli'),
+};
+
+const connectors = [
+  metaMask(),
+  injected(),
+  walletConnect({ projectId }),
+];
+
+const wagmiConfig = createConfig({
+  chains,
+  connectors,
+  transports,
+});
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
-    <Toaster
-      position="top-center"
-      toastOptions={{
-        duration: 4000,
-        style: {
-          background: '#363636',
-          color: '#fff',
-          maxWidth: '400px',
-        },
-        success: {
-          duration: 3000,
-          iconTheme: {
-            primary: '#22c55e',
-            secondary: '#fff',
-          },
-        },
-        error: {
-          duration: 5000,
-          iconTheme: {
-            primary: '#ef4444',
-            secondary: '#fff',
-          },
-        },
-      }}
-    />
+    <WagmiConfig config={wagmiConfig}>
+      <RainbowKitProvider>
+        <RouterProvider router={router} />
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+              maxWidth: '400px',
+            },
+            success: {
+              duration: 3000,
+              iconTheme: {
+                primary: '#22c55e',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              duration: 5000,
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
+      </RainbowKitProvider>
+    </WagmiConfig>
   </React.StrictMode>
 );

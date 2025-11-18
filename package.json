@@ -13,6 +13,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@rainbow-me/rainbowkit": "^2.2.9",
     "@types/qrcode": "^1.5.5",
     "@types/uuid": "^10.0.0",
     "@walletconnect/ethereum-provider": "^2.23.0",
@@ -22,6 +23,7 @@
     "autoprefixer": "^10.4.16",
     "clsx": "^2.0.0",
     "ethers": "^6.8.1",
+    "framer-motion": "^12.23.24",
     "lucide-react": "^0.294.0",
     "postcss": "^8.4.32",
     "qr-scanner": "^1.4.2",
