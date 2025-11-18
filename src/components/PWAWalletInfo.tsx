@@ -76,16 +76,31 @@ export const PWAWalletInfo: React.FC = () => {
 export const PWAWalletBanner: React.FC = () => {
   const { isPWA, pwaWalletInfo } = useWallet();
   
-  // MetaMaskアプリ内ブラウザの場合は警告バナーを表示しない
-  const isMetaMaskBrowser = navigator.userAgent.toLowerCase().includes('metamask') ||
-    (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask && 
-     (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)));
+  // MetaMaskアプリ内ブラウザの場合は警告バナーを表示しない（UserAgentのみで厳密判定）
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isMetaMaskBrowser = userAgent.includes('metamask');
   
-  if (!isPWA || pwaWalletInfo.isCompatible || isMetaMaskBrowser) return null;
+  // 実際にPWA環境でない場合は表示しない
+  const isActuallyPWA = window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true;
+  
+  if (!isActuallyPWA || pwaWalletInfo.isCompatible || isMetaMaskBrowser) return null;
   
   const handleOpenInBrowser = () => {
-    const url = window.location.href.replace(/\?.*/, '') + '?fromPWA=true';
-    window.open(url, '_blank');
+    const currentUrl = window.location.href;
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // モバイルの場合はMetaMaskアプリのディープリンクを使用
+      const hostname = window.location.hostname;
+      const path = window.location.pathname + window.location.search + window.location.hash;
+      const deeplink = `https://metamask.app.link/dapp/${hostname}${path}`;
+      window.location.href = deeplink;
+    } else {
+      // デスクトップの場合は新しいタブで開く
+      const url = currentUrl.replace(/\?.*/, '') + '?fromPWA=true';
+      window.open(url, '_blank');
+    }
   };
   
   return (

@@ -2,10 +2,9 @@ import React from 'react';
 import { CheckCircle, Smartphone, Wallet } from 'lucide-react';
 
 export const MetaMaskBrowserInfo: React.FC = () => {
-  // MetaMaskアプリ内ブラウザかどうかを検出
-  const isMetaMaskBrowser = navigator.userAgent.toLowerCase().includes('metamask') ||
-    (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask && 
-     (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)));
+  // MetaMaskアプリ内ブラウザかどうかを厳密に検出（UserAgentのみで判定）
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isMetaMaskBrowser = userAgent.includes('metamask');
   
   if (!isMetaMaskBrowser) return null;
   

@@ -24,15 +24,9 @@ export interface WalletConnectionStrategy {
 function isMetaMaskInAppBrowser(): boolean {
   const userAgent = navigator.userAgent.toLowerCase();
   
-  // MetaMaskアプリ内ブラウザの特徴的なユーザーエージェント文字列をチェック
-  return (
-    userAgent.includes('metamask') ||
-    (window as any).ethereum?.isMetaMask === true && (
-      userAgent.includes('mobile') ||
-      userAgent.includes('android') ||
-      userAgent.includes('iphone')
-    )
-  );
+  // MetaMaskアプリ内ブラウザの特徴的なユーザーエージェント文字列のみをチェック
+  // window.ethereumの存在だけでは判定しない（拡張機能でも存在するため）
+  return userAgent.includes('metamask');
 }
 
 /**
