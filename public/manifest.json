@@ -143,14 +143,5 @@
     "minimal-ui", 
     "browser"
   ],
-  "handle_links": "auto",
-  "launch_handler": {
-    "client_mode": "navigate-existing"
-  },
-  "protocol_handlers": [
-    {
-      "protocol": "web+sbtjpycpay",
-      "url": "/?template=%s"
-    }
-  ]
+  "handle_links": "none"
 }

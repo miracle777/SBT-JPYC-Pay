@@ -11,6 +11,7 @@ export interface MobileBrowserInfo {
   isSafari: boolean;
   isChrome: boolean;
   isInAppBrowser: boolean;
+  isMetaMaskBrowser: boolean;
   browserName: string;
 }
 
@@ -26,6 +27,7 @@ export function getMobileBrowserInfo(): MobileBrowserInfo {
     isSafari: /Safari/i.test(userAgent) && !/Chrome/i.test(userAgent),
     isChrome: /Chrome/i.test(userAgent),
     isInAppBrowser: /FBAN|FBAV|Instagram|Twitter|Line|Snapchat/i.test(userAgent),
+    isMetaMaskBrowser: /MetaMask/i.test(userAgent),
     browserName: getBrowserName(userAgent)
   };
 }

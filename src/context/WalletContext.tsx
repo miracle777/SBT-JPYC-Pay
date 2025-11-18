@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { BrowserProvider } from 'ethers';
-import { getMobileBrowserInfo, detectMetaMaskWithRetry } from '../utils/smartphoneWallet';
+import { detectMetaMaskWithRetry } from '../utils/smartphoneWallet';
+import { getMobileBrowserInfo } from '../utils/smartphoneWallet';
+import { detectPWAWalletAvailability } from '../utils/pwaWalletHandler';
+import { BrowserRedirectGuide } from '../components/BrowserRedirectGuide';
+import { analyzeMetaMaskConnectionFlow, implementRootSolution } from '../utils/walletConnectionAnalysis';
 import { 
   connectWalletInPWA, 
   getPWAWalletCompatibilityInfo,
@@ -30,6 +34,10 @@ export interface WalletContextType {
     isCompatible: boolean;
   };
   lastConnectionStrategy: string | null;
+  showBrowserRedirect: boolean;
+  pendingConnection: boolean;
+  forceConnect: () => Promise<void>;
+  closeBrowserRedirect: () => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -45,6 +53,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isMetaMaskAvailable, setIsMetaMaskAvailable] = useState(false);
   const [pwaWalletInfo, setPwaWalletInfo] = useState(getPWAWalletCompatibilityInfo());
   const [lastConnectionStrategy, setLastConnectionStrategy] = useState<string | null>(null);
+  const [showBrowserRedirect, setShowBrowserRedirect] = useState(false);
+  const [pendingConnection, setPendingConnection] = useState(false);
   
   // サポートされるチェーンの定義 - 豊富なネットワーク選択肢
   const supportedChains = [
@@ -213,20 +223,69 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const connect = async () => {
+    if (isConnecting) return;
+
     setIsConnecting(true);
-    console.log('🔄 ウォレット接続開始');
-    
+    console.log('🔗 ウォレット接続開始');
+
     try {
-      // モバイル環境の詳細検出
+      // まず根本原因を分析
+      console.log('🔍 MetaMask接続フロー分析を実行...');
+      const analysis = analyzeMetaMaskConnectionFlow();
+      
+      console.log('📋 分析結果:', {
+        trigger: analysis.connectionTrigger,
+        context: analysis.browserContext,
+        reasons: analysis.reasons,
+        solutions: analysis.solutions
+      });
+
       const browserInfo = getMobileBrowserInfo();
       const isMobile = browserInfo.isIOS || browserInfo.isAndroid;
       
-      console.log('📱 環境情報:', { 
-        isMobile, 
-        isPWA, 
-        browser: browserInfo.browserName,
-        hasEthereum: typeof window.ethereum !== 'undefined'
+      console.log('🌐 環境情報:', {
+        isMobile,
+        isMetaMaskBrowser: browserInfo.isMetaMaskBrowser,
+        userAgent: navigator.userAgent,
+        isPWA: window.matchMedia('(display-mode: standalone)').matches,
+        referrer: document.referrer,
+        currentURL: window.location.href
       });
+
+      // PWAのprotocol_handlerが原因の可能性をチェック
+      if (analysis.browserContext === 'IN_APP_BROWSER' && analysis.connectionTrigger === 'DEEPLINK') {
+        console.warn('🚨 原因特定: PWAのprotocol_handlerがMetaMaskアプリ内ブラウザを起動している');
+        
+        // 根本的解決策を実装
+        console.log('🛠️ 根本的解決策を実装中...');
+        await implementRootSolution();
+        
+        alert('PWAの設定に問題があります。ページを再読み込みして、ネイティブブラウザからアクセスしてください。');
+        setIsConnecting(false);
+        return;
+      }
+
+      // MetaMaskアプリ内ブラウザの場合、根本原因を表示して対処
+      if (browserInfo.isMetaMaskBrowser) {
+        console.log('🚨 MetaMaskアプリ内ブラウザ検出');
+        console.log('💡 推定原因:', analysis.reasons.join(', '));
+        console.log('🔧 推奨解決策:', analysis.solutions.join(', '));
+        
+        // 根本原因に基づいた適切なメッセージを表示
+        const rootCauseMessage = analysis.reasons.length > 0 
+          ? `原因: ${analysis.reasons.join('、')}\n\n推奨解決策: ${analysis.solutions.join('、')}`
+          : 'MetaMaskアプリ内ブラウザが使用されています。';
+        
+        if (confirm(`${rootCauseMessage}\n\nネイティブブラウザへの移行を実行しますか？`)) {
+          await implementRootSolution();
+          return;
+        } else {
+          setPendingConnection(true);
+          setShowBrowserRedirect(true);
+          setIsConnecting(false);
+          return;
+        }
+      }
 
       // PWA環境での最適化された接続処理を使用
       if (isPWA) {
@@ -382,6 +441,53 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const forceConnect = async () => {
+    console.log('🔒 強制接続開始（MetaMaskアプリ内ブラウザ）');
+    setShowBrowserRedirect(false);
+    setPendingConnection(false);
+    setIsConnecting(true);
+
+    try {
+      if (!window.ethereum) {
+        throw new Error('WALLET_NOT_AVAILABLE');
+      }
+
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts',
+      });
+
+      if (accounts && accounts.length > 0) {
+        const chainIdHex = await window.ethereum.request({
+          method: 'eth_chainId',
+        });
+        const newChainId = parseInt(chainIdHex, 16);
+
+        setAddress(accounts[0]);
+        setChainId(newChainId);
+        setIsConnected(true);
+        setLastConnectionStrategy('METAMASK_IN_APP');
+
+        const ethProvider = new BrowserProvider(window.ethereum);
+        setProvider(ethProvider);
+
+        localStorage.setItem('walletAddress', accounts[0]);
+        localStorage.setItem('walletChainId', newChainId.toString());
+        
+        console.log('✅ 強制接続完了');
+      }
+    } catch (error: any) {
+      console.error('❌ 強制接続エラー:', error);
+      alert(`接続エラー: ${error.message}`);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const closeBrowserRedirect = () => {
+    setShowBrowserRedirect(false);
+    setPendingConnection(false);
+  };
+
   const disconnect = () => {
     setAddress(null);
     setChainId(null);
@@ -491,6 +597,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isMetaMaskAvailable,
         pwaWalletInfo,
         lastConnectionStrategy,
+        showBrowserRedirect,
+        pendingConnection,
+        forceConnect,
+        closeBrowserRedirect,
       }}
     >
       {children}
