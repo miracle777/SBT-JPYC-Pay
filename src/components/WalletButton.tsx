@@ -12,11 +12,10 @@ export const WalletButton: React.FC = () => {
 
   const clearError = () => setError(null);
 
-  // 接続済みでもボタン領域を表示して接続状態を示す（消えてしまわないようにする）
+  if (isConnected) return null;
 
-  // デスクトップではフローティングではなく、ヘッダー内に置かれる通常表示に戻す
   return (
-    <div className="inline-flex items-center p-0">
+    <div className="flex flex-col items-center p-2">
       <AnimatePresence>
         {error && (
           <motion.div
@@ -36,57 +35,71 @@ export const WalletButton: React.FC = () => {
         )}
       </AnimatePresence>
 
-        <div className="text-left">
-          <div className="mb-0 flex items-center gap-3">
-            <Wallet className="h-6 w-6 text-blue-600" />
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900">ウォレットを接続</h3>
-              <p className="text-xs text-gray-500">JPYC決済をご利用ください</p>
-            </div>
-          </div>
+      <div className="text-center w-full">
+        <div className="mb-3">
+          <Wallet className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">ウォレットを接続</h3>
+          <p className="text-sm text-gray-600">JPYC決済をご利用ください</p>
+        </div>
 
-          <div className="ml-4">
-            <ConnectButton.Custom>
-              {({ account, chain, openChainModal, openConnectModal, authenticationStatus, mounted }) => {
-                const ready = mounted && authenticationStatus !== 'loading';
-                const connected = ready && account && chain && (!authenticationStatus || authenticationStatus === 'authenticated');
+        <div>
+          <ConnectButton.Custom>
+            {({ account, chain, openChainModal, openConnectModal, authenticationStatus, mounted }) => {
+              const ready = mounted && authenticationStatus !== 'loading';
+              const connected = ready && account && chain && (!authenticationStatus || authenticationStatus === 'authenticated');
 
-                const truncate = (addr?: string) => {
-                  if (!addr) return '';
-                  return addr.slice(0, 6) + '...' + addr.slice(-4);
-                };
+              return (
+                <div {...(!ready && { 'aria-hidden': true, style: { opacity: 0, pointerEvents: 'none', userSelect: 'none' } })}>
+                  {(() => {
+                    if (!connected) {
+                      return (
+                        <button
+                          onClick={() => {
+                            try {
+                              clearError();
+                              openConnectModal?.();
+                            } catch (err: unknown) {
+                              console.error('Connect error:', err);
+                              const errorMessage = err instanceof Error ? err.message : String(err);
+                              setError(errorMessage?.includes('User rejected') || errorMessage?.includes('user rejected') ? 'ウォレットでの接続要求が拒否されました。再度お試しください。' : 'ウォレット接続中にエラーが発生しました。');
+                            }
+                          }}
+                          type="button"
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 mx-auto"
+                        >
+                          <Wallet className="h-4 w-4" />
+                          ウォレット接続
+                        </button>
+                      );
+                    }
 
-                return (
-                  <div {...(!ready && { 'aria-hidden': true, style: { opacity: 0, pointerEvents: 'none', userSelect: 'none' } })}>
-                    {!connected ? (
-                      <button
-                        onClick={() => {
-                          try {
-                            clearError();
-                            openConnectModal?.();
-                          } catch (err: unknown) {
-                            console.error('Connect error:', err);
-                            const errorMessage = err instanceof Error ? err.message : String(err);
-                            setError(errorMessage?.includes('User rejected') || errorMessage?.includes('user rejected') ? 'ウォレットでの接続要求が拒否されました。再度お試しください。' : 'ウォレット接続中にエラーが発生しました。');
-                          }
-                        }}
-                        type="button"
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center gap-2"
-                      >
-                        <Wallet className="h-4 w-4" />
-                        ウォレット接続
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <div className="text-sm text-gray-700 font-medium">{truncate(account.address)}</div>
-                        <button onClick={() => openChainModal?.()} type="button" className="text-xs text-blue-600 underline">ネットワーク変更</button>
+                    if (chain?.unsupported) {
+                      return (
+                        <div className="space-y-2">
+                          <div className="p-3 bg-yellow-50 rounded border border-yellow-200">
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4 text-yellow-600" />
+                              <span className="text-xs font-medium text-yellow-800">サポートされていないネットワークです</span>
+                            </div>
+                          </div>
+                          <button onClick={() => openChainModal?.()} type="button" className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded text-sm">ネットワークを切り替え</button>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="flex items-center justify-center">
+                        <div className="flex items-center gap-2 bg-green-50 text-green-800 px-3 py-2 rounded-lg border border-green-200">
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span className="text-sm font-medium">接続済み</span>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                );
-              }}
-            </ConnectButton.Custom>
-          </div>
+                    );
+                  })()}
+                </div>
+              );
+            }}
+          </ConnectButton.Custom>
 
           <div className="text-xs text-gray-500 space-y-0.5 mt-3">
             <p>• Sepolia / Polygon Amoy / Polygon 対応</p>
@@ -106,5 +119,6 @@ export const WalletButton: React.FC = () => {
           </div>
         </div>
       </div>
+    </div>
   );
 };
