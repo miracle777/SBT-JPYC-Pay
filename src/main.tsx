@@ -10,7 +10,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createConfig, WagmiConfig } from 'wagmi';
-import { mainnet, polygon, goerli } from 'wagmi/chains';
+import { mainnet, polygon, sepolia } from 'wagmi/chains';
 import { http } from 'viem';
 import { metaMask, injected, walletConnect } from '@wagmi/connectors';
 
@@ -235,13 +235,13 @@ if (!projectId) {
   console.warn('VITE_WALLETCONNECT_PROJECT_ID is not set. WalletConnect may not work.');
 }
 
-const chains = [mainnet, polygon, goerli] as const;
+const chains = [mainnet, polygon, sepolia] as const;
 
 // Provide simple HTTP transports using chain RPC defaults (fallback to public endpoints)
 const transports = {
   [mainnet.id]: http(mainnet.rpcUrls.default.http[0] ?? 'https://cloudflare-eth.com'),
   [polygon.id]: http(polygon.rpcUrls.default.http[0] ?? 'https://polygon-rpc.com'),
-  [goerli.id]: http(goerli.rpcUrls.default.http[0] ?? 'https://rpc.ankr.com/eth_goerli'),
+  [sepolia.id]: http(sepolia.rpcUrls.default.http[0] ?? 'https://rpc.ankr.com/eth_sepolia'),
 };
 
 const connectors = [
