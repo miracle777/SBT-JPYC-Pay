@@ -24,12 +24,9 @@ export default defineConfig({
           'browserconfig.xml',
           // manifest.json は globPatterns から除外（additionalManifestEntries で管理）
         ],
-        // キャッシュするアセット
+        // 重複排除: globPatterns で既にキャッチされるので additionalManifestEntries は最小限に
         additionalManifestEntries: [
-          { url: '/', revision: null },
           { url: '/manifest.json', revision: null },
-          { url: '/icons/icon-192x192.png', revision: null },
-          { url: '/icons/icon-512x512.png', revision: null },
         ],
         // ファイルサイズ制限を緩和（画像データ含むため）
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
