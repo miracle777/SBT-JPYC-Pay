@@ -68,14 +68,21 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
       if (timeoutFired) return;
       timeoutFired = true;
       
-      console.log('⏱️ ウォレット検出タイムアウト - デフォルトオプションを表示');
-      setHasTimedOut(true);
-      setLoadingError('ウォレット検出中にタイムアウトしました。下記のオプションからお選びください。');
+      console.log('⏱️ ウォレット検出タイムアウト - デフォルトオプションを表示', {
+        timeout,
+        isMobile: env.isMobile
+      });
       
       // 推奨ウォレットを即座に表示
       const recommended = getRecommendedWallets();
+      console.log('💡 推奨ウォレット:', recommended.length, 'つ', {
+        names: recommended.map(w => w.name)
+      });
+      
+      setHasTimedOut(true);
       setRecommendedWallets(recommended);
-      setIsLoading(false);
+      setLoadingError('⏱️ ウォレット検出がタイムアウトしました。下記のオプションからお選びください。');
+      setIsLoading(false); // 必ず false にする
     }, timeout);
     
     try {
@@ -226,6 +233,9 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
         </div>
 
         <div className="p-6 max-h-[calc(90vh-100px)] overflow-y-auto">
+          {/* デバッグ: 状態確認 */}
+          <div className="hidden">isLoading:{String(isLoading)} hasTimedOut:{String(hasTimedOut)} wallets:{detectedWallets.length}</div>
+          
           {isLoading && !hasTimedOut ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">

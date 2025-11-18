@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown, Wallet, RefreshCw, Network, Monitor, TestTube, ExternalLink, AlertTriangle } from 'lucide-react';
+import { ChevronDown, Wallet, RefreshCw, Network, Monitor, TestTube, AlertTriangle } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
-import { PWAWalletInfo } from './PWAWalletInfo';
 import toast from 'react-hot-toast';
 
 interface WalletSelectorProps {
@@ -22,8 +21,6 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
     isConnecting, 
     hasMultipleAccounts, 
     supportedChains,
-    isPWA,
-    pwaWalletInfo,
     lastConnectionStrategy,
     connect, 
     disconnect, 
@@ -139,9 +136,6 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
       {/* 詳細表示 */}
       {isExpanded && (
         <div className="border-t border-gray-200 p-4 space-y-4">
-          {/* PWA環境の情報表示 */}
-          {isPWA && <PWAWalletInfo />}
-          
           {!isConnected ? (
             <div className="space-y-3">
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
@@ -344,8 +338,7 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
                       rel="noopener noreferrer"
                       className="inline-flex items-center space-x-1 text-red-600 hover:text-red-800 font-medium mt-2"
                     >
-                      <ExternalLink className="w-3 h-3" />
-                      <span>MetaMaskをダウンロード</span>
+                      <span>🔗 MetaMaskをダウンロード</span>
                     </a>
                   </div>
                 </div>
