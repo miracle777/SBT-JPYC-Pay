@@ -11,9 +11,9 @@ export default defineConfig({
       includeAssets: [
         'icons/**/*.png',
         'icons/**/*.svg',
-        'manifest.json',
         'sbt-images/**/*.png',
         'browserconfig.xml',
+        // manifest.json は Workbox の precache から除外（runtimeCaching で管理）
       ],
       manifest: false, // 外部manifest.jsonを使用
       injectRegister: 'auto',
@@ -22,15 +22,26 @@ export default defineConfig({
           '**/*.{js,css,html,png,svg,ico,webp}',
           'icons/**/*.png',
           'browserconfig.xml',
-          // manifest.json は globPatterns から除外（additionalManifestEntries で管理）
+          // manifest.json は ここでも除外
         ],
-        // 重複排除: globPatterns で既にキャッチされるので additionalManifestEntries は最小限に
-        additionalManifestEntries: [
-          { url: '/manifest.json', revision: null },
-        ],
+        // additionalManifestEntries は空（すべて globPatterns で管理）
+        additionalManifestEntries: [],
         // ファイルサイズ制限を緩和（画像データ含むため）
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
         runtimeCaching: [
+          // manifest.json - ネットワーク優先
+          {
+            urlPattern: /\/manifest\.json$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'manifest-cache',
+              expiration: {
+                maxEntries: 1,
+                maxAgeSeconds: 24 * 60 * 60, // 1日
+              },
+              networkTimeoutSeconds: 2,
+            },
+          },
           // アプリ本体のナビゲーション
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
