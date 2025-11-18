@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ExternalLink, Smartphone, Monitor } from 'lucide-react';
 import { DetectedWallet, WalletProvider, detectWallets, connectWithWallet, getRecommendedWallets } from '../utils/standardWalletConnect';
+import { enableWalletDebugMode, checkNetworkConnectivity } from '../utils/walletDetectionDebug';
 
 interface StandardWalletModalProps {
   isOpen: boolean;
@@ -38,11 +39,17 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
     setLoadingError(null);
     setHasTimedOut(false);
     
-    console.log('🔍 ウォレット検出開始...');
-    
-    // タイムアウト処理 (モバイルは5秒、デスクトップは3秒)
     const isMobile = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent);
-    const timeout = isMobile ? 5000 : 3000;
+    
+    console.log('🔍 ウォレット検出開始...', { isMobile, userAgent: navigator.userAgent });
+    console.log('ethereum:', {
+      exists: !!window.ethereum,
+      isMetaMask: window.ethereum?.isMetaMask,
+      chainId: (window.ethereum as any)?.chainId
+    });
+    
+    // モバイルでは即座にフォールバック（2秒でタイムアウト）
+    const timeout = isMobile ? 2000 : 1500;
     
     const timeoutId = setTimeout(() => {
       console.log('⚠️ ウォレット検出タイムアウト - デフォルトオプションを表示');
