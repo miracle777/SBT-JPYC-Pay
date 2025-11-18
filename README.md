@@ -151,6 +151,50 @@ npx hardhat deploy --network polygon
 npm run dev
 ```
 
+## 🎨 ウォレット接続UI について
+
+### RainbowKit による改善
+
+本プロジェクトでは **[RainbowKit](https://www.rainbowkit.com/)** を採用しています。RainbowKit の採用により、以下のメリットが得られます：
+
+- **複数ウォレット対応**: MetaMask、WalletConnect、Coinbase Wallet など多数のウォレットを統一 UI でサポート
+- **自動ウォレット検出**: インストール済みウォレットを自動検出し、ユーザーに提示
+- **接続管理の簡素化**: ウォレットの接続・切断を Wagmi の hooks でシンプルに管理
+- **UX 改善**: ネイティブで使いやすい接続モーダルと、接続済み時のアドレス表示
+- **チェーン切り替え**: 接続時にネットワーク（チェーン）の選択・切り替えも含まれる
+
+### 実装方針
+
+ウォレット接続機能を実装する際は、**RainbowKit + Wagmi** の組み合わせを推奨します：
+
+```tsx
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { createConfig, WagmiConfig } from 'wagmi';
+import { metaMask, injected, walletConnect } from '@wagmi/connectors';
+
+// アプリ内に RainbowKitProvider でラップ
+const config = createConfig({
+  chains,
+  connectors: [
+    metaMask({
+      dappMetadata: {
+        name: 'Your App Name',
+        url: window.location.origin,
+      },
+    }),
+    injected(),
+    walletConnect({ projectId }),
+  ],
+});
+
+// ConnectButton.Custom でカスタマイズ可能
+<RainbowKitProvider>
+  <WagmiConfig config={config}>
+    <YourApp />
+  </WagmiConfig>
+</RainbowKitProvider>
+```
+
 ## 📖 使用方法
 
 ### 🏢 お店側の操作
