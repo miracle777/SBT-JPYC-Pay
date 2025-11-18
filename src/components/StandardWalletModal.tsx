@@ -24,6 +24,8 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
   const [recommendedWallets, setRecommendedWallets] = useState<WalletProvider[]>([]);
   const [isConnecting, setIsConnecting] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [hasTimedOut, setHasTimedOut] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -33,14 +35,32 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
 
   const loadWallets = async () => {
     setIsLoading(true);
-    try {
-      console.log('🔍 ウォレット検出開始...');
+    setLoadingError(null);
+    setHasTimedOut(false);
+    
+    console.log('🔍 ウォレット検出開始...');
+    
+    // タイムアウト処理 (モバイルは5秒、デスクトップは3秒)
+    const isMobile = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent);
+    const timeout = isMobile ? 5000 : 3000;
+    
+    const timeoutId = setTimeout(() => {
+      console.log('⚠️ ウォレット検出タイムアウト - デフォルトオプションを表示');
+      setHasTimedOut(true);
+      setLoadingError('ウォレット検出に時間がかかっています。下記のオプションをお試しください。');
       
+      // 緊急フォールバック: 推奨ウォレットを表示
+      setRecommendedWallets(getRecommendedWallets());
+      setIsLoading(false);
+    }, timeout);
+    
+    try {
       const detected = await detectWallets();
-      const recommended = getRecommendedWallets();
+      
+      // 検出が成功したらタイムアウトをクリア
+      clearTimeout(timeoutId);
       
       console.log('📱 検出されたウォレット:', detected.length, 'つ');
-      console.log('💡 推奨ウォレット:', recommended.length, 'つ');
       
       // MetaMaskが検出された場合は先頭に配置
       const sortedDetected = detected.sort((a, b) => {
@@ -50,10 +70,17 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
       });
       
       setDetectedWallets(sortedDetected);
+      
+      // 推奨ウォレットも追加
+      const recommended = getRecommendedWallets();
+      console.log('💡 推奨ウォレット:', recommended.length, 'つ');
       setRecommendedWallets(recommended);
       
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('❌ ウォレット検出エラー:', error);
+      setLoadingError('ウォレットの検出に失敗しました。下記のオプションでお試しください。');
+      
       // エラー時もデフォルトウォレットを表示
       setRecommendedWallets(getRecommendedWallets());
     } finally {
@@ -162,12 +189,26 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
 
         <div className="p-6 max-h-[calc(90vh-100px)] overflow-y-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-3 text-gray-600">ウォレットを検出中...</span>
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">ウォレットを検出中...</p>
+                <p className="text-sm text-gray-500 mt-2">初回は数秒かかる場合があります</p>
+                {hasTimedOut && (
+                  <p className="text-xs text-red-500 mt-2">検出に時間がかかっています...</p>
+                )}
+              </div>
             </div>
           ) : (
             <>
+              {/* エラーメッセージ表示 */}
+              {loadingError && (
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    ⚠️ {loadingError}
+                  </p>
+                </div>
+              )}
               {/* インストール済みウォレット */}
               {detectedWallets.length > 0 && (
                 <div className="mb-6">
@@ -188,35 +229,73 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
                 </div>
               )}
 
-              {/* 推奨ウォレット（未インストール） */}
-              {recommendedWallets
-                .filter(recommended => !detectedWallets.find(detected => 
-                  detected.info.name.toLowerCase().includes(recommended.name.toLowerCase()) ||
-                  recommended.name.toLowerCase().includes(detected.info.name.toLowerCase())
-                )).length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                    その他のオプション
-                  </h3>
-                  <div className="space-y-2">
-                    {recommendedWallets
-                      .filter(recommended => !detectedWallets.find(detected => 
-                        detected.info.name.toLowerCase().includes(recommended.name.toLowerCase()) ||
-                        recommended.name.toLowerCase().includes(detected.info.name.toLowerCase())
-                      ))
-                      .map((wallet) => (
-                        <WalletOption
-                          key={wallet.id}
-                          wallet={wallet}
-                          isConnecting={isConnecting === wallet.id}
-                          onClick={() => handleWalletClick(wallet)}
-                          showInstallHint={wallet.id !== 'walletconnect'}
-                        />
-                      ))}
-                  </div>
+              {/* 推奨ウォレット（常に表示） */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                  {detectedWallets.length > 0 ? 'その他のオプション' : 'ウォレットオプション'}
+                </h3>
+                <div className="space-y-2">
+                  {recommendedWallets
+                    .filter(recommended => !detectedWallets.find(detected => 
+                      detected.info.name.toLowerCase().includes(recommended.name.toLowerCase()) ||
+                      recommended.name.toLowerCase().includes(detected.info.name.toLowerCase())
+                    ))
+                    .map((wallet) => (
+                      <WalletOption
+                        key={wallet.id}
+                        wallet={wallet}
+                        isConnecting={isConnecting === wallet.id}
+                        onClick={() => handleWalletClick(wallet)}
+                        showInstallHint={wallet.id !== 'walletconnect'}
+                      />
+                    ))}
+                  
+                  {/* 緊急フォールバック: 最低限のオプションを保証 */}
+                  {detectedWallets.length === 0 && recommendedWallets.length === 0 && (
+                    <>
+                      <WalletOption
+                        wallet={{
+                          id: 'walletconnect-fallback',
+                          name: 'WalletConnect',
+                          icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTguNSAxMS41YzQuNjctNC42NyAxMi4yNi00LjY3IDE2LjkzIDBsLjU3LjU3YS4yLjIgMCAwIDEgMCAuMjhMODcgMTQuMjNhLjEuMSAwIDAgMS0uMTQgMGwtLjYyLS42MmMtMy42LTMuNi05LjQzLTMuNi0xMy4wMyAwbC0uNjYuNjZhLjEuMSAwIDAgMS0uMTQgMEw4LjUgMTEuNWEuMi4yIDAgMCAxIDAtLjI4eiIgZmlsbD0iIzM5OTZmZiIvPjwvc3ZnPg==',
+                          installed: true,
+                          mobile: true,
+                          desktop: true
+                        }}
+                        isConnecting={isConnecting === 'walletconnect-fallback'}
+                        onClick={() => handleWalletClick({
+                          provider: null,
+                          info: {
+                            id: 'walletconnect-fallback',
+                            name: 'WalletConnect',
+                            icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTguNSAxMS41YzQuNjctNC42NyAxMi4yNi00LjY3IDE2LjkzIDBsLjU3LjU3YS4yLjIgMCAwIDEgMCAuMjhMODcgMTQuMjNhLjEuMSAwIDAgMS0uMTQgMGwtLjYyLS42MmMtMy42LTMuNi05LjQzLTMuNi0xMy4wMyAwbC0uNjYuNjZhLjEuMSAwIDAgMS0uMTQgMEw4LjUgMTEuNWEuMi4yIDAgMCAxIDAtLjI4eiIgZmlsbD0iIzM5OTZmZiIvPjwvc3ZnPg==',
+                            installed: true,
+                            mobile: true,
+                            desktop: true
+                          }
+                        })}
+                      />
+                      <WalletOption
+                        wallet={{
+                          id: 'metamask-install',
+                          name: 'MetaMaskをインストール',
+                          icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzMiIGhlaWdodD0iMzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTMwLjA3IDIuOTNsLTYuNjQgNC45NC0xLjE0IDguOTRIMTAuNzFsLTEuMTQtOC45NC02LjY0LTQuOTRMMS45NSA5LjJWMjdoMjkuMVY5LjJsLTEtNi4yN1oiIGZpbGw9IiNmNjY1MjEiLz48L3N2Zz4=',
+                          installed: false,
+                          mobile: true,
+                          desktop: true
+                        }}
+                        isConnecting={isConnecting === 'metamask-install'}
+                        onClick={() => {
+                          const installUrl = getWalletInstallUrl('metamask');
+                          window.open(installUrl, '_blank');
+                        }}
+                        showInstallHint={true}
+                      />
+                    </>
+                  )}
                 </div>
-              )}
+              </div>
 
               <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-800">
