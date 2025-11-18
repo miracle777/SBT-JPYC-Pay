@@ -33,27 +33,52 @@ export async function connectWithNativeWallet(): Promise<{
 }> {
   try {
     console.log('🔌 ネイティブウォレット接続開始（eth_requestAccounts）');
+    console.log('📱 environment:', {
+      isMobile: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent),
+      hasEthereum: !!window.ethereum,
+      userAgent: navigator.userAgent.substring(0, 100)
+    });
 
     if (!window.ethereum) {
+      console.error('❌ window.ethereum が存在しません');
       throw new Error('ウォレットがインストールされていません');
     }
+
+    console.log('✅ window.ethereum が見つかりました');
 
     // これが本来の方法：eth_requestAccounts を呼び出すと、
     // ブラウザが自動的に「MetaMask / Rainbow / Base Account / WalletConnect」
     // などの接続UI を表示してくれる
-    const accounts = await window.ethereum.request({
+    console.log('🔄 eth_requestAccounts を呼び出し中...');
+    
+    // タイムアウト処理を追加（10秒）
+    const accountsPromise = window.ethereum.request({
       method: 'eth_requestAccounts'
-    }) as string[];
+    }) as Promise<string[]>;
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('接続タイムアウト（10秒以上かかっています）'));
+      }, 10000);
+    });
+
+    const accounts = await Promise.race([accountsPromise, timeoutPromise]);
 
     if (!accounts || accounts.length === 0) {
+      console.error('❌ アカウントが取得できません');
       throw new Error('アカウントが見つかりません');
     }
 
+    console.log('✅ アカウント取得成功:', accounts[0]);
+
     // チェーンID取得
+    console.log('🔄 チェーンID取得中...');
     const chainIdHex = await window.ethereum.request({
       method: 'eth_chainId'
     }) as string;
     const chainId = parseInt(chainIdHex, 16);
+
+    console.log('✅ チェーンID取得成功:', chainId);
 
     // ethers.js プロバイダー作成
     const ethersProvider = new BrowserProvider(window.ethereum);
@@ -68,7 +93,12 @@ export async function connectWithNativeWallet(): Promise<{
     };
 
   } catch (error: any) {
-    console.error('❌ ウォレット接続エラー:', error);
+    console.error('❌ ウォレット接続エラー:', {
+      message: error?.message,
+      code: error?.code,
+      name: error?.name,
+      fullError: error
+    });
 
     let errorMessage = 'ウォレット接続に失敗しました';
 
@@ -76,6 +106,10 @@ export async function connectWithNativeWallet(): Promise<{
       errorMessage = 'ユーザーによって接続がキャンセルされました';
     } else if (error.code === -32002) {
       errorMessage = '既に接続リクエストが処理中です';
+    } else if (error.message?.includes('タイムアウト')) {
+      errorMessage = 'ウォレット接続がタイムアウトしました（10秒以上）。ウォレットアプリを確認してください';
+    } else if (error.message?.includes('インストール')) {
+      errorMessage = 'ウォレットがインストールされていません';
     }
 
     return {

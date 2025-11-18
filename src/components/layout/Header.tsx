@@ -65,12 +65,12 @@ const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
                 <HelpCircle className="w-5 h-5 xs:w-6 xs:h-6" />
               </button>
             )}
-            <div className="xs:block">
+            <div className="xs:block hidden md:block">
               <WalletButton />
             </div>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-1.5 xs:p-2 hover:bg-gray-100 rounded-lg transition"
+              className="md:hidden p-1.5 xs:p-2 hover:bg-gray-100 rounded-lg transition relative z-50"
             >
               {isMenuOpen ? (
                 <X className="w-5 h-5 xs:w-6 xs:h-6" />
@@ -83,31 +83,31 @@ const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
 
         {/* モバイルナビゲーション */}
         {isMenuOpen && (
-          <nav className="md:hidden mt-3 xs:mt-4 space-y-1 xs:space-y-2 border-t border-gray-200 pt-3 xs:pt-4 landscape:mt-2 landscape:pt-2 relative z-40">
+          <nav className="md:hidden mt-3 xs:mt-4 space-y-1 xs:space-y-2 border-t border-gray-200 pt-3 xs:pt-4 landscape:mt-2 landscape:pt-2 relative z-40 -mx-3 xs:-mx-4 sm:-mx-6 px-3 xs:px-4 sm:px-6 overflow-x-hidden max-w-full">
             <Link
               to="/"
-              className="block px-3 xs:px-4 py-1.5 xs:py-2 text-sm xs:text-base text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              className="block px-3 xs:px-4 py-1.5 xs:py-2 text-sm xs:text-base text-gray-600 hover:bg-gray-100 rounded-lg transition truncate"
               onClick={() => setIsMenuOpen(false)}
             >
               ダッシュボード
             </Link>
             <Link
               to="/qr-payment"
-              className="block px-3 xs:px-4 py-1.5 xs:py-2 text-sm xs:text-base text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              className="block px-3 xs:px-4 py-1.5 xs:py-2 text-sm xs:text-base text-gray-600 hover:bg-gray-100 rounded-lg transition truncate"
               onClick={() => setIsMenuOpen(false)}
             >
               QR決済
             </Link>
             <Link
               to="/sbt-management"
-              className="block px-3 xs:px-4 py-1.5 xs:py-2 text-sm xs:text-base text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              className="block px-3 xs:px-4 py-1.5 xs:py-2 text-sm xs:text-base text-gray-600 hover:bg-gray-100 rounded-lg transition truncate"
               onClick={() => setIsMenuOpen(false)}
             >
               SBT管理
             </Link>
             <Link
               to="/settings"
-              className="block px-3 xs:px-4 py-1.5 xs:py-2 text-sm xs:text-base text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              className="block px-3 xs:px-4 py-1.5 xs:py-2 text-sm xs:text-base text-gray-600 hover:bg-gray-100 rounded-lg transition truncate"
               onClick={() => setIsMenuOpen(false)}
             >
               設定
@@ -118,10 +118,10 @@ const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
                   onHelpClick();
                   setIsMenuOpen(false);
                 }}
-                className="w-full text-left px-3 xs:px-4 py-1.5 xs:py-2 text-sm xs:text-base text-gray-600 hover:bg-gray-100 rounded-lg transition flex items-center gap-2"
+                className="w-full text-left px-3 xs:px-4 py-1.5 xs:py-2 text-sm xs:text-base text-gray-600 hover:bg-gray-100 rounded-lg transition flex items-center gap-2 truncate"
               >
-                <HelpCircle className="w-4 h-4 xs:w-5 xs:h-5" />
-                ヘルプ
+                <HelpCircle className="w-4 h-4 xs:w-5 xs:h-5 flex-shrink-0" />
+                <span className="truncate">ヘルプ</span>
               </button>
             )}
           </nav>
