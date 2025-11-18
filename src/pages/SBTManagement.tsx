@@ -375,12 +375,16 @@ const SBTManagement: React.FC = () => {
 
   // チェーンが変更された時、コントラクト所有者・ショップ情報を確認
   useEffect(() => {
+    let isMounted = true; // クリーンアップ用フラグ
+    
     const checkContractOwnership = async () => {
       if (!selectedChainForSBT || !walletAddress) {
         // ウォレットが接続されていない場合は権限を無効化
         console.log('⚠️ ウォレット未接続または選択チェーン未設定 - 権限無効化');
-        setIsContractOwner(false);
-        setIsShopOwner(false);
+        if (isMounted) {
+          setIsContractOwner(false);
+          setIsShopOwner(false);
+        }
         return;
       }
 
@@ -388,6 +392,9 @@ const SBTManagement: React.FC = () => {
 
       try {
         const ownerResult = await getContractOwner(selectedChainForSBT);
+        
+        if (!isMounted) return; // アンマウントされていたら中断
+        
         if (ownerResult.owner) {
           setContractOwner(ownerResult.owner);
           console.log(`📋 コントラクトオーナー: ${ownerResult.owner}`);
@@ -398,7 +405,11 @@ const SBTManagement: React.FC = () => {
           const isOwner = ownerResult.owner.toLowerCase() === walletAddress.toLowerCase();
           console.log(`📋 比較結果: ${isOwner ? '✅ 一致' : '❌ 不一致'}`);
           
-          setIsContractOwner(isOwner);
+          if (isMounted) {
+            setContractOwner(ownerResult.owner);
+            setIsContractOwner(isOwner);
+            console.log(`🔄 setIsContractOwner(${isOwner}) 実行完了`);
+          }
           
           if (isOwner) {
             console.log('✅ 現在のウォレットはコントラクトオーナーです');
@@ -408,15 +419,21 @@ const SBTManagement: React.FC = () => {
 
           // ショップ情報を取得
           const shopResult = await getShopInfo(1, selectedChainForSBT);
+          
+          if (!isMounted) return; // アンマウントされていたら中断
+          
           if (shopResult.owner) {
-            setShopInfo(shopResult);
             console.log(`📋 ショップオーナー (ID:1): ${shopResult.owner}`);
             
             // アドレス比較を厳密に行う（小文字化して比較）
             const isShopOwner = shopResult.owner.toLowerCase() === walletAddress.toLowerCase();
             console.log(`📋 ショップ比較結果: ${isShopOwner ? '✅ 一致' : '❌ 不一致'}`);
             
-            setIsShopOwner(isShopOwner);
+            if (isMounted) {
+              setShopInfo(shopResult);
+              setIsShopOwner(isShopOwner);
+              console.log(`🔄 setIsShopOwner(${isShopOwner}) 実行完了`);
+            }
             
             if (isShopOwner) {
               console.log('✅ 現在のウォレットはショップオーナー (ID:1) です');
@@ -424,34 +441,59 @@ const SBTManagement: React.FC = () => {
               console.log('❌ 現在のウォレットはショップオーナー (ID:1) ではありません');
             }
           } else {
-            setShopInfo(null);
-            setIsShopOwner(false);
+            if (isMounted) {
+              setShopInfo(null);
+              setIsShopOwner(false);
+            }
             if (shopResult.error) {
               console.warn(`⚠️ ショップ情報取得エラー: ${shopResult.error}`);
             }
           }
         } else if (ownerResult.error) {
           console.warn(`⚠️ コントラクトオーナー取得エラー: ${ownerResult.error}`);
-          setIsContractOwner(false);
-          setIsShopOwner(false);
+          if (isMounted) {
+            setIsContractOwner(false);
+            setIsShopOwner(false);
+          }
         }
       } catch (error) {
         console.error('❌ コントラクト所有者確認エラー:', error);
-        setIsContractOwner(false);
-        setIsShopOwner(false);
+        if (isMounted) {
+          setIsContractOwner(false);
+          setIsShopOwner(false);
+        }
       }
       
       // useEffect完了後の状態を確認（デバッグ用）
-      console.log(`🏁 useEffect完了 - isContractOwner: ${isContractOwner}, isShopOwner: ${isShopOwner}`);
+      // 注意: setStateは非同期なので、ここでのログは更新前の値を表示する
+      setTimeout(() => {
+        if (isMounted) {
+          console.log(`🏁 権限チェック完了（次回レンダリング時に反映）`);
+        }
+      }, 0);
     };
 
     checkContractOwnership();
     
     // ウォレットアドレスとチェーンの両方が設定されたらショップ確認
     if (walletAddress && selectedChainForSBT) {
-      setTimeout(() => checkAndRegisterInitialShops(), 500); // 0.5秒後に実行
+      setTimeout(() => {
+        if (isMounted) {
+          checkAndRegisterInitialShops();
+        }
+      }, 500); // 0.5秒後に実行
     }
+    
+    // クリーンアップ関数
+    return () => {
+      isMounted = false;
+    };
   }, [selectedChainForSBT, walletAddress]);
+
+  // 権限状態が変更されたら確認ログを出力（デバッグ用）
+  useEffect(() => {
+    console.log(`🔐 権限状態更新: isContractOwner=${isContractOwner}, isShopOwner=${isShopOwner}`);
+  }, [isContractOwner, isShopOwner]);
 
   // LocalStorage から完了した支払いセッションを読み込み
   useEffect(() => {
