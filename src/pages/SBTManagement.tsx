@@ -378,6 +378,7 @@ const SBTManagement: React.FC = () => {
     const checkContractOwnership = async () => {
       if (!selectedChainForSBT || !walletAddress) {
         // ウォレットが接続されていない場合は権限を無効化
+        console.log('⚠️ ウォレット未接続または選択チェーン未設定 - 権限無効化');
         setIsContractOwner(false);
         setIsShopOwner(false);
         return;
@@ -393,14 +394,16 @@ const SBTManagement: React.FC = () => {
           console.log(`📋 現在のウォレット: ${walletAddress}`);
           console.log(`📋 比較(小文字): Contract="${ownerResult.owner.toLowerCase()}" vs Wallet="${walletAddress?.toLowerCase()}"`);
           
-          if (walletAddress && ownerResult.owner.toLowerCase() === walletAddress.toLowerCase()) {
-            setIsContractOwner(true);
+          // アドレス比較を厳密に行う（小文字化して比較）
+          const isOwner = ownerResult.owner.toLowerCase() === walletAddress.toLowerCase();
+          console.log(`📋 比較結果: ${isOwner ? '✅ 一致' : '❌ 不一致'}`);
+          
+          setIsContractOwner(isOwner);
+          
+          if (isOwner) {
             console.log('✅ 現在のウォレットはコントラクトオーナーです');
-            console.log(`🔍 権限確認 - Contract: ${ownerResult.owner.toLowerCase()} == Wallet: ${walletAddress.toLowerCase()}`);
           } else {
-            setIsContractOwner(false);
             console.log('❌ 現在のウォレットはコントラクトオーナーではありません');
-            console.log(`🔍 権限確認 - Contract: ${ownerResult.owner.toLowerCase()} != Wallet: ${walletAddress?.toLowerCase() || 'null'}`);
           }
 
           // ショップ情報を取得
@@ -408,14 +411,17 @@ const SBTManagement: React.FC = () => {
           if (shopResult.owner) {
             setShopInfo(shopResult);
             console.log(`📋 ショップオーナー (ID:1): ${shopResult.owner}`);
-            if (walletAddress && shopResult.owner.toLowerCase() === walletAddress.toLowerCase()) {
-              setIsShopOwner(true);
+            
+            // アドレス比較を厳密に行う（小文字化して比較）
+            const isShopOwner = shopResult.owner.toLowerCase() === walletAddress.toLowerCase();
+            console.log(`📋 ショップ比較結果: ${isShopOwner ? '✅ 一致' : '❌ 不一致'}`);
+            
+            setIsShopOwner(isShopOwner);
+            
+            if (isShopOwner) {
               console.log('✅ 現在のウォレットはショップオーナー (ID:1) です');
-              console.log(`🔍 ショップ権限確認 - Shop: ${shopResult.owner.toLowerCase()} == Wallet: ${walletAddress.toLowerCase()}`);
             } else {
-              setIsShopOwner(false);
               console.log('❌ 現在のウォレットはショップオーナー (ID:1) ではありません');
-              console.log(`🔍 ショップ権限確認 - Shop: ${shopResult.owner.toLowerCase()} != Wallet: ${walletAddress?.toLowerCase() || 'null'}`);
             }
           } else {
             setShopInfo(null);
@@ -426,10 +432,17 @@ const SBTManagement: React.FC = () => {
           }
         } else if (ownerResult.error) {
           console.warn(`⚠️ コントラクトオーナー取得エラー: ${ownerResult.error}`);
+          setIsContractOwner(false);
+          setIsShopOwner(false);
         }
       } catch (error) {
         console.error('❌ コントラクト所有者確認エラー:', error);
+        setIsContractOwner(false);
+        setIsShopOwner(false);
       }
+      
+      // useEffect完了後の状態を確認（デバッグ用）
+      console.log(`🏁 useEffect完了 - isContractOwner: ${isContractOwner}, isShopOwner: ${isShopOwner}`);
     };
 
     checkContractOwnership();
