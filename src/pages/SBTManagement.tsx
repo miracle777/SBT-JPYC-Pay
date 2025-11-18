@@ -1011,7 +1011,7 @@ const SBTManagement: React.FC = () => {
     if (selectedPaymentId) {
       setPaymentSBTStatus(prev => ({
         ...prev,
-        [selectedPaymentId]: { status: 'issuing', message: 'SBT発行中...' }
+        [selectedPaymentId]: { status: 'issuing', message: '発行中...' }
       }));
     }
 
@@ -1195,6 +1195,14 @@ const SBTManagement: React.FC = () => {
     // ⭐ ブロックチェーンに mint（非同期）
     const mintingToast = toast.loading('🔄 画像をIPFSにアップロード中...');
 
+    // 進捗状態を更新
+    if (selectedPaymentId) {
+      setPaymentSBTStatus(prev => ({
+        ...prev,
+        [selectedPaymentId]: { status: 'issuing', message: '📤 画像をアップロード中...' }
+      }));
+    }
+
     try {
       // テンプレートの画像をBlobに変換してPinataにアップロード
       let tokenURI = '';
@@ -1232,6 +1240,14 @@ const SBTManagement: React.FC = () => {
 
         toast.loading('📤 画像とメタデータをIPFSにアップロード中...', { id: mintingToast });
 
+        // 進捗状態を更新
+        if (selectedPaymentId) {
+          setPaymentSBTStatus(prev => ({
+            ...prev,
+            [selectedPaymentId]: { status: 'issuing', message: '📋 メタデータ作成中...' }
+          }));
+        }
+
         console.log('📋 使用される店舗設定:', shopSettings);
 
         // 動的メタデータでPinataにアップロード
@@ -1263,8 +1279,18 @@ const SBTManagement: React.FC = () => {
 
       toast.loading('🔄 SBT をブロックチェーンに記録中...', { id: mintingToast });
 
-      // ユーザーにネットワーク切替が発生する旨を通知
-      toast('🔁 発行先ネットワークへウォレットを切り替えます。MetaMaskの確認を許可してください', { icon: '🔁' });
+      // 進捗状態を更新
+      if (selectedPaymentId) {
+        setPaymentSBTStatus(prev => ({
+          ...prev,
+          [selectedPaymentId]: { status: 'issuing', message: '🔄 ブロックチェーンに記録中...' }
+        }));
+      }
+
+      // ユーザーにネットワーク切替とMetaMask署名を促す
+      toast('🔁 MetaMaskでネットワーク切替と署名の確認が表示されます', { icon: '🔁', duration: 5000 });
+
+      console.log('🎯 SBT発行開始 - MetaMask署名待ち');
 
       // SBT mint 実行（テンプレートのshopIdを使用）
       const result = await mintSBT({
@@ -1273,6 +1299,8 @@ const SBTManagement: React.FC = () => {
         tokenURI,
         chainId: selectedChainForSBT, // ユーザーが選択したネットワーク
       });
+
+      console.log('✅ SBT発行結果:', result);
 
       if (result.success && result.transactionHash) {
         // ✅ mint 成功
@@ -1293,7 +1321,7 @@ const SBTManagement: React.FC = () => {
             ...prev,
             [selectedPaymentId]: { 
               status: 'success', 
-              message: 'SBT発行完了！',
+              message: '発行完了',
               txHash: result.transactionHash
             }
           }));

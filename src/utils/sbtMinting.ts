@@ -259,19 +259,24 @@ export async function mintSBT(params: MintSBTParams): Promise<MintSBTResult> {
     // ガス推定とトランザクション実行
     let receipt: any = null;
     try {
+      console.log('⛽ ガス推定を開始します...');
       const gasEstimate = await contract.mintSBT.estimateGas(recipientAddress, shopId, tokenURI);
       const gasLimit = gasEstimate * 120n / 100n; // 20% マージン追加
       
       console.log('💡 ガス推定:', gasEstimate.toString(), '→ 制限:', gasLimit.toString());
+      console.log('📝 MetaMaskで署名を要求します - 署名プロンプトが表示されるはずです');
 
       const tx = await contract.mintSBT(recipientAddress, shopId, tokenURI, {
         gasLimit: gasLimit,
       });
 
-      console.log('⏳ トランザクション送信:', tx.hash);
+      console.log('✅ 署名完了 - トランザクション送信:', tx.hash);
+      console.log('⏳ トランザクション確認を待機中...');
       
       // トランザクション完了を待機
       receipt = await tx.wait();
+      
+      console.log('🎉 トランザクション確認完了:', receipt);
 
     } catch (gasError: any) {
       console.error('ガス推定エラー:', gasError);
