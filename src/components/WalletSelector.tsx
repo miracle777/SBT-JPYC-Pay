@@ -28,7 +28,8 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
     connect, 
     disconnect, 
     switchChain, 
-    switchAccount 
+    switchAccount,
+    openWalletModal
   } = useWallet();
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -74,6 +75,22 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
 
   const getNetworkStatusColor = (isTestnet: boolean) => {
     return isTestnet ? 'text-orange-600 bg-orange-100' : 'text-green-600 bg-green-100';
+  };
+
+  const handleWalletConnect = () => {
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    console.log('📱 ウォレット接続クリック - モバイル:', isMobile);
+    
+    if (isMobile) {
+      // モバイル環境では必ず標準ウォレットモーダルを表示
+      console.log('📱 モバイル環境 - 標準ウォレットモーダルを強制表示');
+      openWalletModal();
+    } else {
+      // デスクトップ環境でも標準モーダルを使用
+      console.log('🖥️ デスクトップ環境 - 標準ウォレットモーダルを表示');
+      openWalletModal();
+    }
   };
 
   return (
@@ -137,7 +154,7 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
                 </div>
               </div>
               <button
-                onClick={connect}
+                onClick={handleWalletConnect}
                 disabled={isConnecting}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center space-x-2"
               >
@@ -146,7 +163,7 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
                 ) : (
                   <Wallet className="w-4 h-4" />
                 )}
-                <span>{isConnecting ? '接続中...' : 'ウォレットを接続'}</span>
+                <span>{isConnecting ? '接続中...' : 'ウォレットを選択'}</span>
               </button>
             </div>
           ) : (

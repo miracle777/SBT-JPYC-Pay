@@ -14,7 +14,8 @@ export const WalletButton: React.FC = () => {
     disconnect, 
     isPWA,
     isMetaMaskAvailable,
-    pwaWalletInfo 
+    pwaWalletInfo,
+    openWalletModal
   } = useWallet();
 
   const [showPWAWarning, setShowPWAWarning] = useState(false);
@@ -25,39 +26,21 @@ export const WalletButton: React.FC = () => {
   const isMobile = browserInfo.isIOS || browserInfo.isAndroid;
 
   const handleConnect = async () => {
-    // モバイル環境の場合は専用コネクターを表示
-    if (isMobile) {
-      setShowSmartphoneConnector(true);
-      return;
-    }
-
-    // デスクトップ環境での接続処理
-    try {
-      await connect();
-      toast.success('ウォレットが接続されました');
-    } catch (error: any) {
-      console.error('PWA Wallet connection error:', error);
-      
-      // エラータイプに応じた対応
-      switch (error.message) {
-        case 'PWA_CONNECTION_FAILED':
-        case 'PWA_NO_METAMASK':
-          setShowPWAWarning(true);
-          toast.error('PWA環境でのウォレット接続に制限があります', { duration: 4000 });
-          break;
-        case 'MOBILE_CONNECTION_FAILED':
-          toast.error('モバイル環境での接続に失敗しました', { duration: 4000 });
-          break;
-        default:
-          if (isPWA && !pwaWalletInfo.isCompatible) {
-            setShowPWAWarning(true);
-            toast.error('PWA環境ではブラウザ版をご利用ください', { duration: 4000 });
-          } else {
-            toast.error(`接続エラー: ${error.message || '不明なエラー'}`);
-          }
-      }
-    }
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    console.log('🔗 WalletButton - ウォレット接続クリック (モバイル:', isMobile, ')');
+    
+    // すべての環境で標準ウォレットモーダルを使用
+    openWalletModal();
+    
+    // スマートフォンコネクターは無効化
+    // if (isMobile) {
+    //   setShowSmartphoneConnector(true);
+    //   return;
+    // }
   };
+  // 古いエラー処理部分を削除
+  // PWAやモバイル固有のエラー処理は標準ウォレットモーダル内で行う
 
   const handleOpenInBrowser = () => {
     const currentUrl = window.location.href;
@@ -164,7 +147,7 @@ export const WalletButton: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold rounded-lg transition duration-200"
           >
             {isMobile ? <Smartphone className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
-            {isConnecting ? '接続中...' : 'ウォレット接続'}
+            {isConnecting ? '接続中...' : 'ウォレットを選択'}
           </button>
           
           {/* PWAで MetaMask が利用できない場合の警告 */}
