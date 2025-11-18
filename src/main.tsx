@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
 import { mainnet, polygon, sepolia } from 'wagmi/chains';
 
-// Wagmi / RainbowKit (adapted for wagmi v2 / @wagmi/connectors)
+// Wagmi / RainbowKit - Using getDefaultConfig for better compatibility
 
 // ページコンポーネントのimport
 import Dashboard from './pages/Dashboard';
@@ -234,15 +234,6 @@ if (!projectId) {
   console.log('📝 環境変数を設定してください: VITE_WALLET_CONNECT_PROJECT_ID=your_project_id');
 }
 
-const chains = [mainnet, polygon, sepolia] as const;
-
-// Provide simple HTTP transports using chain RPC defaults (fallback to public endpoints)
-const transports = {
-  [mainnet.id]: http(mainnet.rpcUrls.default.http[0] ?? 'https://cloudflare-eth.com'),
-  [polygon.id]: http(polygon.rpcUrls.default.http[0] ?? 'https://polygon-rpc.com'),
-  [sepolia.id]: http(sepolia.rpcUrls.default.http[0] ?? 'https://rpc.ankr.com/eth_sepolia'),
-};
-
 // Get app URL - use hardcoded production URL, fallback to location.origin for development
 const appUrl = typeof window !== 'undefined' 
   ? (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
@@ -268,37 +259,9 @@ const config = getDefaultConfig({
 });
 
 console.log('🔧 RainbowKit Config Created:', config ? '✅' : '❌');
-
 console.log('🔑 WalletConnect ProjectID:', projectId ? `✅ Set (${projectId.substring(0, 10)}...)` : '❌ Not set');
-console.log('📊 RainbowKit Setup:');
-console.log('  Chains:', chains.map(c => `${c.name} (${c.id})`));
-console.log('  App URL:', appUrl);
-console.log('  Icon URL:', appIcon);
-
-const wagmiConfig = createConfig({
-  chains,
-  connectors,
-  transports,
-});
 
 const queryClient = new QueryClient();
-
-// Log when RainbowKit initializes
-console.log('🚀 RainbowKit Initialization:');
-console.log('  wagmiConfig:', wagmiConfig ? 'Created' : 'Failed');
-console.log('  connectors in config:', wagmiConfig?.connectors?.length || 0);
-
-// More detailed connector inspection
-if (wagmiConfig?.connectors) {
-  wagmiConfig.connectors.forEach((conn: any, idx: number) => {
-    console.log(`  Connector[${idx}]:`, {
-      type: conn.type,
-      id: conn.id,
-      name: conn.name,
-      uid: conn.uid,
-    });
-  });
-}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
