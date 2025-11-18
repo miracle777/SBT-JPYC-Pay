@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { BrowserProvider } from 'ethers';
-import { isMobileDevice, detectMetaMaskMobile, enhanceMobileWalletDetection } from '../utils/mobileWallet';
+import { getMobileBrowserInfo, detectMetaMaskWithRetry } from '../utils/smartphoneWallet';
 
 export interface WalletContextType {
   address: string | null;
@@ -38,7 +38,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // PWA環境とMetaMaskの可用性をチェック
   useEffect(() => {
-    const checkEnvironment = () => {
+    const checkEnvironment = async () => {
       // PWA環境の検出
       const isPWAMode = window.matchMedia('(display-mode: standalone)').matches 
         || (window.navigator as any).standalone === true
@@ -47,18 +47,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsPWA(isPWAMode);
 
       // モバイル環境での検出を強化
-      if (isMobileDevice()) {
-        enhanceMobileWalletDetection();
-        
-        // MetaMaskモバイルの検出
-        const metaMaskAvailable = detectMetaMaskMobile() || typeof window.ethereum !== 'undefined';
+      const browserInfo = getMobileBrowserInfo();
+      if (browserInfo.isIOS || browserInfo.isAndroid) {
+        // モバイル環境での MetaMask 検出
+        const metaMaskAvailable = await detectMetaMaskWithRetry();
         setIsMetaMaskAvailable(metaMaskAvailable);
-        
-        // モバイル環境での遅延チェック
-        setTimeout(() => {
-          const delayedCheck = detectMetaMaskMobile() || typeof window.ethereum !== 'undefined';
-          setIsMetaMaskAvailable(delayedCheck);
-        }, 2000);
       } else {
         // デスクトップ環境での検出
         const metaMaskAvailable = typeof window.ethereum !== 'undefined' 
@@ -163,10 +156,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const connect = async () => {
     // モバイル環境での検出強化
-    if (isMobileDevice()) {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 1秒待機
+    const browserInfo = getMobileBrowserInfo();
+    if (browserInfo.isIOS || browserInfo.isAndroid) {
+      // モバイル環境では、検出の再試行
+      const metaMaskAvailable = await detectMetaMaskWithRetry();
       
-      if (!window.ethereum && !detectMetaMaskMobile()) {
+      if (!metaMaskAvailable && !window.ethereum) {
         if (isPWA) {
           throw new Error('PWA_NO_METAMASK_MOBILE');
         } else {

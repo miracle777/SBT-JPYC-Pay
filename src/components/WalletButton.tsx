@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Wallet, LogOut, ExternalLink, Smartphone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
-import MobileWalletConnector from './MobileWalletConnector';
-import { isMobileDevice, isIOS, isAndroid } from '../utils/mobileWallet';
+import SmartphoneWalletConnector from './SmartphoneWalletConnector';
+import { getMobileBrowserInfo } from '../utils/smartphoneWallet';
 
 export const WalletButton: React.FC = () => {
   const { 
@@ -17,9 +17,20 @@ export const WalletButton: React.FC = () => {
   } = useWallet();
 
   const [showPWAWarning, setShowPWAWarning] = useState(false);
-  const [showMobileConnector, setShowMobileConnector] = useState(false);
+  const [showSmartphoneConnector, setShowSmartphoneConnector] = useState(false);
+
+  // モバイル環境の判定
+  const browserInfo = getMobileBrowserInfo();
+  const isMobile = browserInfo.isIOS || browserInfo.isAndroid;
 
   const handleConnect = async () => {
+    // モバイル環境の場合は専用コネクターを表示
+    if (isMobile) {
+      setShowSmartphoneConnector(true);
+      return;
+    }
+
+    // デスクトップ環境での接続処理
     try {
       await connect();
       toast.success('ウォレットが接続されました');
@@ -32,16 +43,6 @@ export const WalletButton: React.FC = () => {
       } else if (error.message === 'PWA_CONNECTION_FAILED') {
         setShowPWAWarning(true);
         toast.error('PWA環境でのウォレット接続に失敗しました', {
-          duration: 4000,
-        });
-      } else if (error.message === 'NO_METAMASK_MOBILE' || error.message === 'PWA_NO_METAMASK_MOBILE') {
-        setShowMobileConnector(true);
-        toast.error('MetaMaskモバイルアプリが必要です', {
-          duration: 4000,
-        });
-      } else if (error.message === 'MOBILE_CONNECTION_FAILED') {
-        setShowMobileConnector(true);
-        toast.error('モバイルウォレット接続に失敗しました', {
           duration: 4000,
         });
       } else {
@@ -93,34 +94,33 @@ export const WalletButton: React.FC = () => {
         </div>
       )}
 
-      {/* モバイルウォレットコネクターモーダル */}
-      {showMobileConnector && (
+      {/* スマートフォン専用ウォレットコネクターモーダル */}
+      {showSmartphoneConnector && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">モバイルウォレット接続</h3>
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h3 className="text-lg font-semibold">スマートフォンでウォレット接続</h3>
               <button
-                onClick={() => setShowMobileConnector(false)}
+                onClick={() => setShowSmartphoneConnector(false)}
                 className="text-gray-500 hover:text-gray-700 text-xl leading-none"
               >
                 ×
               </button>
             </div>
             
-            <MobileWalletConnector
-              onConnectionAttempt={() => {
-                // 接続試行時の処理
-              }}
-              onConnectionSuccess={() => {
-                setShowMobileConnector(false);
-                toast.success('ウォレットが接続されました！');
-                // 再接続を試行
-                handleConnect();
-              }}
-              onConnectionFailure={(error) => {
-                toast.error(`接続エラー: ${error}`);
-              }}
-            />
+            <div className="p-6">
+              <SmartphoneWalletConnector
+                onConnectionSuccess={() => {
+                  setShowSmartphoneConnector(false);
+                  toast.success('ウォレットが接続されました！');
+                  // 接続状態を更新するために再レンダリング
+                  window.location.reload();
+                }}
+                onConnectionFailure={(error) => {
+                  toast.error(`接続エラー: ${error}`);
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -146,12 +146,12 @@ export const WalletButton: React.FC = () => {
             disabled={isConnecting}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold rounded-lg transition duration-200"
           >
-            {isMobileDevice() ? <Smartphone className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
-            {isConnecting ? '接続中...' : isMobileDevice() ? 'ウォレット接続' : 'ウォレット接続'}
+            {isMobile ? <Smartphone className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
+            {isConnecting ? '接続中...' : 'ウォレット接続'}
           </button>
           
           {/* PWAで MetaMask が利用できない場合の警告 */}
-          {isPWA && !isMetaMaskAvailable && !isMobileDevice() && (
+          {isPWA && !isMetaMaskAvailable && !isMobile && (
             <button
               onClick={() => setShowPWAWarning(true)}
               className="p-2 text-amber-600 hover:text-amber-800 transition"
