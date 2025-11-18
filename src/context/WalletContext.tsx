@@ -214,8 +214,20 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const connect = async () => {
     setIsConnecting(true);
+    console.log('🔄 ウォレット接続開始');
     
     try {
+      // モバイル環境の詳細検出
+      const browserInfo = getMobileBrowserInfo();
+      const isMobile = browserInfo.isIOS || browserInfo.isAndroid;
+      
+      console.log('📱 環境情報:', { 
+        isMobile, 
+        isPWA, 
+        browser: browserInfo.browserName,
+        hasEthereum: typeof window.ethereum !== 'undefined'
+      });
+
       // PWA環境での最適化された接続処理を使用
       if (isPWA) {
         console.log('🔄 PWA環境でのウォレット接続を開始');
@@ -249,20 +261,31 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
 
-      // 従来の接続処理（非PWA環境）
-      const browserInfo = getMobileBrowserInfo();
-      if (browserInfo.isIOS || browserInfo.isAndroid) {
-        // モバイル環境では、検出の再試行
+      // モバイル環境での特別な処理
+      if (isMobile) {
+        console.log('📱 モバイル環境での接続処理');
+        
+        // MetaMask検出の再試行（タイムアウト付き）
+        const detectionTimeout = setTimeout(() => {
+          console.warn('⏰ MetaMask検出タイムアウト');
+        }, 5000);
+        
         const metaMaskAvailable = await detectMetaMaskWithRetry();
+        clearTimeout(detectionTimeout);
+        
+        console.log('🔍 MetaMask検出結果:', metaMaskAvailable);
         
         if (!metaMaskAvailable && !window.ethereum) {
-          throw new Error('NO_METAMASK_MOBILE');
+          if (browserInfo.isInAppBrowser) {
+            throw new Error('IN_APP_BROWSER_LIMITATION');
+          } else {
+            throw new Error('NO_METAMASK_MOBILE');
+          }
         }
       } else {
         // デスクトップ環境
         if (!window.ethereum) {
-          alert('MetaMaskまたはWeb3互換のウォレットをインストールしてください');
-          return;
+          throw new Error('NO_WALLET_EXTENSION');
         }
       }
 
@@ -271,11 +294,22 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         throw new Error('WALLET_NOT_AVAILABLE');
       }
 
-      const accounts = await window.ethereum.request({
+      console.log('🔐 ウォレット接続要求を送信中...');
+      
+      // タイムアウト付きでアカウント要求
+      const accountsPromise = window.ethereum.request({
         method: 'eth_requestAccounts',
       });
+      
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('CONNECTION_TIMEOUT')), 15000);
+      });
+      
+      const accounts = await Promise.race([accountsPromise, timeoutPromise]);
 
       if (accounts && accounts.length > 0) {
+        console.log('✅ アカウント取得成功:', accounts[0]);
+        
         const chainIdHex = await window.ethereum.request({
           method: 'eth_chainId',
         });
@@ -291,20 +325,56 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         localStorage.setItem('walletAddress', accounts[0]);
         localStorage.setItem('walletChainId', newChainId.toString());
+        
+        console.log('✅ ウォレット接続完了');
+      } else {
+        throw new Error('NO_ACCOUNTS_RETURNED');
       }
     } catch (error: any) {
       console.error('ウォレット接続エラー:', error);
       setLastConnectionStrategy('ERROR');
       
+      // エラータイプに基づいて適切なメッセージを表示
+      let errorMessage = '';
+      
+      switch (error.message) {
+        case 'NO_METAMASK_MOBILE':
+          errorMessage = 'モバイル環境でMetaMaskが検出されませんでした。MetaMaskアプリをインストールして、アプリ内ブラウザからアクセスしてください。';
+          break;
+        case 'IN_APP_BROWSER_LIMITATION':
+          errorMessage = 'このアプリ内ブラウザではウォレット接続に制限があります。専用ブラウザアプリ（Chrome、Safari等）でアクセスすることをお勧めします。';
+          break;
+        case 'CONNECTION_TIMEOUT':
+          errorMessage = 'ウォレット接続がタイムアウトしました。ネットワーク状況を確認して、もう一度お試しください。';
+          break;
+        case 'NO_ACCOUNTS_RETURNED':
+          errorMessage = 'ウォレットからアカウント情報を取得できませんでした。ウォレットの設定を確認してください。';
+          break;
+        case 'WALLET_NOT_AVAILABLE':
+          errorMessage = 'ウォレットが利用できません。ブラウザを再読み込みしてお試しください。';
+          break;
+        case 'NO_WALLET_EXTENSION':
+          errorMessage = 'Web3ウォレット拡張機能がインストールされていません。MetaMaskなどのウォレットをインストールしてください。';
+          break;
+        default:
+          if (error.code === 4001) {
+            errorMessage = '接続がユーザーによってキャンセルされました。';
+          } else if (error.code === -32002) {
+            errorMessage = '既にウォレット接続のリクエストが処理中です。しばらくお待ちください。';
+          } else {
+            errorMessage = `ウォレット接続エラー: ${error.message}`;
+          }
+          break;
+      }
+      
+      // ユーザーキャンセル以外はアラートを表示
       if (error.code !== 4001) {
-        // ユーザーがキャンセルした場合以外はエラーを投げる
+        alert(errorMessage);
         const browserInfo = getMobileBrowserInfo();
         if (browserInfo.isIOS || browserInfo.isAndroid) {
-          throw new Error('MOBILE_CONNECTION_FAILED');
+          console.log('📱 モバイル環境での接続エラー処理完了');
         } else if (isPWA) {
-          throw new Error('PWA_CONNECTION_FAILED');
-        } else {
-          alert(`ウォレット接続エラー: ${error.message}`);
+          console.log('📱 PWA環境での接続エラー処理完了');
         }
       }
     } finally {
