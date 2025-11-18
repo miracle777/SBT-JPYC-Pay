@@ -65,7 +65,7 @@ const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
                 <HelpCircle className="w-5 h-5 xs:w-6 xs:h-6" />
               </button>
             )}
-            <div className="xs:block hidden md:block">
+            <div className="hidden md:block">
               <WalletButton />
             </div>
             <button
