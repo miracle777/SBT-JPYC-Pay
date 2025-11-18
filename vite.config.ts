@@ -21,8 +21,8 @@ export default defineConfig({
         globPatterns: [
           '**/*.{js,css,html,png,svg,ico,webp}',
           'icons/**/*.png',
-          'manifest.json',
           'browserconfig.xml',
+          // manifest.json は globPatterns から除外（additionalManifestEntries で管理）
         ],
         // キャッシュするアセット
         additionalManifestEntries: [
