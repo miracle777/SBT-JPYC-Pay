@@ -59,17 +59,22 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
       chainId: (window.ethereum as any)?.chainId
     });
     
-    // モバイル環境ではより長い時間待つ（3秒でタイムアウト）
-    // その前にウォレット検出を待つ
-    const timeout = env.isMobile ? 3000 : 2000;
+    // モバイル環境ではより長い時間待つ（4秒でタイムアウト）
+    // タイムアウト後は即座に推奨オプションを表示
+    const timeout = env.isMobile ? 4000 : 2000;
+    let timeoutFired = false;
     
     const timeoutId = setTimeout(() => {
-      console.log('⚠️ ウォレット検出タイムアウト - デフォルトオプションを表示');
-      setHasTimedOut(true);
-      setLoadingError('ウォレット検出に時間がかかっています。下記のオプションをお試しください。');
+      if (timeoutFired) return;
+      timeoutFired = true;
       
-      // 緊急フォールバック: 推奨ウォレットを表示
-      setRecommendedWallets(getRecommendedWallets());
+      console.log('⏱️ ウォレット検出タイムアウト - デフォルトオプションを表示');
+      setHasTimedOut(true);
+      setLoadingError('ウォレット検出中にタイムアウトしました。下記のオプションからお選びください。');
+      
+      // 推奨ウォレットを即座に表示
+      const recommended = getRecommendedWallets();
+      setRecommendedWallets(recommended);
       setIsLoading(false);
     }, timeout);
     
@@ -83,36 +88,41 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
       
       const detected = await detectWallets();
       
-      // 検出が成功したらタイムアウトをクリア
-      clearTimeout(timeoutId);
-      
-      console.log('📱 検出されたウォレット:', detected.length, 'つ', {
-        names: detected.map(w => w.info.name)
-      });
-      
-      // MetaMaskが検出された場合は先頭に配置
-      const sortedDetected = detected.sort((a, b) => {
-        if (a.info.name.includes('MetaMask')) return -1;
-        if (b.info.name.includes('MetaMask')) return 1;
-        return 0;
-      });
-      
-      setDetectedWallets(sortedDetected);
-      
-      // 推奨ウォレットも追加
-      const recommended = getRecommendedWallets();
-      console.log('💡 推奨ウォレット:', recommended.length, 'つ');
-      setRecommendedWallets(recommended);
+      // タイムアウトがまだ発火していない場合のみ処理
+      if (!timeoutFired) {
+        clearTimeout(timeoutId);
+        
+        console.log('📱 検出されたウォレット:', detected.length, 'つ', {
+          names: detected.map(w => w.info.name)
+        });
+        
+        // MetaMaskが検出された場合は先頭に配置
+        const sortedDetected = detected.sort((a, b) => {
+          if (a.info.name.includes('MetaMask')) return -1;
+          if (b.info.name.includes('MetaMask')) return 1;
+          return 0;
+        });
+        
+        setDetectedWallets(sortedDetected);
+        
+        // 推奨ウォレットも追加
+        const recommended = getRecommendedWallets();
+        console.log('💡 推奨ウォレット:', recommended.length, 'つ');
+        setRecommendedWallets(recommended);
+        setIsLoading(false);
+      }
       
     } catch (error) {
-      clearTimeout(timeoutId);
-      console.error('❌ ウォレット検出エラー:', error);
-      setLoadingError('ウォレットの検出に失敗しました。下記のオプションでお試しください。');
-      
-      // エラー時もデフォルトウォレットを表示
-      setRecommendedWallets(getRecommendedWallets());
-    } finally {
-      setIsLoading(false);
+      if (!timeoutFired) {
+        clearTimeout(timeoutId);
+        console.error('❌ ウォレット検出エラー:', error);
+        setLoadingError('ウォレットの検出に失敗しました。下記のオプションからお選びください。');
+        
+        // エラー時もデフォルトウォレットを表示
+        const recommended = getRecommendedWallets();
+        setRecommendedWallets(recommended);
+        setIsLoading(false);
+      }
     }
   };
 
@@ -216,15 +226,12 @@ export const StandardWalletModal: React.FC<StandardWalletModalProps> = ({
         </div>
 
         <div className="p-6 max-h-[calc(90vh-100px)] overflow-y-auto">
-          {isLoading ? (
+          {isLoading && !hasTimedOut ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                 <p className="text-gray-600">ウォレットを検出中...</p>
-                <p className="text-sm text-gray-500 mt-2">初回は数秒かかる場合があります</p>
-                {hasTimedOut && (
-                  <p className="text-xs text-red-500 mt-2">検出に時間がかかっています...</p>
-                )}
+                <p className="text-sm text-gray-500 mt-2">数秒お待ちください</p>
               </div>
             </div>
           ) : (
