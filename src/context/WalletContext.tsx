@@ -211,7 +211,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.error('ウォレット接続エラー:', error);
       if (error.code !== 4001) {
         // ユーザーがキャンセルした場合以外はエラーを投げる
-        if (isMobileDevice()) {
+        const browserInfo = getMobileBrowserInfo();
+        if (browserInfo.isIOS || browserInfo.isAndroid) {
           throw new Error('MOBILE_CONNECTION_FAILED');
         } else if (isPWA) {
           throw new Error('PWA_CONNECTION_FAILED');
