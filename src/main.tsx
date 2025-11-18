@@ -245,14 +245,14 @@ const transports = {
 };
 
 const connectors = [
+  injected({
+    shimDisconnect: true,
+  }),
   metaMask({
     dappMetadata: {
       name: 'SBT JPYC Pay',
       url: typeof window !== 'undefined' ? window.location.origin : '',
     },
-  }),
-  injected({
-    shimDisconnect: true,
   }),
   walletConnect({
     projectId,
@@ -264,6 +264,14 @@ const connectors = [
     },
   }),
 ];
+
+// Debug: Log wallet detection
+if (typeof window !== 'undefined') {
+  console.log('🔍 Wallet Detection:');
+  console.log('  ethereum:', (window as any).ethereum ? '✅ Found' : '❌ Not found');
+  console.log('  ethereum.isMetaMask:', (window as any).ethereum?.isMetaMask ? '✅ MetaMask' : '❌ Not MetaMask');
+  console.log('  Connectors:', connectors.length, 'enabled');
+}
 
 const wagmiConfig = createConfig({
   chains,
