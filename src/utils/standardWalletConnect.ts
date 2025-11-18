@@ -4,6 +4,7 @@
  */
 
 import { BrowserProvider } from 'ethers';
+import { createMetaMaskDeepLink, createExternalBrowserUrl, checkMetaMaskAppInstalled, collectDebugInfo } from './smartphoneWallet';
 
 export interface WalletProvider {
   id: string;
@@ -30,6 +31,9 @@ export async function connectWithNativeWallet(): Promise<{
   address?: string;
   chainId?: number;
   error?: string;
+  deepLink?: string;
+  externalUrl?: string;
+  debug?: object;
 }> {
   try {
     console.log('🔌 ネイティブウォレット接続開始（eth_requestAccounts）');
@@ -41,7 +45,19 @@ export async function connectWithNativeWallet(): Promise<{
 
     if (!window.ethereum) {
       console.error('❌ window.ethereum が存在しません');
-      throw new Error('ウォレットがインストールされていません');
+
+      // モバイルなら MetaMask アプリの deep link と外部ブラウザURLを返す
+      const deepLink = createMetaMaskDeepLink();
+      const externalUrl = createExternalBrowserUrl();
+      const installed = await checkMetaMaskAppInstalled();
+
+      return {
+        success: false,
+        error: installed ? 'ウォレットが存在する可能性がありますが、ブラウザからのアクセスが制限されています。外部ブラウザで開いてください。' : 'ウォレットがインストールされていません',
+        deepLink,
+        externalUrl,
+        debug: collectDebugInfo()
+      };
     }
 
     console.log('✅ window.ethereum が見つかりました');
@@ -112,9 +128,13 @@ export async function connectWithNativeWallet(): Promise<{
       errorMessage = 'ウォレットがインストールされていません';
     }
 
+    // 追加情報を付与
+    const debug = collectDebugInfo();
+
     return {
       success: false,
-      error: errorMessage
+      error: errorMessage,
+      debug
     };
   }
 }

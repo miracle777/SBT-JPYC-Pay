@@ -26,7 +26,26 @@ export const WalletButton: React.FC = () => {
         login(result.address, result.provider!, result.chainId || 1);
         toast.success('ウォレットを接続しました');
       } else {
-        toast.error(result.error || 'ウォレット接続に失敗しました');
+        // モバイルで window.ethereum が無い場合のフォールバック案内
+        if (result.deepLink || result.externalUrl) {
+          // 優先: 外部ブラウザで開く案内
+          const openExternal = window.confirm('ブラウザ制限の可能性があります。外部ブラウザで開きますか？ (OK: 外部ブラウザ, キャンセル: MetaMaskアプリで開く)');
+          try {
+            if (openExternal && result.externalUrl) {
+              window.open(result.externalUrl, '_blank');
+              toast('外部ブラウザで開いてください');
+            } else if (result.deepLink) {
+              window.open(result.deepLink, '_blank');
+              toast('MetaMaskアプリで開いてください');
+            } else {
+              toast.error(result.error || 'ウォレット接続に失敗しました');
+            }
+          } catch (e) {
+            toast.error(result.error || 'ウォレット接続に失敗しました');
+          }
+        } else {
+          toast.error(result.error || 'ウォレット接続に失敗しました');
+        }
       }
     } catch (error) {
       console.error('接続エラー:', error);
