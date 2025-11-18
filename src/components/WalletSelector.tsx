@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, Wallet, RefreshCw, Network, Monitor, TestTube, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
+import { PWAWalletInfo } from './PWAWalletInfo';
 import toast from 'react-hot-toast';
 
 interface WalletSelectorProps {
@@ -21,6 +22,9 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
     isConnecting, 
     hasMultipleAccounts, 
     supportedChains,
+    isPWA,
+    pwaWalletInfo,
+    lastConnectionStrategy,
     connect, 
     disconnect, 
     switchChain, 
@@ -118,6 +122,9 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
       {/* 詳細表示 */}
       {isExpanded && (
         <div className="border-t border-gray-200 p-4 space-y-4">
+          {/* PWA環境の情報表示 */}
+          {isPWA && <PWAWalletInfo />}
+          
           {!isConnected ? (
             <div className="space-y-3">
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
@@ -226,42 +233,59 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    {supportedChains.map((chain) => (
-                      <button
-                        key={chain.chainId}
-                        onClick={() => handleChainSwitch(chain.chainId)}
-                        disabled={isSwitchingChain || chain.chainId === chainId}
-                        className={`w-full p-3 text-left rounded-lg border-2 transition ${
-                          chain.chainId === chainId
-                            ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
-                            : 'border-gray-200 bg-white hover:border-gray-300 text-gray-900'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-3 h-3 rounded-full ${chain.isTestnet ? 'bg-orange-500' : 'bg-green-500'}`}></div>
-                            <div>
-                              <div className="font-medium text-sm">{chain.name}</div>
-                              <div className="text-xs text-gray-600">Chain ID: {chain.chainId}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {chain.isTestnet ? (
-                              <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full font-medium">
-                                🧪 テスト
-                              </span>
-                            ) : (
-                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
-                                🏢 本番
-                              </span>
-                            )}
-                            {chain.chainId === chainId && (
-                              <span className="text-xs text-indigo-600 font-medium">✓ 接続中</span>
-                            )}
-                          </div>
+                  <div className="space-y-3">
+                    {/* ネットワークをカテゴリ別にグループ化 */}
+                    {Object.entries(
+                      supportedChains.reduce((groups, chain) => {
+                        const category = (chain as any).category || 'その他';
+                        if (!groups[category]) groups[category] = [];
+                        groups[category].push(chain);
+                        return groups;
+                      }, {} as Record<string, typeof supportedChains>)
+                    ).map(([category, chains]) => (
+                      <div key={category} className="space-y-2">
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">
+                          {category} Networks
                         </div>
-                      </button>
+                        <div className="space-y-2">
+                          {chains.map((chain) => (
+                            <button
+                              key={chain.chainId}
+                              onClick={() => handleChainSwitch(chain.chainId)}
+                              disabled={isSwitchingChain || chain.chainId === chainId}
+                              className={`w-full p-3 text-left rounded-lg border-2 transition ${
+                                chain.chainId === chainId
+                                  ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
+                                  : 'border-gray-200 bg-white hover:border-gray-300 text-gray-900'
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <div className={`w-3 h-3 rounded-full ${chain.isTestnet ? 'bg-orange-500' : 'bg-green-500'}`}></div>
+                                  <div>
+                                    <div className="font-medium text-sm">{chain.name}</div>
+                                    <div className="text-xs text-gray-600">Chain ID: {chain.chainId}</div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  {chain.isTestnet ? (
+                                    <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full font-medium">
+                                      🧪 テスト
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
+                                      🏢 本番
+                                    </span>
+                                  )}
+                                  {chain.chainId === chainId && (
+                                    <span className="text-xs text-indigo-600 font-medium">✓ 接続中</span>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
 
@@ -276,12 +300,14 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
 
               {/* 注意事項 */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <h5 className="font-medium text-gray-900 text-sm mb-2">💡 使い方</h5>
+                <h5 className="font-medium text-gray-900 text-sm mb-2">💡 ネットワーク選択ガイド</h5>
                 <ul className="text-xs text-gray-600 space-y-1">
-                  <li>• <strong>本番用 (Polygon Mainnet)</strong>: 実際のSBT発行・実トークン</li>
-                  <li>• <strong>テスト用 (Polygon Amoy)</strong>: 開発・テスト環境</li>
-                  <li>• アカウント切替でMetaMaskの別のウォレットアドレスを使用可能</li>
-                  <li>• ネットワーク切替時はMetaMaskで承認が必要です</li>
+                  <li>• <strong>Polygon</strong>: 低手数料でJPYC SBTに最適化</li>
+                  <li>• <strong>Ethereum</strong>: 最も普及している主要チェーン</li>
+                  <li>• <strong>Avalanche</strong>: 高速で低手数料のネットワーク</li>
+                  <li>• <strong>Arbitrum/Optimism</strong>: Ethereumレイヤー2ソリューション</li>
+                  <li>• <strong>🧪テストネット</strong>: 開発・テスト用（本番前の確認に使用）</li>
+                  <li>• ネットワーク未追加の場合は自動でMetaMaskに追加されます</li>
                 </ul>
               </div>
 

@@ -13,7 +13,8 @@ export const WalletButton: React.FC = () => {
     connect, 
     disconnect, 
     isPWA,
-    isMetaMaskAvailable 
+    isMetaMaskAvailable,
+    pwaWalletInfo 
   } = useWallet();
 
   const [showPWAWarning, setShowPWAWarning] = useState(false);
@@ -35,18 +36,25 @@ export const WalletButton: React.FC = () => {
       await connect();
       toast.success('ウォレットが接続されました');
     } catch (error: any) {
-      if (error.message === 'PWA_NO_METAMASK') {
-        setShowPWAWarning(true);
-        toast.error('PWAではブラウザ版をご利用ください', {
-          duration: 4000,
-        });
-      } else if (error.message === 'PWA_CONNECTION_FAILED') {
-        setShowPWAWarning(true);
-        toast.error('PWA環境でのウォレット接続に失敗しました', {
-          duration: 4000,
-        });
-      } else {
-        toast.error('ウォレット接続に失敗しました');
+      console.error('PWA Wallet connection error:', error);
+      
+      // エラータイプに応じた対応
+      switch (error.message) {
+        case 'PWA_CONNECTION_FAILED':
+        case 'PWA_NO_METAMASK':
+          setShowPWAWarning(true);
+          toast.error('PWA環境でのウォレット接続に制限があります', { duration: 4000 });
+          break;
+        case 'MOBILE_CONNECTION_FAILED':
+          toast.error('モバイル環境での接続に失敗しました', { duration: 4000 });
+          break;
+        default:
+          if (isPWA && !pwaWalletInfo.isCompatible) {
+            setShowPWAWarning(true);
+            toast.error('PWA環境ではブラウザ版をご利用ください', { duration: 4000 });
+          } else {
+            toast.error(`接続エラー: ${error.message || '不明なエラー'}`);
+          }
       }
     }
   };
@@ -70,11 +78,20 @@ export const WalletButton: React.FC = () => {
       {showPWAWarning && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold mb-4">PWAでのウォレット接続</h3>
+            <h3 className="text-lg font-semibold mb-4">{pwaWalletInfo.title}</h3>
             <p className="text-sm text-gray-600 mb-4">
-              PWAアプリからはMetaMask拡張機能にアクセスできません。
-              ウォレット接続と残高表示には、ブラウザ版をご利用ください。
+              {pwaWalletInfo.message}
             </p>
+            {pwaWalletInfo.solutions.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-gray-800 mb-2">推奨解決策：</p>
+                <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+                  {pwaWalletInfo.solutions.map((solution, index) => (
+                    <li key={index}>{solution}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={handleOpenInBrowser}

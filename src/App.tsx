@@ -7,6 +7,7 @@ import { DisclaimerBanner } from './components/DisclaimerBanner';
 import { Footer } from './components/layout/Footer';
 import PWAStatus from './components/PWAStatus';
 import PWAInstallButton from './components/PWAInstallButton';
+import { PWAWalletBanner } from './components/PWAWalletInfo';
 
 function App() {
   const [showHelp, setShowHelp] = useState(false);
@@ -16,6 +17,7 @@ function App() {
       <div className="App min-h-screen bg-gray-50 flex flex-col">
         <Header onHelpClick={() => setShowHelp(true)} />
         <DisclaimerBanner />
+        <PWAWalletBanner />
         <main className="flex-1">
           <Outlet />
         </main>
