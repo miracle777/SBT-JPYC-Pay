@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { BrowserProvider } from 'ethers';
+import { isMobileDevice, detectMetaMaskMobile, enhanceMobileWalletDetection } from '../utils/mobileWallet';
 
 export interface WalletContextType {
   address: string | null;
@@ -45,25 +46,47 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       setIsPWA(isPWAMode);
 
-      // MetaMaskの可用性チェック
-      const metaMaskAvailable = typeof window.ethereum !== 'undefined' 
-        && Boolean(window.ethereum.isMetaMask);
-      
-      setIsMetaMaskAvailable(metaMaskAvailable);
+      // モバイル環境での検出を強化
+      if (isMobileDevice()) {
+        enhanceMobileWalletDetection();
+        
+        // MetaMaskモバイルの検出
+        const metaMaskAvailable = detectMetaMaskMobile() || typeof window.ethereum !== 'undefined';
+        setIsMetaMaskAvailable(metaMaskAvailable);
+        
+        // モバイル環境での遅延チェック
+        setTimeout(() => {
+          const delayedCheck = detectMetaMaskMobile() || typeof window.ethereum !== 'undefined';
+          setIsMetaMaskAvailable(delayedCheck);
+        }, 2000);
+      } else {
+        // デスクトップ環境での検出
+        const metaMaskAvailable = typeof window.ethereum !== 'undefined' 
+          && Boolean(window.ethereum.isMetaMask);
+        setIsMetaMaskAvailable(metaMaskAvailable);
+      }
 
       // PWAでMetaMaskが利用できない場合の警告
-      if (isPWAMode && !metaMaskAvailable) {
+      if (isPWAMode && !window.ethereum) {
         console.warn('🔄 PWA環境: MetaMaskブラウザ拡張機能にアクセスできません');
       }
     };
 
     checkEnvironment();
 
+    // ethereum#initializedイベントのリスナー追加（モバイル対応）
+    const handleEthereumInitialized = () => {
+      checkEnvironment();
+    };
+
+    window.addEventListener('ethereum#initialized', handleEthereumInitialized);
+
     // display-modeの変更を監視
     const standaloneQuery = window.matchMedia('(display-mode: standalone)');
     standaloneQuery.addListener(checkEnvironment);
 
     return () => {
+      window.removeEventListener('ethereum#initialized', handleEthereumInitialized);
       standaloneQuery.removeListener(checkEnvironment);
     };
   }, []);
@@ -139,12 +162,26 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const connect = async () => {
-    if (!window.ethereum) {
-      if (isPWA) {
-        throw new Error('PWA_NO_METAMASK');
-      } else {
-        alert('MetaMaskまたはWeb3互換のウォレットをインストールしてください');
-        return;
+    // モバイル環境での検出強化
+    if (isMobileDevice()) {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1秒待機
+      
+      if (!window.ethereum && !detectMetaMaskMobile()) {
+        if (isPWA) {
+          throw new Error('PWA_NO_METAMASK_MOBILE');
+        } else {
+          throw new Error('NO_METAMASK_MOBILE');
+        }
+      }
+    } else {
+      // デスクトップ環境
+      if (!window.ethereum) {
+        if (isPWA) {
+          throw new Error('PWA_NO_METAMASK');
+        } else {
+          alert('MetaMaskまたはWeb3互換のウォレットをインストールしてください');
+          return;
+        }
       }
     }
 
@@ -173,8 +210,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch (error: any) {
       console.error('ウォレット接続エラー:', error);
       if (error.code !== 4001) {
-        // ユーザーがキャンセルした場合以外はアラート表示
-        if (isPWA) {
+        // ユーザーがキャンセルした場合以外はエラーを投げる
+        if (isMobileDevice()) {
+          throw new Error('MOBILE_CONNECTION_FAILED');
+        } else if (isPWA) {
           throw new Error('PWA_CONNECTION_FAILED');
         } else {
           alert(`ウォレット接続エラー: ${error.message}`);
