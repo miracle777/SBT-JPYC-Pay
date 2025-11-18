@@ -68,7 +68,8 @@ export const StorageCompatibilityChecker: React.FC = () => {
         };
         
         await sbtStorage.saveTemplate(testTemplate);
-        const retrievedTemplate = await sbtStorage.getTemplate(testTemplate.id);
+        const allTemplates = await sbtStorage.getAllTemplates();
+        const retrievedTemplate = allTemplates.find(t => t.id === testTemplate.id);
         
         if (retrievedTemplate && retrievedTemplate.id === testTemplate.id) {
           result.indexedDBWorks = true;

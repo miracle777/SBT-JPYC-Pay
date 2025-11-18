@@ -47,7 +47,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // MetaMaskの可用性チェック
       const metaMaskAvailable = typeof window.ethereum !== 'undefined' 
-        && window.ethereum.isMetaMask;
+        && Boolean(window.ethereum.isMetaMask);
       
       setIsMetaMaskAvailable(metaMaskAvailable);
 
