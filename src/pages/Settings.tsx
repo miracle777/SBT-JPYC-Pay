@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, Copy, ExternalLink, Download, Upload, Eye, EyeOff, CheckCircle, AlertCircle, Key, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Copy, ExternalLink, Download, Upload, Eye, EyeOff, CheckCircle, AlertCircle, Key, Shield, Server } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { NETWORKS } from '../config/networks';
 import { DEFAULT_SHOP_INFO, getShopWalletAddress, getShopInfo } from '../config/shop';
