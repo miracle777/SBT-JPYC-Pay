@@ -463,6 +463,54 @@ export function getBlockExplorerUrl(
 }
 
 /**
+ * NFT（SBT）表示用のURL生成ヘルパー
+ * PolygonScanでSBT画像・メタデータを確認できるリンクを生成
+ * 
+ * 注意: OpenSeaは2024年にテストネットサポートを終了しました
+ * テストネットNFTの確認にはPolygonScanを使用してください
+ */
+export function getNFTDisplayUrls(
+  contractAddress: string,
+  tokenId: number | string,
+  chainId: number
+): {
+  polygonscan: string;
+  opensea: string | null;
+  description: string;
+  note?: string;
+} {
+  const urls = {
+    polygonscan: '',
+    opensea: null as string | null,
+    description: '',
+    note: undefined as string | undefined,
+  };
+
+  // PolygonScan NFT ページ
+  if (chainId === 137) {
+    urls.polygonscan = `https://polygonscan.com/nft/${contractAddress}/${tokenId}`;
+    urls.opensea = `https://opensea.io/assets/matic/${contractAddress}/${tokenId}`;
+    urls.description = 'Polygon Mainnet - 本番環境のNFT表示';
+  } else if (chainId === 80002) {
+    urls.polygonscan = `https://amoy.polygonscan.com/nft/${contractAddress}/${tokenId}`;
+    urls.opensea = null; // OpenSeaはテストネット非対応
+    urls.description = 'Polygon Amoy Testnet - テスト環境のNFT表示';
+    urls.note = 'OpenSeaはテストネットのサポートを終了しました（2024年）';
+  } else if (chainId === 11155111) {
+    urls.polygonscan = `https://sepolia.etherscan.io/nft/${contractAddress}/${tokenId}`;
+    urls.opensea = null; // OpenSeaはテストネット非対応
+    urls.description = 'Ethereum Sepolia Testnet - テスト環境のNFT表示';
+    urls.note = 'OpenSeaはテストネットのサポートを終了しました（2024年）';
+  } else {
+    urls.polygonscan = `https://polygonscan.com/nft/${contractAddress}/${tokenId}`;
+    urls.opensea = `https://opensea.io/assets/matic/${contractAddress}/${tokenId}`;
+    urls.description = `Chain ${chainId} - NFT表示`;
+  }
+
+  return urls;
+}
+
+/**
  * コントラクトオーナーを取得する
  */
 export async function getContractOwner(

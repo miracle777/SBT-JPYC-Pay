@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle, Copy, Server, Shield } from 'lucide-react';
+import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle, Copy, Server, Shield, Image } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
-import { mintSBT, getBlockExplorerUrl, getContractOwner, getShopInfo, registerShop } from '../utils/sbtMinting';
+import { mintSBT, getBlockExplorerUrl, getContractOwner, getShopInfo, registerShop, getNFTDisplayUrls } from '../utils/sbtMinting';
 import { NETWORKS, getNetworkByChainId } from '../config/networks';
 import { getSBTContractAddress } from '../config/contracts';
 import { BrowserProvider } from 'ethers';
@@ -56,6 +56,7 @@ interface IssuedSBT {
   sbtTransactionHash?: string; // ⭐ SBT発行トランザクションハッシュ（ブロックチェーン記録）
   sbtMintStatus?: 'pending' | 'success' | 'failed'; // SBT mint ステータス
   chainId?: number; // SBT が発行されたチェーンID
+  tokenId?: number; // ⭐ ブロックチェーン上のNFT tokenId
 }
 
 // ネットワーク情報表示用ヘルパー
@@ -1351,6 +1352,13 @@ const SBTManagement: React.FC = () => {
         // ✅ mint 成功
         sbt.sbtTransactionHash = result.transactionHash;
         sbt.sbtMintStatus = 'success';
+        sbt.chainId = selectedChainForSBT; // チェーンIDを保存
+        
+        // ⭐ tokenIdを保存（NFT表示用）
+        if (result.tokenId) {
+          sbt.tokenId = parseInt(result.tokenId, 10);
+          console.log(`✅ TokenID保存: ${sbt.tokenId}`);
+        }
         
         // IndexedDB に保存
         await sbtStorage.saveSBT(sbt);
@@ -2880,6 +2888,59 @@ const SBTManagement: React.FC = () => {
                                 </a>
                               </div>
                             </div>
+                            
+                            {/* 🎨 NFT画像表示リンク */}
+                            {selectedSBT.tokenId && (
+                              <div className="mt-3 pt-3 border-t border-gray-200">
+                                <p className="font-semibold mb-2 flex items-center gap-1">
+                                  <Image className="w-4 h-4" />
+                                  NFT画像を表示
+                                </p>
+                                <div className="space-y-2">
+                                  {(() => {
+                                    const nftUrls = getNFTDisplayUrls(
+                                      getSBTContractAddress(selectedSBT.chainId),
+                                      selectedSBT.tokenId,
+                                      selectedSBT.chainId
+                                    );
+                                    return (
+                                      <>
+                                        <a
+                                          href={nftUrls.polygonscan}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center gap-2 text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 px-3 py-2 rounded border border-purple-200 transition"
+                                        >
+                                          <ExternalLink className="w-3 h-3" />
+                                          <span className="flex-1">PolygonScanでNFT表示</span>
+                                          <span className="text-purple-500">→</span>
+                                        </a>
+                                        {nftUrls.opensea ? (
+                                          <a
+                                            href={nftUrls.opensea}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-2 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded border border-blue-200 transition"
+                                          >
+                                            <ExternalLink className="w-3 h-3" />
+                                            <span className="flex-1">OpenSeaでNFT表示</span>
+                                            <span className="text-blue-500">→</span>
+                                          </a>
+                                        ) : (
+                                          <div className="text-xs bg-gray-50 text-gray-600 px-3 py-2 rounded border border-gray-200">
+                                            <p className="font-semibold mb-1">⚠️ OpenSeaテストネット終了</p>
+                                            <p className="text-xs">OpenSeaは2024年にテストネットサポートを終了しました。本番環境(Mainnet)のみ対応しています。</p>
+                                          </div>
+                                        )}
+                                        <p className="text-xs text-gray-500 mt-1">
+                                          💡 PolygonScanでSBT画像とメタデータを確認できます
+                                        </p>
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                         
