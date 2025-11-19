@@ -80,26 +80,41 @@ export const encodePaymentPayloadForJPYCPay = (payload: PaymentPayload): string 
   return JSON.stringify(jpycPayData);
 };
 
-// MetaMask QRコード規格：ethereum: スキーム形式
+// MetaMask QRコード規格：ethereum: スキーム形式（EIP-681準拠）
 export const encodePaymentPayloadForMetaMask = (payload: PaymentPayload): string => {
   // EIP-681準拠のethereum: URIスキーム
-  const value = payload.amount; // Wei単位
-  const chainIdHex = `0x${payload.chainId.toString(16)}`;
+  // 形式: ethereum:<address>[@<chainId>][?<parameters>]
   
-  // ERC-20 transfer function
-  const functionSignature = 'transfer(address,uint256)';
-  const transferData = [
-    payload.shopWallet.replace('0x', '').padStart(64, '0'), // to address (32 bytes)
-    BigInt(value).toString(16).padStart(64, '0') // amount (32 bytes)
-  ].join('');
+  const contractAddress = payload.contractAddress;
+  const chainId = payload.chainId;
   
-  const params = new URLSearchParams({
-    chainId: chainIdHex,
-    gas: '65000', // ERC20転送の標準ガス量
-    data: `0xa9059cbb${transferData}` // transfer function selector + data
+  // ERC-20 transfer(address,uint256) function selector: 0xa9059cbb
+  const functionSelector = 'a9059cbb';
+  
+  // 受取人アドレス（32バイトにパディング）
+  const recipientPadded = payload.shopWallet.replace('0x', '').toLowerCase().padStart(64, '0');
+  
+  // 金額（Wei単位を16進数に変換、32バイトにパディング）
+  const amountHex = BigInt(payload.amount).toString(16).padStart(64, '0');
+  
+  // dataフィールド: functionSelector + recipientPadded + amountHex
+  const data = `0x${functionSelector}${recipientPadded}${amountHex}`;
+  
+  console.log('🦊 MetaMask QRコード生成:', {
+    contractAddress,
+    chainId,
+    recipient: payload.shopWallet,
+    amountWei: payload.amount,
+    data,
+    dataLength: data.length
   });
   
-  return `ethereum:${payload.contractAddress}@${payload.chainId}?${params.toString()}`;
+  // URIパラメータ
+  const params = new URLSearchParams();
+  params.append('data', data);
+  
+  // ethereum:<contract>@<chainId>?data=<encodedData>
+  return `ethereum:${contractAddress}@${chainId}?${params.toString()}`;
 };
 
 export const decodePaymentPayload = (encoded: string): PaymentPayload => {
