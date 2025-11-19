@@ -6,6 +6,7 @@ import { NETWORKS, JPYC, getContractAddress, getJpycContracts, getJpycContractMe
 import { DEFAULT_SHOP_INFO, getShopWalletAddress, getShopInfo } from '../config/shop';
 import { createPaymentPayload, encodePaymentPayload, encodePaymentPayloadForJPYCPay, encodePaymentPayloadForMetaMask } from '../types/payment';
 import { useWallet } from '../context/WalletContext';
+import { useAccount, useSwitchChain } from 'wagmi'; // RainbowKitのフックを追加
 import QRCodeDisplay from '../components/QRCodeDisplay';
 import WalletSelector from '../components/WalletSelector';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
@@ -60,7 +61,17 @@ interface PaymentSession {
 }
 
 const QRPayment: React.FC = () => {
-  const { address: walletAddress, chainId: currentChainId } = useWallet();
+  // RainbowKitのウォレット情報を優先的に使用
+  const { address: rainbowAddress, chainId: rainbowChainId, isConnected: rainbowConnected } = useAccount();
+  const { switchChain } = useSwitchChain();
+  
+  // 独自のWalletContextもフォールバックとして保持
+  const { address: contextAddress, chainId: contextChainId } = useWallet();
+  
+  // RainbowKitの情報を優先、なければWalletContextを使用
+  const walletAddress = rainbowAddress || contextAddress;
+  const currentChainId = rainbowChainId || contextChainId;
+  
   const [amount, setAmount] = useState('');
   const [selectedChainForPayment, setSelectedChainForPayment] = useState(
     NETWORKS.ETHEREUM_SEPOLIA.chainId  // デフォルトでSepoliaテストネットを選択
@@ -810,9 +821,19 @@ const QRPayment: React.FC = () => {
           <WalletSelector
             title="ウォレット & 決済ネットワーク"
             showChainSelector={true}
-            onNetworkChange={(chainId) => {
+            onNetworkChange={async (chainId) => {
               setSelectedChainForPayment(chainId);
               console.log(`🔄 決済ネットワークを変更: Chain ID ${chainId}`);
+              
+              // RainbowKitのswitchChainを使用してウォレットのネットワークも切り替え
+              if (switchChain && rainbowConnected) {
+                try {
+                  await switchChain({ chainId });
+                  console.log(`✅ RainbowKit経由でネットワーク切り替え完了: ${chainId}`);
+                } catch (error) {
+                  console.error('❌ RainbowKit ネットワーク切り替えエラー:', error);
+                }
+              }
             }}
           />
         </div>
