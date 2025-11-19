@@ -15,6 +15,13 @@ import { formatShopIdAsHex, generateNonConflictingShopId, generateUniqueShopId }
 import { getShopSettings } from '../utils/shopSettings';
 import WalletSelector from '../components/WalletSelector';
 
+// ウォレットアドレスを省略表示する関数 (0x1234...5678 形式)
+const shortenAddress = (address: string, startChars: number = 6, endChars: number = 4): string => {
+  if (!address) return '';
+  if (address.length <= startChars + endChars) return address;
+  return `${address.slice(0, startChars)}...${address.slice(-endChars)}`;
+};
+
 type IssuePattern = 'per_payment' | 'after_count' | 'time_period' | 'period_range';
 
 interface SBTTemplate {
@@ -2014,8 +2021,8 @@ const SBTManagement: React.FC = () => {
                       <p className="text-sm text-gray-600 mb-2">決済日: {payment.detectedAt}</p>
                       <div className="bg-gray-50 p-3 rounded-lg">
                         <p className="text-xs text-gray-600">支払者アドレス</p>
-                        <p className="text-xs font-mono text-gray-700 break-all mt-1">
-                          {payment.payerAddress}
+                        <p className="text-xs font-mono text-gray-700 mt-1" title={payment.payerAddress}>
+                          {shortenAddress(payment.payerAddress)}
                         </p>
                       </div>
                     </div>
