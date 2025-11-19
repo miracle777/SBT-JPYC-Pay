@@ -628,9 +628,11 @@ const QRPayment: React.FC = () => {
             }}
           />
         </div>
-        <div className="space-y-4">
-          {/* QRコード表示エリア（上部） */}
-          <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-8">
+        
+        {/* 2カラムレイアウト: PC/タブレットでは横並び、モバイルでは縦並び */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+          {/* QRコード表示エリア */}
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
             <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 mb-4 sm:mb-6 text-center">
               現在のQRコード
             </h2>
@@ -740,7 +742,7 @@ const QRPayment: React.FC = () => {
                         }}>
                           <QRCodeDisplay
                             data={session.qrCodeData}
-                            size={Math.min(280, window.innerWidth - 120)}
+                            size={Math.min(220, window.innerWidth - 160)}
                             errorCorrectionLevel="H"
                             onDownload={(type) => {
                               toast.success(`QRコードを${type === 'png' ? 'PNG' : 'SVG'}でダウンロードしました`);
@@ -861,13 +863,12 @@ const QRPayment: React.FC = () => {
             )}
           </div>
 
-          {/* 設定エリア（下部） */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+          {/* 設定エリア */}
+          <div className="space-y-4">
             {/* 生成フォーム */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
-                <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">設定</h2>
-                <form onSubmit={generateQRCode} className="space-y-3">
+            <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">設定</h2>
+              <form onSubmit={generateQRCode} className="space-y-3">
                   {/* 支払い用ネットワーク選択 */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1117,10 +1118,9 @@ const QRPayment: React.FC = () => {
                   </button>
                 </form>
               </div>
-            </div>
 
-            {/* 統計情報 */}
-            <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
+              {/* 統計情報 */}
+              <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <h2 className="text-base sm:text-lg font-bold text-gray-900">統計</h2>
                 {jpycBalance !== null && (
@@ -1231,9 +1231,10 @@ const QRPayment: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* セッション履歴 */}
-          <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+        {/* セッション履歴 */}
+        <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">💳 支払い完了一覧</h2>
               <div className="flex items-center gap-2">
