@@ -1682,6 +1682,32 @@ const SBTManagement: React.FC = () => {
             </button>
           </div>
 
+          {/* テンプレート使用ガイド */}
+          <div className="mb-4 bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-purple-500 rounded-lg p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                <span className="text-lg">💡</span>
+              </div>
+              <div className="flex-1 space-y-2">
+                <h4 className="font-bold text-purple-900 text-sm sm:text-base">テンプレート利用ガイド</h4>
+                <div className="text-xs sm:text-sm text-gray-700 space-y-1.5">
+                  <p className="flex items-start gap-2">
+                    <span className="flex-shrink-0 text-purple-600 font-bold">①</span>
+                    <span><strong>初期テンプレート(0x00000001～0x00000003)</strong>: テスト・参考用のサンプルです。店頭で直接SBT発行のテストにご利用ください。</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="flex-shrink-0 text-purple-600 font-bold">②</span>
+                    <span><strong>オリジナルテンプレート</strong>: 本番運用では、テンプレートをコピー/編集して作成した<strong className="text-purple-700 bg-purple-100 px-1 rounded">オリジナルのテンプレート</strong>をご利用ください。</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="flex-shrink-0 text-purple-600 font-bold">③</span>
+                    <span><strong>QR決済履歴からのSBT発行</strong>: 支払い完了一覧からSBTを発行する際は、オリジナルテンプレートのみが表示されます。</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {showTemplateForm && (
             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
               <form onSubmit={addTemplate} className="space-y-4">
