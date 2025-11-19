@@ -8,6 +8,8 @@ interface QRCodeDisplayProps {
   margin?: number;
   className?: string;
   onDownload?: (type: 'png' | 'svg') => void;
+  logoUrl?: string; // 中央に表示するロゴのURL
+  logoSize?: number; // ロゴのサイズ（QRコードサイズに対する割合、デフォルト0.2 = 20%）
 }
 
 const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
@@ -17,11 +19,14 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
   margin = 2,
   className = '',
   onDownload,
+  logoUrl,
+  logoSize = 0.2,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const svgContainerRef = useRef<HTMLDivElement>(null);
   const [svgString, setSvgString] = useState<string>('');
   const [isRendered, setIsRendered] = useState(false);
+  const finalCanvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     console.log('QRCodeDisplay useEffect - data:', data?.substring(0, 50));
@@ -66,7 +71,12 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
                   console.error('QRコード(Canvas)生成エラー:', canvasError);
                 } else {
                   console.log('QRコード(Canvas)生成成功！');
-                  setIsRendered(true);
+                  // ロゴを中央に配置
+                  if (logoUrl && canvasRef.current) {
+                    addLogoToCanvas(canvasRef.current);
+                  } else {
+                    setIsRendered(true);
+                  }
                 }
               }
             );
@@ -78,7 +88,56 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
         }
       }
     );
-  }, [data, size, errorCorrectionLevel, margin]);
+  }, [data, size, errorCorrectionLevel, margin, logoUrl]);
+
+  // QRコードの中央にロゴを追加する関数
+  const addLogoToCanvas = (qrCanvas: HTMLCanvasElement) => {
+    if (!logoUrl || !finalCanvasRef.current) {
+      setIsRendered(true);
+      return;
+    }
+
+    const logo = new Image();
+    logo.crossOrigin = 'anonymous';
+    logo.onload = () => {
+      const canvas = finalCanvasRef.current;
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // QRコードをコピー
+      canvas.width = qrCanvas.width;
+      canvas.height = qrCanvas.height;
+      ctx.drawImage(qrCanvas, 0, 0);
+
+      // ロゴのサイズを計算
+      const logoPixelSize = qrCanvas.width * logoSize;
+      const logoX = (qrCanvas.width - logoPixelSize) / 2;
+      const logoY = (qrCanvas.height - logoPixelSize) / 2;
+
+      // 白い背景を描画（ロゴの視認性向上）
+      const padding = logoPixelSize * 0.1;
+      ctx.fillStyle = 'white';
+      ctx.fillRect(
+        logoX - padding,
+        logoY - padding,
+        logoPixelSize + padding * 2,
+        logoPixelSize + padding * 2
+      );
+
+      // ロゴを描画
+      ctx.drawImage(logo, logoX, logoY, logoPixelSize, logoPixelSize);
+      
+      setIsRendered(true);
+      console.log('QRコードにロゴを追加しました');
+    };
+    logo.onerror = () => {
+      console.warn('ロゴ画像の読み込みに失敗しました。ロゴなしで表示します。');
+      setIsRendered(true);
+    };
+    logo.src = logoUrl;
+  };
 
   const downloadQRCode = (type: 'png' | 'svg') => {
     if (type === 'svg' && svgString) {
@@ -90,12 +149,16 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
       link.click();
       URL.revokeObjectURL(url);
       onDownload?.('svg');
-    } else if (type === 'png' && canvasRef.current) {
-      const link = document.createElement('a');
-      link.href = canvasRef.current.toDataURL('image/png');
-      link.download = `qrcode-${Date.now()}.png`;
-      link.click();
-      onDownload?.('png');
+    } else if (type === 'png') {
+      // ロゴ付きの場合はfinalCanvasを使用
+      const canvas = logoUrl && finalCanvasRef.current ? finalCanvasRef.current : canvasRef.current;
+      if (canvas) {
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = `qrcode-${Date.now()}.png`;
+        link.click();
+        onDownload?.('png');
+      }
     }
   };
 
@@ -141,11 +204,24 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
         style={{
           maxWidth: '100%',
           height: 'auto',
-          display: isRendered ? 'block' : 'block',
+          display: logoUrl ? 'none' : (isRendered ? 'block' : 'block'),
           background: '#ffffff',
           border: '1px solid #e5e7eb',
         }}
       />
+      {logoUrl && (
+        <canvas
+          ref={finalCanvasRef}
+          className={className}
+          style={{
+            maxWidth: '100%',
+            height: 'auto',
+            display: isRendered ? 'block' : 'none',
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
+          }}
+        />
+      )}
       {isRendered && (
         <div className="flex gap-2 justify-center text-xs">
           <button

@@ -931,6 +931,8 @@ const QRPayment: React.FC = () => {
                             data={session.qrCodeData}
                             size={Math.min(280, window.innerWidth - 120)}
                             errorCorrectionLevel="H"
+                            logoUrl="/images/jpyc-logo.svg"
+                            logoSize={0.2}
                             onDownload={(type) => {
                               toast.success(`QRコードを${type === 'png' ? 'PNG' : 'SVG'}でダウンロードしました`);
                             }}
@@ -939,7 +941,10 @@ const QRPayment: React.FC = () => {
                         <p className="text-xs text-gray-500 mt-2 sm:mt-3 text-center px-4">
                           {qrCodeFormat === 'jpyc-payment' ? (
                             <>
-                              💰 <strong>JPYC対応アプリ</strong>でスキャンしてください<br />
+                              <div className="flex items-center justify-center gap-2 mb-1">
+                                <img src="/images/jpyc-logo.svg" alt="JPYC" className="w-5 h-5" />
+                                <span><strong>JPYC対応アプリ</strong>でスキャンしてください</span>
+                              </div>
                               <span className="text-gray-600">金額・トークン・ネットワーク情報を含む完全な決済QRコード</span><br />
                               <span className="text-gray-400 text-xs">統一標準形式 | {paymentNetwork?.displayName} | {paymentContractAddress.slice(0, 8)}...</span>
                             </>
@@ -1251,7 +1256,8 @@ const QRPayment: React.FC = () => {
 
                   {/* 金額入力 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
+                      <img src="/images/jpyc-logo.svg" alt="JPYC" className="w-4 h-4" />
                       金額 ({selectedJpycContract ? (() => {
                         const meta = getJpycContractMeta(selectedChainForPayment, selectedJpycContract);
                         return meta.symbol;
@@ -1442,12 +1448,15 @@ const QRPayment: React.FC = () => {
               {walletAddress && paymentContractAddress && (
                 <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-gray-600 font-semibold">
-                      {(() => {
-                        const meta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
-                        return `${meta.symbol}残高`;
-                      })()} 💰
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <img src="/images/jpyc-logo.svg" alt="JPYC" className="w-5 h-5" />
+                      <p className="text-xs text-gray-600 font-semibold">
+                        {(() => {
+                          const meta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
+                          return `${meta.symbol}残高`;
+                        })()}
+                      </p>
+                    </div>
                     {lastBalanceCheck && (
                       <p className="text-xs text-gray-500">
                         {lastBalanceCheck}更新
@@ -2138,6 +2147,23 @@ const QRPayment: React.FC = () => {
             )}
         </div>
       </div>
+
+      {/* フッター - JPYC免責事項 */}
+      <footer className="mt-8 py-6 border-t border-gray-200 bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="flex items-start gap-3 mb-3">
+            <img src="/images/jpyc-logo.svg" alt="JPYC" className="w-8 h-8 mt-1" />
+            <div className="text-xs text-gray-600 leading-relaxed space-y-1">
+              <p>※ 本サービス（コンテンツ・作品等）はJPYC株式会社による公式コンテンツではありません。</p>
+              <p>※ 「JPYC」はJPYC株式会社の提供するステーブルコインです。</p>
+              <p>※ JPYC及びJPYCロゴは、JPYC株式会社の登録商標です。</p>
+            </div>
+          </div>
+          <div className="text-center text-xs text-gray-500 pt-3 border-t border-gray-200">
+            <p>SBT JPYC Pay &copy; 2024-2025</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
