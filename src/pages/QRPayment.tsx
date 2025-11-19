@@ -289,12 +289,21 @@ const QRPayment: React.FC = () => {
     }
   }, [paymentSessions]);
   
-  // ページロード時に保存された完了セッションから統計を復元
+  // ページロード時に保存された完了セッションと統計を復元
   useEffect(() => {
     const savedSessions = localStorage.getItem('completedPaymentSessions');
     if (savedSessions) {
       try {
         const sessions: PaymentSession[] = JSON.parse(savedSessions);
+        
+        // セッションを復元(既存のセッションとマージ)
+        setPaymentSessions(prev => {
+          const existingIds = new Set(prev.map(s => s.id));
+          const newSessions = sessions.filter(s => !existingIds.has(s.id));
+          return [...prev, ...newSessions];
+        });
+        
+        // 統計を復元
         const stats = new Map<string, number>();
         sessions.forEach(session => {
           if (session.payerAddress) {
@@ -303,8 +312,10 @@ const QRPayment: React.FC = () => {
           }
         });
         setCustomerPaymentStats(stats);
+        
+        console.log(`✅ 決済履歴を復元: ${sessions.length}件`);
       } catch (error) {
-        console.error('顧客統計の復元に失敗:', error);
+        console.error('決済履歴の復元に失敗:', error);
       }
     }
   }, []);
@@ -613,7 +624,7 @@ const QRPayment: React.FC = () => {
       return {
         shouldIssue: false,
         milestone: null,
-        message: 'テンプレート未設定',
+        message: '📋 SBTテンプレート未設定',
         matchedTemplates: []
       };
     }
