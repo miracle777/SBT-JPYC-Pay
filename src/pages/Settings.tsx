@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, Copy, ExternalLink, Download, Upload, Eye, EyeOff, CheckCircle, AlertCircle, Key } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Copy, ExternalLink, Download, Upload, Eye, EyeOff, CheckCircle, AlertCircle, Key, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { NETWORKS } from '../config/networks';
 import { DEFAULT_SHOP_INFO, getShopWalletAddress, getShopInfo } from '../config/shop';
@@ -7,6 +7,8 @@ import { useWallet } from '../context/WalletContext';
 import { sbtStorage } from '../utils/storage';
 import { pinataService } from '../utils/pinata';
 import { generateNewShopId, DEFAULT_RANK_THRESHOLDS, type RankThresholds } from '../utils/shopSettings';
+import { registerShop } from '../utils/sbtMinting';
+import { getSBTContractAddress } from '../config/contracts';
 import WalletSelector from '../components/WalletSelector';
 import StorageCompatibilityChecker from '../components/StorageCompatibilityChecker';
 import { PWAWalletCacheManager } from '../components/PWAWalletCacheManager';
@@ -18,6 +20,7 @@ const Settings: React.FC = () => {
     id: '',
     category: '',
     description: '',
+    ownerAddress: '', // ショップオーナーアドレス
   });
 
   // 🎖️ ランク設定の状態管理
@@ -35,6 +38,15 @@ const Settings: React.FC = () => {
   const [pinataConnectionStatus, setPinataConnectionStatus] = useState<'unknown' | 'testing' | 'success' | 'failed'>('unknown');
   const [isTestingPinata, setIsTestingPinata] = useState(false);
 
+  // 🏪 ショップオーナー登録の状態管理
+  const [selectedNetworkForShop, setSelectedNetworkForShop] = useState(80002); // デフォルトはAmoy
+  const [isRegisteringShop, setIsRegisteringShop] = useState(false);
+  const [shopRegistrationStatus, setShopRegistrationStatus] = useState<{
+    registered: boolean;
+    shopId?: number;
+    message?: string;
+  }>({ registered: false });
+
   const shopWalletAddress = getShopWalletAddress(walletAddress);
   const currentNetwork = Object.values(NETWORKS).find(n => n.chainId === currentChainId);
 
@@ -51,6 +63,7 @@ const Settings: React.FC = () => {
             id: shop.id || '',
             category: shop.category || '',
             description: shop.description || '',
+            ownerAddress: shop.ownerAddress || '',
           });
           // ランク設定も読み込み
           if (shop.rankThresholds) {
@@ -98,6 +111,7 @@ const Settings: React.FC = () => {
             id: config.id || DEFAULT_SHOP_INFO.id,
             category: config.category || '',
             description: config.description || '',
+            ownerAddress: config.ownerAddress || '',
           });
           console.log('✅ 店舗設定読み込み完了:', config);
         }
@@ -205,22 +219,99 @@ const Settings: React.FC = () => {
         return;
       }
 
+      // オーナーアドレスのバリデーション
+      if (shopInfo.ownerAddress && !shopInfo.ownerAddress.startsWith('0x')) {
+        toast.error('オーナーアドレスは0xで始まる必要があります');
+        return;
+      }
+
+      if (shopInfo.ownerAddress && shopInfo.ownerAddress.length !== 42) {
+        toast.error('オーナーアドレスは42文字である必要があります');
+        return;
+      }
+
       // 店舗設定を保存（ランク設定含む）
       const shopData = {
         ...shopInfo,
         name: shopInfo.name.trim(),
         category: shopInfo.category.trim(),
         description: shopInfo.description.trim(),
+        ownerAddress: shopInfo.ownerAddress.trim(),
         rankThresholds: rankThresholds,
         updatedAt: new Date().toISOString(),
       };
       
       localStorage.setItem('shop-info', JSON.stringify(shopData));
       console.log('✅ 店舗設定保存完了:', shopData);
-      toast.success('設定を保存しました（ランク設定含む）');
+      toast.success('設定を保存しました（オーナー情報・ランク設定含む）');
     } catch (error) {
       console.error('設定保存エラー:', error);
       toast.error('設定の保存に失敗しました');
+    }
+  };
+
+  // 🏪 ショップオーナー登録関数
+  const handleRegisterShop = async () => {
+    if (!walletAddress) {
+      toast.error('ウォレットを接続してください');
+      return;
+    }
+
+    if (!shopInfo.name.trim()) {
+      toast.error('まず店舗情報を保存してください');
+      return;
+    }
+
+    if (!shopInfo.ownerAddress.trim()) {
+      toast.error('ショップオーナーアドレスを設定してください');
+      return;
+    }
+
+    const contractAddress = getSBTContractAddress(selectedNetworkForShop);
+    if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
+      toast.error(`選択したネットワーク(Chain ${selectedNetworkForShop})にはコントラクトがデプロイされていません`);
+      return;
+    }
+
+    try {
+      setIsRegisteringShop(true);
+      setShopRegistrationStatus({ registered: false, message: '登録中...' });
+
+      // 設定したオーナーアドレスでショップID 1 を登録
+      const result = await registerShop({
+        shopId: 1,
+        shopName: shopInfo.name,
+        description: shopInfo.description || `${shopInfo.name}のスタンプカード`,
+        shopOwnerAddress: shopInfo.ownerAddress, // 設定画面で登録したアドレス
+        requiredVisits: 10, // デフォルト10回
+        chainId: selectedNetworkForShop,
+      });
+
+      if (result.success) {
+        setShopRegistrationStatus({
+          registered: true,
+          shopId: 1,
+          message: `ショップオーナーとして登録完了！`
+        });
+        toast.success(`🎉 ショップオーナー登録完了！\nオーナー: ${shopInfo.ownerAddress.slice(0, 10)}...\nこのアドレスでSBTを発行できます。\nTx: ${result.transactionHash?.substring(0, 10)}...`, {
+          duration: 8000
+        });
+      } else {
+        setShopRegistrationStatus({
+          registered: false,
+          message: result.error || '登録失敗'
+        });
+        toast.error(result.error || 'ショップ登録に失敗しました');
+      }
+    } catch (error: any) {
+      console.error('ショップ登録エラー:', error);
+      setShopRegistrationStatus({
+        registered: false,
+        message: error.message || '登録エラー'
+      });
+      toast.error(`ショップ登録エラー: ${error.message}`);
+    } finally {
+      setIsRegisteringShop(false);
     }
   };
 
@@ -354,6 +445,44 @@ const Settings: React.FC = () => {
               <p className="text-xs text-gray-500 mt-1">
                 UUIDベースで生成されたSBT記録用の一意ショップID。ウェブ・アプリともPWAインストール時に自動発行。
               </p>
+            </div>
+
+            {/* ショップオーナーアドレス */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                ショップオーナーアドレス <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={shopInfo.ownerAddress}
+                  onChange={(e) => setShopInfo({ ...shopInfo, ownerAddress: e.target.value })}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-sm"
+                  placeholder="0x..."
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (walletAddress) {
+                      setShopInfo({ ...shopInfo, ownerAddress: walletAddress });
+                      toast.success('接続中のウォレットアドレスを設定しました');
+                    } else {
+                      toast.error('ウォレットを接続してください');
+                    }
+                  }}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition text-sm whitespace-nowrap"
+                >
+                  現在のウォレット
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                このアドレスでSBTを発行できます。通常は店舗オーナーのウォレットアドレスを設定してください。
+              </p>
+              {walletAddress && (
+                <p className="text-xs text-indigo-600 mt-1">
+                  💡 接続中のウォレット: {walletAddress.slice(0, 10)}...{walletAddress.slice(-8)}
+                </p>
+              )}
             </div>
 
             {/* ユーザー登録不要のメリット・注意事項 */}

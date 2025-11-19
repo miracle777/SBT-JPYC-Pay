@@ -1,13 +1,4 @@
 {
-  "polygon": {
-    "contractAddress": "0x6b39d1F8a9799aB3E1Ea047052e831186106DD8E",
-    "deployer": "0x5888578ad9a33Ce8a9FA3A0ca40816665bfaD8Fd",
-    "network": "polygon",
-    "chainId": "137",
-    "blockNumber": "62000000",
-    "timestamp": "2025-11-17T00:00:00.000Z",
-    "transactionHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
-  },
   "polygonAmoy": {
     "contractAddress": "0x6b39d1F8a9799aB3E1Ea047052e831186106DD8E",
     "deployer": "0x5888578ad9a33Ce8a9FA3A0ca40816665bfaD8Fd",

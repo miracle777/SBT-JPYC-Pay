@@ -362,9 +362,8 @@ const SBTManagement: React.FC = () => {
     let isMounted = true; // クリーンアップ用フラグ
     
     const checkContractOwnership = async () => {
-      if (!selectedChainForSBT || !walletAddress) {
-        // ウォレットが接続されていない場合は権限を無効化
-        console.log('⚠️ ウォレット未接続または選択チェーン未設定 - 権限無効化');
+      if (!selectedChainForSBT) {
+        console.log('⚠️ 選択チェーン未設定 - 権限無効化');
         if (isMounted) {
           setContractOwner(null);
           setIsContractOwner(false);
@@ -374,39 +373,62 @@ const SBTManagement: React.FC = () => {
         return;
       }
 
-      console.log(`🔍 コントラクト所有者情報を確認中: Chain ${selectedChainForSBT}, Wallet: ${walletAddress}`);
+      // ウォレット未接続でも情報取得を試みる（コントラクト情報は取得可能）
+      console.log(`🔍 コントラクト情報を確認中: Chain ${selectedChainForSBT}${walletAddress ? `, Wallet: ${walletAddress}` : ' (ウォレット未接続)'}`);
 
       try {
+        // コントラクトアドレスの確認
+        const contractAddress = getSBTContractAddress(selectedChainForSBT);
+        console.log(`📋 コントラクトアドレス: ${contractAddress || '未設定'}`);
+        
+        if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
+          console.warn(`⚠️ Chain ${selectedChainForSBT} のコントラクトアドレスが未設定です`);
+          if (isMounted) {
+            setContractOwner(null);
+            setIsContractOwner(false);
+            setShopInfo(null);
+            setIsShopOwner(false);
+          }
+          return;
+        }
+
         const ownerResult = await getContractOwner(selectedChainForSBT);
         
         if (!isMounted) {
           console.log('⚠️ コンポーネントがアンマウントされました - 処理中断');
-          return; // アンマウントされていたら中断
+          return;
         }
         
         console.log(`📋 getContractOwner結果:`, ownerResult);
         
         if (ownerResult && ownerResult.owner && ownerResult.owner !== '') {
           setContractOwner(ownerResult.owner);
-          console.log(`📋 コントラクトオーナー: ${ownerResult.owner}`);
-          console.log(`📋 現在のウォレット: ${walletAddress}`);
-          console.log(`📋 比較(小文字): Contract="${ownerResult.owner.toLowerCase()}" vs Wallet="${walletAddress?.toLowerCase()}"`);
+          console.log(`✅ コントラクトオーナー: ${ownerResult.owner}`);
           
-          // アドレス比較を厳密に行う（小文字化して比較）
-          const isOwner = ownerResult.owner.toLowerCase() === walletAddress.toLowerCase();
-          console.log(`📋 比較結果: ${isOwner ? '✅ 一致' : '❌ 不一致'}`);
-          
-          // 状態を更新
-          setIsContractOwner(isOwner);
-          console.log(`🔄 setIsContractOwner(${isOwner}) を呼び出しました`);
-          
-          if (isOwner) {
-            console.log('✅ 現在のウォレットはコントラクトオーナーです');
+          if (walletAddress) {
+            console.log(`📋 現在のウォレット: ${walletAddress}`);
+            console.log(`📋 比較(小文字): Contract="${ownerResult.owner.toLowerCase()}" vs Wallet="${walletAddress?.toLowerCase()}"`);
+            
+            // アドレス比較を厳密に行う（小文字化して比較）
+            const isOwner = ownerResult.owner.toLowerCase() === walletAddress.toLowerCase();
+            console.log(`📋 比較結果: ${isOwner ? '✅ 一致' : '❌ 不一致'}`);
+            
+            setIsContractOwner(isOwner);
+            
+            if (isOwner) {
+              console.log('✅ 現在のウォレットはコントラクトオーナーです');
+            } else {
+              console.log('❌ 現在のウォレットはコントラクトオーナーではありません');
+            }
           } else {
-            console.log('❌ 現在のウォレットはコントラクトオーナーではありません');
+            console.log('ℹ️ ウォレット未接続のため、権限チェックをスキップします');
+            setIsContractOwner(false);
           }
         } else {
           console.warn(`⚠️ コントラクトオーナー取得失敗:`, ownerResult);
+          if (ownerResult.error) {
+            console.error(`❌ エラー詳細: ${ownerResult.error}`);
+          }
           setContractOwner(null);
           setIsContractOwner(false);
         }
@@ -416,30 +438,36 @@ const SBTManagement: React.FC = () => {
         
         if (!isMounted) {
           console.log('⚠️ コンポーネントがアンマウントされました - ショップ情報処理中断');
-          return; // アンマウントされていたら中断
+          return;
         }
         
         console.log(`📋 getShopInfo結果:`, shopResult);
         
         if (shopResult && shopResult.owner && shopResult.owner !== '' && shopResult.owner !== '0x0000000000000000000000000000000000000000') {
           setShopInfo(shopResult);
-          console.log(`📋 ショップオーナー (ID:1): ${shopResult.owner}`);
+          console.log(`✅ ショップオーナー (ID:1): ${shopResult.owner}`);
           
-          // アドレス比較を厳密に行う（小文字化して比較）
-          const isShopOwner = shopResult.owner.toLowerCase() === walletAddress.toLowerCase();
-          console.log(`📋 ショップ比較結果: ${isShopOwner ? '✅ 一致' : '❌ 不一致'}`);
-          
-          // 状態を更新
-          setIsShopOwner(isShopOwner);
-          console.log(`🔄 setIsShopOwner(${isShopOwner}) を呼び出しました`);
-          
-          if (isShopOwner) {
-            console.log('✅ 現在のウォレットはショップオーナー (ID:1) です');
+          if (walletAddress) {
+            // アドレス比較を厳密に行う（小文字化して比較）
+            const isShopOwner = shopResult.owner.toLowerCase() === walletAddress.toLowerCase();
+            console.log(`📋 ショップ比較結果: ${isShopOwner ? '✅ 一致' : '❌ 不一致'}`);
+            
+            setIsShopOwner(isShopOwner);
+            
+            if (isShopOwner) {
+              console.log('✅ 現在のウォレットはショップオーナー (ID:1) です');
+            } else {
+              console.log('❌ 現在のウォレットはショップオーナー (ID:1) ではありません');
+            }
           } else {
-            console.log('❌ 現在のウォレットはショップオーナー (ID:1) ではありません');
+            console.log('ℹ️ ウォレット未接続のため、ショップ権限チェックをスキップします');
+            setIsShopOwner(false);
           }
         } else {
           console.warn(`⚠️ ショップ情報取得失敗または未登録:`, shopResult);
+          if (shopResult.error) {
+            console.log(`ℹ️ ショップ未登録の可能性: ${shopResult.error}`);
+          }
           setShopInfo(null);
           setIsShopOwner(false);
         }
@@ -2130,18 +2158,96 @@ const SBTManagement: React.FC = () => {
                   </div>
                   <div className="bg-white rounded p-2">
                     <p className="text-gray-600 text-xs">SBTコントラクトアドレス</p>
-                    <p className="font-mono text-xs text-blue-900 break-all">{selectedNetworkInfo.contractAddress}</p>
-                    {selectedNetworkInfo.contractAddress === '未デプロイ' && (
-                      <p className="text-red-600 text-xs mt-1">⚠️ このネットワークではまだデプロイされていません</p>
+                    {selectedNetworkInfo.contractAddress === '0x0000000000000000000000000000000000000000' ? (
+                      <div>
+                        <p className="font-mono text-xs text-red-600">未デプロイ</p>
+                        <p className="text-red-600 text-xs mt-1">⚠️ このネットワークではまだデプロイされていません</p>
+                      </div>
+                    ) : selectedNetworkInfo.contractAddress === '未デプロイ' ? (
+                      <div>
+                        <p className="font-mono text-xs text-gray-400">設定なし</p>
+                        <p className="text-gray-500 text-xs mt-1">このネットワークは未サポートです</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="font-mono text-xs text-blue-900 break-all">{selectedNetworkInfo.contractAddress}</p>
+                        <p className="text-green-600 text-xs mt-1">✅ デプロイ済み</p>
+                      </div>
                     )}
                   </div>
                 </div>
+                
+                {/* コントラクト情報の詳細表示 */}
+                {contractOwner && (
+                  <div className="mt-3 bg-white rounded p-2">
+                    <p className="text-gray-600 text-xs">コントラクトオーナー</p>
+                    <p className="font-mono text-xs text-gray-900 break-all">{contractOwner}</p>
+                  </div>
+                )}
+                
+                {shopInfo?.owner && (
+                  <div className="mt-2 bg-white rounded p-2">
+                    <p className="text-gray-600 text-xs">ショップオーナー (ID: 1)</p>
+                    <p className="font-mono text-xs text-gray-900 break-all">{shopInfo.owner}</p>
+                    <p className="text-gray-500 text-xs mt-1">店舗名: {shopInfo.name || shopInfo.shopInfo?.name || '未設定'}</p>
+                  </div>
+                )}
+                
+                {!contractOwner && selectedNetworkInfo.contractAddress && selectedNetworkInfo.contractAddress !== '未デプロイ' && (
+                  <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded p-2">
+                    <p className="text-xs text-yellow-800">
+                      ⚠️ コントラクト情報を取得できません。以下を確認してください:
+                    </p>
+                    <ul className="text-xs text-yellow-700 mt-1 space-y-1 ml-4">
+                      <li>• コントラクトが正しくデプロイされているか</li>
+                      <li>• RPC接続が正常か（MetaMaskのネットワーク設定）</li>
+                      <li>• コントラクトアドレスが正しいか</li>
+                    </ul>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="mt-2 px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs font-semibold"
+                    >
+                      🔄 再読み込み
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
+          {/* 🚀 コントラクト未デプロイ警告 (Mainnetのみ) */}
+          {selectedChainForSBT === 137 && selectedNetworkInfo.contractAddress === '0x0000000000000000000000000000000000000000' && (
+            <div className="mb-6 bg-orange-50 border-2 border-orange-300 rounded-lg p-4">
+              <div className="flex gap-3">
+                <AlertCircle className="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-bold text-orange-900 mb-2">🚀 Polygon Mainnet: コントラクト未デプロイ</h3>
+                  <p className="text-sm text-orange-800 mb-3">
+                    Polygon Mainnetにはまだコントラクトがデプロイされていません。初回デプロイを実行してください。
+                  </p>
+                  
+                  <div className="bg-white rounded-lg p-3 mb-3">
+                    <h4 className="font-semibold text-orange-900 text-sm mb-2">📋 デプロイ手順:</h4>
+                    <ol className="text-sm text-orange-800 space-y-1 list-decimal ml-5">
+                      <li>contracts/.envファイルにPOLYGON_PRIVATE_KEYを設定</li>
+                      <li>ウォレットに十分なPOL（約0.01 POL以上）を準備</li>
+                      <li>コマンドを実行: <code className="bg-orange-100 px-2 py-0.5 rounded font-mono text-xs">cd contracts && npx hardhat run deploy-mainnet.js --network polygon</code></li>
+                      <li>デプロイ完了後、表示されたコントラクトアドレスを src/config/contracts.ts の 137: に設定</li>
+                      <li>アプリをリロードして使用開始</li>
+                    </ol>
+                  </div>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded p-2 text-xs">
+                    <p className="font-semibold text-blue-900 mb-1">💡 テスト環境で試す場合</p>
+                    <p className="text-blue-800">ネットワーク選択で「Polygon Amoy (Testnet)」に切り替えてください。テストネットは既にデプロイ済みです。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ⚠️ コントラクト認可警告 */}
-          {!isContractOwner && !isShopOwner && walletAddress && (
+          {!isContractOwner && !isShopOwner && walletAddress && selectedNetworkInfo.contractAddress !== '0x0000000000000000000000000000000000000000' && (
             <div className="mb-6 bg-red-50 border-2 border-red-300 rounded-lg p-4">
               <div className="flex gap-3">
                 <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
