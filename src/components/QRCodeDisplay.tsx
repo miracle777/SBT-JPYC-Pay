@@ -36,7 +36,33 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
       return;
     }
 
-    // Try SVG generation first as it's more reliable
+    // ロゴが指定されている場合はCanvas形式で生成（ロゴを追加するため）
+    if (logoUrl && canvasRef.current) {
+      QRCode.toCanvas(
+        canvasRef.current,
+        data,
+        {
+          errorCorrectionLevel: errorCorrectionLevel,
+          margin: margin,
+          width: size,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF',
+          },
+        },
+        (canvasError) => {
+          if (canvasError) {
+            console.error('QRコード(Canvas)生成エラー:', canvasError);
+          } else {
+            console.log('QRコード(Canvas)生成成功！ロゴを追加します...');
+            addLogoToCanvas(canvasRef.current!);
+          }
+        }
+      );
+      return;
+    }
+
+    // ロゴが不要な場合はSVG生成を優先
     QRCode.toString(
       data,
       {
@@ -71,12 +97,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
                   console.error('QRコード(Canvas)生成エラー:', canvasError);
                 } else {
                   console.log('QRコード(Canvas)生成成功！');
-                  // ロゴを中央に配置
-                  if (logoUrl && canvasRef.current) {
-                    addLogoToCanvas(canvasRef.current);
-                  } else {
-                    setIsRendered(true);
-                  }
+                  setIsRendered(true);
                 }
               }
             );
