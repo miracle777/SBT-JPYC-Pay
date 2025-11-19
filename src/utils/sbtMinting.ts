@@ -540,6 +540,15 @@ export async function getContractOwner(
     return { owner };
   } catch (error: any) {
     console.error('コントラクトオーナー取得エラー:', error);
+    
+    // BAD_DATA エラーの場合は旧バージョンのコントラクト
+    if (error.code === 'BAD_DATA' || error.message?.includes('could not decode result data')) {
+      return { 
+        owner: '', 
+        error: `このコントラクト(Chain ${chainId})は古いバージョンです。テストネット(Amoy)を使用してください。` 
+      };
+    }
+    
     return { owner: '', error: error.message };
   }
 }

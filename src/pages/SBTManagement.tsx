@@ -421,6 +421,16 @@ const SBTManagement: React.FC = () => {
         
         console.log(`📋 getContractOwner結果:`, ownerResult);
         
+        // BAD_DATA エラーの場合は警告を表示
+        if (ownerResult.error && ownerResult.error.includes('古いバージョン')) {
+          console.error(`❌ ${ownerResult.error}`);
+          toast.error(ownerResult.error, { duration: 10000 });
+          setContractOwner(null);
+          setIsContractOwner(false);
+          setIsShopOwner(false);
+          return;
+        }
+        
         if (ownerResult && ownerResult.owner && ownerResult.owner !== '') {
           setContractOwner(ownerResult.owner);
           console.log(`✅ コントラクトオーナー: ${ownerResult.owner}`);
@@ -658,6 +668,17 @@ const SBTManagement: React.FC = () => {
     }
     
     console.log(`🔍 初期ショップの登録状況を確認中: Chain ${selectedChainForSBT}`);
+    
+    // Chain 137 (Polygon メインネット)の場合は警告を表示
+    if (selectedChainForSBT === 137) {
+      console.warn('⚠️ Polygon メインネット(Chain 137)は現在サポートされていません。');
+      console.warn('📍 Amoy テストネット(Chain 80002)に切り替えてください。');
+      toast.error(
+        'Polygon メインネットは現在使用できません。MetaMaskでAmoyテストネットに切り替えてください。',
+        { duration: 8000 }
+      );
+      return;
+    }
     
     // 初期テンプレートのショップIDが登録されているか確認
     for (const [templateName, shopId] of Object.entries(initialShopIds)) {
@@ -2290,8 +2311,22 @@ const SBTManagement: React.FC = () => {
                 <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <h3 className="font-bold text-red-900 mb-2">⚠️ SBT発行権限がありません</h3>
+                  
+                  {/* ネットワーク警告 (Chain 137の場合) */}
+                  {selectedChainForSBT === 137 && (
+                    <div className="bg-yellow-100 border border-yellow-300 rounded p-3 mb-3">
+                      <p className="text-sm font-bold text-yellow-900 mb-1">⚠️ Polygon メインネットは現在使用できません</p>
+                      <p className="text-xs text-yellow-800 mb-2">
+                        Polygon メインネットのコントラクトは古いバージョンのため、ショップ登録ができません。
+                      </p>
+                      <p className="text-xs font-semibold text-yellow-900">
+                        👉 MetaMaskで <span className="bg-yellow-200 px-1 rounded">Amoy テストネット (Chain ID: 80002)</span> に切り替えてください
+                      </p>
+                    </div>
+                  )}
+                  
                   <p className="text-sm text-red-800 mb-3">
-                    スマートコントラクトへのミント権限がありません。以下のいずれかが必要です：
+                    スマートコントラクトへのミント権限がありません。以下のいずれかが必要です:
                   </p>
                   <ul className="text-sm text-red-800 space-y-1 mb-3">
                     <li>✓ コントラクトオーナーアカウント</li>
@@ -2327,6 +2362,15 @@ const SBTManagement: React.FC = () => {
 
                           if (!shopData.name) {
                             toast.error('設定画面で店舗名を設定してください');
+                            return;
+                          }
+
+                          // Chain 137 (Polygon メインネット)の場合は警告を表示
+                          if (selectedChainForSBT === 137) {
+                            toast.error(
+                              'Polygon メインネットは現在使用できません。MetaMaskでAmoyテストネット(Chain ID: 80002)に切り替えてください。',
+                              { duration: 8000 }
+                            );
                             return;
                           }
 
