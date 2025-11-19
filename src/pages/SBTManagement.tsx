@@ -271,7 +271,7 @@ const SBTManagement: React.FC = () => {
           if (savedShopInfo) {
             const shop = JSON.parse(savedShopInfo);
             setShopSettings({
-              name: shop.name || 'SBT masaru21 Pay Demo Store',
+              name: shop.name || 'SBT masaru21 Pay(仮) Demo Store',
               id: shop.id || 'shop-001',
               category: shop.category || '',
               description: shop.description || 'デモンストレーション用の店舗'
@@ -745,7 +745,7 @@ const SBTManagement: React.FC = () => {
       const exportMetadata = {
         currentNetwork: currentNetworkInfo,
         selectedNetwork: selectedNetworkInfo,
-        exportSource: 'SBT masaru21 Pay Management'
+        exportSource: 'SBT masaru21 Pay(仮) Management'
       };
       
       await sbtStorage.downloadExport(filename, exportMetadata);

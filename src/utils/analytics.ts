@@ -38,7 +38,7 @@ export const initializeAnalytics = (): void => {
   window.gtag('js', new Date());
   window.gtag('config', GA_MEASUREMENT_ID, {
     send_page_view: true,
-    app_name: 'SBT masaru21 Pay',
+    app_name: 'SBT masaru21 Pay(仮)',
     app_version: '1.0.0',
   });
 

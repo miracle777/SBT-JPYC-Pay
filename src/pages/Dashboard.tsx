@@ -15,7 +15,7 @@ const Dashboard: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg p-4 xs:p-6 sm:p-8 text-center landscape:p-4">
           <Store className="w-10 h-10 xs:w-12 xs:h-12 sm:w-16 sm:h-16 text-purple-600 mx-auto mb-3 xs:mb-4 landscape:w-8 landscape:h-8 landscape:mb-2" />
           <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold text-gray-900 mb-1 xs:mb-2 landscape:text-lg landscape:mb-1">
-            SBT masaru21 Pay
+            SBT masaru21 Pay(仮)
           </h1>
           <p className="text-gray-600 text-sm xs:text-base sm:text-lg mb-4 xs:mb-6 landscape:text-sm landscape:mb-3">
             JPYC QR決済 & SBTスタンプカード発行・管理システム（デモ版）

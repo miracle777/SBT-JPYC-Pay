@@ -1,6 +1,6 @@
 # SBT-JPYC-Pay
 
-> お店側のSBTスタンプカード発行・管理システム (SBT masaru21 Pay)
+> お店側のSBTスタンプカード発行・管理システム (SBT masaru21 Pay(仮))
 >
 > 📱 **暗号資産決済とSBTスタンプカードの統合管理**
 

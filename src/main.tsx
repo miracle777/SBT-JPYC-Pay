@@ -285,7 +285,7 @@ const wallets = [
 ];
 
 const connectors = connectorsForWallets(wallets, {
-  appName: 'SBT masaru21 Pay',
+  appName: 'SBT masaru21 Pay(仮)',
   projectId,
 });
 

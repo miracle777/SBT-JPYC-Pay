@@ -382,7 +382,7 @@ class SBTStorage {
       metadata: metadata || null,
       exportedAt: new Date().toISOString(),
       version: '2.1.0', // ネットワーク情報対応のためバージョンアップ
-      appName: 'SBT masaru21 Pay',
+      appName: 'SBT masaru21 Pay(仮)',
     };
 
     // エクスポート履歴を保存

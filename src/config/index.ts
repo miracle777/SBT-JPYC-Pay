@@ -115,7 +115,7 @@ export const CONTRACTS = {
 // ========================================
 
 export const APP_CONFIG = {
-  name: 'SBT masaru21 Pay',
+  name: 'SBT masaru21 Pay(仮)',
   version: '1.0.0',
   description: 'SBTスタンプカード発行・QR決済管理システム',
   url: typeof window !== 'undefined' ? window.location.origin : '',

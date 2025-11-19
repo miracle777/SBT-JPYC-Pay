@@ -17,7 +17,7 @@ const TermsAndPrivacy: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">利用条件・プライバシーポリシー</h1>
           </div>
           <p className="text-gray-600">
-            SBT masaru21 Pay をご利用の前に、必ずお読みください。
+            SBT masaru21 Pay(仮) をご利用の前に、必ずお読みください。
           </p>
         </div>
 
@@ -36,7 +36,7 @@ const TermsAndPrivacy: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-3">1. サービス概要</h3>
               <div className="bg-gray-50 rounded-lg p-4">
                 <ul className="text-sm text-gray-700 space-y-2">
-                  <li>• SBT masaru21 Pay は、SBT（Soulbound Token）を活用したスタンプカード発行・管理システムです</li>
+                  <li>• SBT masaru21 Pay(仮) は、SBT（Soulbound Token）を活用したスタンプカード発行・管理システムです</li>
                   <li>• 店舗・企業向けの決済管理ツールとして提供されています</li>
                   <li>• 本サービスは<strong>デモ・検証用</strong>であり、商用利用には別途設定が必要です</li>
                   <li>• Progressive Web App（PWA）として動作し、各種デバイスで利用可能です</li>

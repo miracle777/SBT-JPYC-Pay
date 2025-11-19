@@ -88,7 +88,7 @@ function createScreenshotSVG() {
     </linearGradient>
   </defs>
   <rect width="540" height="80" fill="url(#headerGrad)"/>
-  <text x="270" y="50" font-size="36" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial, sans-serif">SBT masaru21 Pay</text>
+  <text x="270" y="50" font-size="36" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial, sans-serif">SBT masaru21 Pay(仮)</text>
   
   <!-- Content -->
   <rect x="20" y="120" width="500" height="500" rx="20" fill="white" stroke="#e5e7eb" stroke-width="2"/>

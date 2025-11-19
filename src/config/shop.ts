@@ -10,7 +10,7 @@ export interface ShopInfo {
 // 店舗情報（現在はモック、将来的にはSupabaseから取得）
 export const DEFAULT_SHOP_INFO: ShopInfo = {
   id: 'shop-001',
-  name: 'SBT masaru21 Pay Demo Store',
+  name: 'SBT masaru21 Pay(仮) Demo Store',
   address: 'Tokyo, Japan',
   chainId: 137, // Polygon Mainnet
   logoUrl: 'https://via.placeholder.com/100?text=Shop',

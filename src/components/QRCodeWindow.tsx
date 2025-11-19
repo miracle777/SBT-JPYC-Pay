@@ -117,7 +117,7 @@ const QRCodeWindow: React.FC<QRCodeWindowProps> = ({
 
       {/* フッター */}
       <div className="absolute bottom-4 right-4 text-xs text-gray-500">
-        SBT masaru21 Pay - QR Display Window
+        SBT masaru21 Pay(仮) - QR Display Window
       </div>
 
       {/* 印刷用スタイル */}
