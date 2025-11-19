@@ -7,7 +7,6 @@ import { DEFAULT_SHOP_INFO, getShopWalletAddress, getShopInfo } from '../config/
 import { createPaymentPayload, encodePaymentPayload, encodePaymentPayloadForJPYCPay, encodePaymentPayloadForMetaMask } from '../types/payment';
 import { useWallet } from '../context/WalletContext';
 import QRCodeDisplay from '../components/QRCodeDisplay';
-import QRCodeWindow from '../components/QRCodeWindow';
 import WalletSelector from '../components/WalletSelector';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
 import { sbtStorage } from '../utils/storage';
@@ -60,7 +59,6 @@ const QRPayment: React.FC = () => {
   const [paymentSessions, setPaymentSessions] = useState<PaymentSession[]>([]);
   const [expiryTimeMinutes, setExpiryTimeMinutes] = useState(15); // デフォルト15分
   const [qrCodeFormat, setQrCodeFormat] = useState<'jpyc-payment' | 'metamask' | 'legacy'>('jpyc-payment'); // QRコード形式
-  const [selectedSessionForWindow, setSelectedSessionForWindow] = useState<string | null>(null);
   const [estimatedGasPOL, setEstimatedGasPOL] = useState<string>('0.002275'); // デフォルト値（Polygon 35 Gwei, 65000 gas）
   const [gasPrice, setGasPrice] = useState<string>('35.00'); // デフォルト値（Polygon標準）
   const [loadingGasEstimate, setLoadingGasEstimate] = useState(false);
@@ -796,7 +794,7 @@ const QRPayment: React.FC = () => {
                         }}>
                           <QRCodeDisplay
                             data={session.qrCodeData}
-                            size={Math.min(220, window.innerWidth - 160)}
+                            size={Math.min(280, window.innerWidth - 120)}
                             errorCorrectionLevel="H"
                             onDownload={(type) => {
                               toast.success(`QRコードを${type === 'png' ? 'PNG' : 'SVG'}でダウンロードしました`);
@@ -823,7 +821,104 @@ const QRPayment: React.FC = () => {
                       {/* 操作ボタン */}
                       <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-3 sm:mt-4 justify-center">
                         <button
-                          onClick={() => setSelectedSessionForWindow(session.id)}
+                          onClick={() => {
+                            // 新しいウィンドウで開く(別タブではなく別ウィンドウ)
+                            const width = 500;
+                            const height = 700;
+                            const left = window.screenX + (window.outerWidth - width) / 2;
+                            const top = window.screenY + (window.outerHeight - height) / 2;
+                            const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+                            
+                            // QRコード表示用HTMLを生成
+                            const qrWindow = window.open('', 'QRCodeWindow', features);
+                            if (qrWindow) {
+                              qrWindow.document.write(`
+                                <!DOCTYPE html>
+                                <html lang="ja">
+                                <head>
+                                  <meta charset="UTF-8">
+                                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                  <title>QRコード - ${shopInfo.name}</title>
+                                  <style>
+                                    body {
+                                      margin: 0;
+                                      padding: 20px;
+                                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                      display: flex;
+                                      flex-direction: column;
+                                      align-items: center;
+                                      justify-content: center;
+                                      min-height: 100vh;
+                                    }
+                                    .container {
+                                      background: white;
+                                      border-radius: 20px;
+                                      padding: 30px;
+                                      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                                      text-align: center;
+                                      max-width: 90%;
+                                    }
+                                    h1 {
+                                      color: #333;
+                                      margin: 0 0 10px 0;
+                                      font-size: 24px;
+                                    }
+                                    .shop-name {
+                                      color: #667eea;
+                                      font-size: 18px;
+                                      margin-bottom: 20px;
+                                    }
+                                    .qr-container {
+                                      background: white;
+                                      padding: 20px;
+                                      border-radius: 15px;
+                                      display: inline-block;
+                                      margin: 20px 0;
+                                    }
+                                    .amount {
+                                      font-size: 32px;
+                                      font-weight: bold;
+                                      color: #667eea;
+                                      margin: 15px 0;
+                                    }
+                                    .network {
+                                      color: #666;
+                                      font-size: 14px;
+                                      margin-top: 10px;
+                                    }
+                                    .close-btn {
+                                      background: #ef4444;
+                                      color: white;
+                                      border: none;
+                                      padding: 12px 30px;
+                                      border-radius: 8px;
+                                      font-size: 16px;
+                                      cursor: pointer;
+                                      margin-top: 20px;
+                                    }
+                                    .close-btn:hover {
+                                      background: #dc2626;
+                                    }
+                                  </style>
+                                </head>
+                                <body>
+                                  <div class="container">
+                                    <h1>💰 QR決済</h1>
+                                    <div class="shop-name">${shopInfo.name}</div>
+                                    <div class="qr-container">
+                                      <img src="https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(session.qrCodeData)}" alt="QRコード" />
+                                    </div>
+                                    <div class="amount">${session.amount} ${session.currency}</div>
+                                    <div class="network">📡 ${session.chainName}</div>
+                                    <button class="close-btn" onclick="window.close()">✕ 閉じる</button>
+                                  </div>
+                                </body>
+                                </html>
+                              `);
+                              qrWindow.document.close();
+                            }
+                          }}
                           className="flex items-center justify-center gap-1 px-3 py-2.5 bg-purple-100 hover:bg-purple-200 text-purple-600 text-xs sm:text-sm rounded-lg transition font-semibold min-h-[44px]"
                         >
                           <Monitor className="w-4 h-4" /> <span className="hidden sm:inline">新規ウィンドウ</span><span className="sm:hidden">ウィンドウ</span>
@@ -1552,27 +1647,6 @@ const QRPayment: React.FC = () => {
             )}
         </div>
       </div>
-
-      {/* QRコード新規ウィンドウ表示 */}
-      {selectedSessionForWindow && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-screen overflow-auto">
-            {paymentSessions
-              .filter((s) => s.id === selectedSessionForWindow)
-              .map((session) => (
-                <QRCodeWindow
-                  key={session.id}
-                  sessionId={session.id}
-                  qrData={session.qrCodeData}
-                  amount={session.amount}
-                  shopName={shopInfo.name}
-                  chainName={session.chainName}
-                  onClose={() => setSelectedSessionForWindow(null)}
-                />
-              ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
