@@ -62,7 +62,7 @@ const QRPayment: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
   const [amount, setAmount] = useState('');
   const [selectedChainForPayment, setSelectedChainForPayment] = useState(
-    NETWORKS.SEPOLIA.chainId  // デフォルトでSepoliaテストネットを選択
+    NETWORKS.ETHEREUM_SEPOLIA.chainId  // デフォルトでSepoliaテストネットを選択
   );
   const [selectedJpycContract, setSelectedJpycContract] = useState<string>(''); // 選択されたJPYCコントラクトアドレス
   const [paymentSessions, setPaymentSessions] = useState<PaymentSession[]>([]);
