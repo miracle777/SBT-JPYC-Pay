@@ -22,6 +22,8 @@ interface SBTTemplate {
   rewardDescription: string;
   imageUrl: string;
   status: 'active' | 'inactive';
+  periodStartDate?: string; // 期間限定の開始日 (YYYY-MM-DD)
+  periodEndDate?: string; // 期間限定の終了日 (YYYY-MM-DD)
 }
 
 interface SBTRecommendation {
@@ -620,6 +622,31 @@ const QRPayment: React.FC = () => {
   };
 
   // SBT発行推奨を判定する関数（動的テンプレート対応）
+  // 期間限定テンプレートの有効期間チェック
+  const isTemplateValid = (template: SBTTemplate): { valid: boolean; message?: string } => {
+    if (template.issuePattern === 'period_range' && template.periodStartDate && template.periodEndDate) {
+      const now = new Date();
+      const start = new Date(template.periodStartDate);
+      const end = new Date(template.periodEndDate);
+      end.setHours(23, 59, 59, 999); // 終了日は23:59:59まで有効
+      
+      if (now < start) {
+        return { 
+          valid: false, 
+          message: `⏰ ${template.periodStartDate}から開始` 
+        };
+      }
+      if (now > end) {
+        return { 
+          valid: false, 
+          message: `⏰ 期間終了(${template.periodEndDate}まで)` 
+        };
+      }
+      return { valid: true };
+    }
+    return { valid: true };
+  };
+
   const getSBTRecommendation = (paymentCount: number): SBTRecommendation => {
     // フィルタリングされたテンプレートを取得
     const filteredTemplates = selectedTemplateId === 'all' 
@@ -635,26 +662,66 @@ const QRPayment: React.FC = () => {
       };
     }
 
-    // 現在の支払回数で達成可能なテンプレートを検索
-    const matchedTemplates = filteredTemplates.filter(t => t.maxStamps === paymentCount);
+    // 期間限定テンプレートのチェック（マッチする前に確認）
+    const periodTemplates = filteredTemplates.filter(t => t.issuePattern === 'period_range');
+    const periodMessages: string[] = [];
+    
+    for (const template of periodTemplates) {
+      const validation = isTemplateValid(template);
+      if (validation.valid && template.maxStamps === paymentCount) {
+        periodMessages.push(`✨ 期間限定「${template.name}」発行可能！(${template.periodEndDate}まで)`);
+      } else if (!validation.valid && template.maxStamps === paymentCount) {
+        periodMessages.push(`${validation.message} - ${template.name}`);
+      }
+    }
+
+    // 現在の支払回数で達成可能なテンプレートを検索（有効期間内のみ）
+    const matchedTemplates = filteredTemplates.filter(t => {
+      if (t.maxStamps !== paymentCount) return false;
+      const validation = isTemplateValid(t);
+      return validation.valid;
+    });
     
     if (matchedTemplates.length > 0) {
+      // 期間限定がある場合は特別メッセージ
+      const hasPeriodLimited = matchedTemplates.some(t => t.issuePattern === 'period_range');
+      const baseMessage = `🎊 ${paymentCount}回目達成！SBT発行可能`;
+      const periodInfo = hasPeriodLimited ? ` (期間限定含む)` : '';
+      
       return {
         shouldIssue: true,
         milestone: paymentCount,
-        message: `🎊 ${paymentCount}回目達成！SBT発行可能`,
+        message: baseMessage + periodInfo,
         matchedTemplates
       };
     }
     
-    // 次のマイルストーンを検索
-    const upcoming = filteredTemplates.find(t => t.maxStamps > paymentCount);
-    if (upcoming) {
+    // マッチしなかったが期間限定テンプレートのメッセージがある場合
+    if (periodMessages.length > 0) {
+      return {
+        shouldIssue: false,
+        milestone: paymentCount,
+        message: periodMessages.join(' / '),
+        matchedTemplates: []
+      };
+    }
+    
+    // 次のマイルストーンを検索（有効期間内のもの優先）
+    const validUpcoming = filteredTemplates.filter(t => {
+      if (t.maxStamps <= paymentCount) return false;
+      return isTemplateValid(t).valid;
+    }).sort((a, b) => a.maxStamps - b.maxStamps);
+    
+    if (validUpcoming.length > 0) {
+      const upcoming = validUpcoming[0];
       const remaining = upcoming.maxStamps - paymentCount;
+      const isPeriodLimited = upcoming.issuePattern === 'period_range';
+      const periodInfo = isPeriodLimited ? ` ⏰${upcoming.periodEndDate}まで` : '';
+      
       return {
         shouldIssue: false,
         milestone: upcoming.maxStamps,
-        message: `次回SBT: ${remaining}回後（${upcoming.maxStamps}回目）`,
+        message: `次回SBT: ${remaining}回後（${upcoming.maxStamps}回目）${periodInfo}`,
         matchedTemplates: []
       };
     }
