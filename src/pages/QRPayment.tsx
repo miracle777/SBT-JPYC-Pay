@@ -70,6 +70,7 @@ const QRPayment: React.FC = () => {
   const [lastBalanceCheck, setLastBalanceCheck] = useState<string>('');
   const [shopInfo, setShopInfo] = useState({ name: DEFAULT_SHOP_INFO.name, id: DEFAULT_SHOP_INFO.id });
   const [sbtTemplates, setSbtTemplates] = useState<SBTTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('all'); // 'all' = 全テンプレート, それ以外 = 特定テンプレートID
 
   // 店舗情報をローカルストレージから読み込む
   useEffect(() => {
@@ -620,7 +621,12 @@ const QRPayment: React.FC = () => {
 
   // SBT発行推奨を判定する関数（動的テンプレート対応）
   const getSBTRecommendation = (paymentCount: number): SBTRecommendation => {
-    if (sbtTemplates.length === 0) {
+    // フィルタリングされたテンプレートを取得
+    const filteredTemplates = selectedTemplateId === 'all' 
+      ? sbtTemplates 
+      : sbtTemplates.filter(t => t.id === selectedTemplateId);
+    
+    if (filteredTemplates.length === 0) {
       return {
         shouldIssue: false,
         milestone: null,
@@ -630,7 +636,7 @@ const QRPayment: React.FC = () => {
     }
 
     // 現在の支払回数で達成可能なテンプレートを検索
-    const matchedTemplates = sbtTemplates.filter(t => t.maxStamps === paymentCount);
+    const matchedTemplates = filteredTemplates.filter(t => t.maxStamps === paymentCount);
     
     if (matchedTemplates.length > 0) {
       return {
@@ -642,7 +648,7 @@ const QRPayment: React.FC = () => {
     }
     
     // 次のマイルストーンを検索
-    const upcoming = sbtTemplates.find(t => t.maxStamps > paymentCount);
+    const upcoming = filteredTemplates.find(t => t.maxStamps > paymentCount);
     if (upcoming) {
       const remaining = upcoming.maxStamps - paymentCount;
       return {
@@ -1417,27 +1423,52 @@ const QRPayment: React.FC = () => {
                 {/* 顧客別統計サマリー */}
                 {customerPaymentStats.size > 0 && (
                   <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
                       <h3 className="flex items-center gap-2 font-semibold text-gray-900">
                         <User className="w-4 h-4 text-purple-600" />
                         顧客別支払い統計
                       </h3>
-                      {sbtTemplates.length === 0 && (
-                        <a
-                          href="/sbt-management"
-                          className="flex items-center gap-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-1.5 rounded-lg transition font-semibold"
-                        >
-                          <Award className="w-3 h-3" />
-                          SBTテンプレート設定
-                        </a>
-                      )}
+                      
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        {/* テンプレート選択ドロップダウン */}
+                        {sbtTemplates.length > 0 && (
+                          <select
+                            value={selectedTemplateId}
+                            onChange={(e) => setSelectedTemplateId(e.target.value)}
+                            className="flex-1 sm:flex-none text-xs px-3 py-1.5 border border-purple-300 bg-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          >
+                            <option value="all">🎯 全テンプレート</option>
+                            {sbtTemplates.map(template => (
+                              <option key={template.id} value={template.id}>
+                                {template.name} ({template.maxStamps}回)
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        
+                        {sbtTemplates.length === 0 && (
+                          <a
+                            href="/sbt-management"
+                            className="flex items-center gap-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-1.5 rounded-lg transition font-semibold whitespace-nowrap"
+                          >
+                            <Award className="w-3 h-3" />
+                            SBTテンプレート設定
+                          </a>
+                        )}
+                      </div>
                     </div>
                     
-                    {sbtTemplates.length === 0 && (
+                    {sbtTemplates.length === 0 ? (
                       <div className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                         <p className="text-xs text-orange-700">
                           ⚠️ <strong>SBTテンプレートが未設定です。</strong><br />
                           SBT管理ページでテンプレートを作成すると、支払回数に応じて自動的にSBT発行を推奨します。
+                        </p>
+                      </div>
+                    ) : selectedTemplateId !== 'all' && (
+                      <div className="mb-3 p-2.5 bg-purple-50 border border-purple-200 rounded-lg">
+                        <p className="text-xs text-purple-700">
+                          🎯 <strong>フィルタリング中:</strong> {sbtTemplates.find(t => t.id === selectedTemplateId)?.name} ({sbtTemplates.find(t => t.id === selectedTemplateId)?.maxStamps}回達成で発行)
                         </p>
                       </div>
                     )}
