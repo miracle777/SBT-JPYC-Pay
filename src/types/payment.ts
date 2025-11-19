@@ -80,29 +80,32 @@ export const encodePaymentPayloadForJPYCPay = (payload: PaymentPayload): string 
   return JSON.stringify(jpycPayData);
 };
 
-// MetaMask互換形式：ウォレットアドレスのみ（シンプル形式）
+// MetaMask互換形式: EIP-681準拠のERC-20トークン送金URI
 // MetaMaskアプリの標準QRスキャナーに対応
-// 注意: 金額情報は含まれないため、顧客が手入力する必要があります
 export const encodePaymentPayloadForMetaMask = (payload: PaymentPayload): string => {
-  // MetaMaskの標準QRコード機能は、単純なウォレットアドレス文字列のみをサポート
-  // EIP-681形式（ethereum: URI）やERC-20のcontract callには対応していない
+  // EIP-681形式: ethereum:<contractAddress>@<chainId>/transfer?address=<recipient>&uint256=<amount>
+  // 参考: https://eips.ethereum.org/EIPS/eip-681
   
-  const walletAddress = payload.shopWallet;
+  const { contractAddress, chainId, shopWallet, amount } = payload;
   
-  console.log('📋 MetaMask互換QRコード生成（アドレスのみ）:', {
-    address: walletAddress,
-    note: '金額情報は含まれません - 顧客が手入力する必要があります',
-    chainId: payload.chainId,
-    originalAmount: payload.amount,
-    amountJPYC: (BigInt(payload.amount) / BigInt(10 ** 18)).toString()
+  // EIP-681形式のURI構築
+  // ethereum:<トークンコントラクト>@<ChainID>/transfer?address=<受取アドレス>&uint256=<金額(Wei)>
+  const eip681Uri = `ethereum:${contractAddress}@${chainId}/transfer?address=${shopWallet}&uint256=${amount}`;
+  
+  console.log('🦊 MetaMask互換QRコード生成 (EIP-681形式):', {
+    uri: eip681Uri,
+    contractAddress,
+    chainId,
+    chainIdHex: '0x' + chainId.toString(16),
+    recipient: shopWallet,
+    amountWei: amount,
+    amountJPYC: (BigInt(amount) / BigInt(10 ** 18)).toString() + ' JPYC',
+    standard: 'EIP-681'
   });
   
-  console.warn('⚠️ MetaMask形式の制限: QRコードには金額・トークン情報が含まれません');
-  console.info('💡 決済用途には JPYC_PAYMENT 形式の使用を推奨します');
+  console.info('✅ EIP-681準拠: MetaMaskで金額・トークン・ネットワーク情報が自動入力されます');
   
-  // シンプルにウォレットアドレスのみを返す
-  // MetaMaskアプリでスキャンすると、このアドレスが送金先として入力される
-  return walletAddress;
+  return eip681Uri;
 };
 
 export const decodePaymentPayload = (encoded: string): PaymentPayload => {
