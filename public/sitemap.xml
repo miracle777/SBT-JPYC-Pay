@@ -6,7 +6,7 @@
   
   <!-- Home Page -->
   <url>
-    <loc>https://your-domain.com/</loc>
+    <loc>https://shop.jpyc-pay.app/</loc>
     <lastmod>2025-01-19</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
@@ -15,7 +15,7 @@
 
   <!-- SBT Management Page -->
   <url>
-    <loc>https://your-domain.com/sbt</loc>
+    <loc>https://shop.jpyc-pay.app/sbt</loc>
     <lastmod>2025-01-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -24,7 +24,7 @@
 
   <!-- Payment Page -->
   <url>
-    <loc>https://your-domain.com/payment</loc>
+    <loc>https://shop.jpyc-pay.app/payment</loc>
     <lastmod>2025-01-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -33,7 +33,7 @@
 
   <!-- User Guide -->
   <url>
-    <loc>https://your-domain.com/guide</loc>
+    <loc>https://shop.jpyc-pay.app/guide</loc>
     <lastmod>2025-01-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -42,7 +42,7 @@
 
   <!-- Privacy Policy -->
   <url>
-    <loc>https://your-domain.com/privacy</loc>
+    <loc>https://shop.jpyc-pay.app/privacy</loc>
     <lastmod>2025-01-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
@@ -50,7 +50,7 @@
 
   <!-- Terms of Service -->
   <url>
-    <loc>https://your-domain.com/terms</loc>
+    <loc>https://shop.jpyc-pay.app/terms</loc>
     <lastmod>2025-01-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>

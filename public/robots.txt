@@ -8,7 +8,7 @@ Disallow: /_next/
 Disallow: /admin/
 
 # Sitemap location
-Sitemap: https://your-domain.com/sitemap.xml
+Sitemap: https://shop.jpyc-pay.app/sitemap.xml
 
 # Crawl-delay (optional)
 Crawl-delay: 10
