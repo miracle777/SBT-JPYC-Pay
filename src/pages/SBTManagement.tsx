@@ -125,8 +125,8 @@ const SBTManagement: React.FC = () => {
   }>>({});
   
   // SBT発行先ネットワーク(Polygon Mainnet または Amoy Testnet)
-  // 本番環境ではPolygon Mainnet (137)をデフォルトに設定
-  const [selectedChainForSBT, setSelectedChainForSBT] = useState(137); // デフォルトはPolygon Mainnet(本番)
+  // デモ・検証用としてデフォルトはPolygon Amoy(テストネット)、本番も選択可能
+  const [selectedChainForSBT, setSelectedChainForSBT] = useState(80002); // デフォルトはPolygon Amoy(テストネット)
   
   // 選択されたネットワークの情報を取得
   const selectedNetworkInfo = getNetworkDisplayInfo(selectedChainForSBT);
