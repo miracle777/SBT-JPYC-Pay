@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle, Copy, Server, Shield, Image } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
+import { useAccount, useSwitchChain } from 'wagmi'; // RainbowKitのフックを追加
 import { sbtStorage } from '../utils/storage';
 import { mintSBT, getBlockExplorerUrl, getContractOwner, getShopInfo, registerShop, getNFTDisplayUrls } from '../utils/sbtMinting';
 import { NETWORKS, getNetworkByChainId } from '../config/networks';
@@ -75,12 +76,22 @@ const getNetworkDisplayInfo = (chainId: number | null) => {
 };
 
 const SBTManagement: React.FC = () => {
+  // RainbowKitのウォレット情報を優先的に使用
+  const { address: rainbowAddress, chainId: rainbowChainId, isConnected: rainbowConnected } = useAccount();
+  const { switchChain } = useSwitchChain();
+  
+  // 独自のWalletContextもフォールバックとして保持
   const { 
-    address: walletAddress, 
-    chainId: currentChainId,
-    isConnected,
+    address: contextAddress, 
+    chainId: contextChainId,
+    isConnected: contextConnected,
     isPWA
   } = useWallet();
+  
+  // RainbowKitの情報を優先、なければWalletContextを使用
+  const walletAddress = rainbowAddress || contextAddress;
+  const currentChainId = rainbowChainId || contextChainId;
+  const isConnected = rainbowConnected || contextConnected;
   
   // ネットワーク情報を取得
   const currentNetworkInfo = getNetworkDisplayInfo(currentChainId);
@@ -1578,9 +1589,19 @@ const SBTManagement: React.FC = () => {
         <WalletSelector
           title="ウォレット & ネットワーク選択"
           showChainSelector={true}
-          onNetworkChange={(chainId) => {
+          onNetworkChange={async (chainId) => {
             setSelectedChainForSBT(chainId);
             console.log(`🔄 SBT発行先ネットワークを変更: Chain ID ${chainId}`);
+            
+            // RainbowKitのswitchChainを使用してウォレットのネットワークも切り替え
+            if (switchChain && rainbowConnected) {
+              try {
+                await switchChain({ chainId });
+                console.log(`✅ RainbowKit経由でネットワーク切り替え完了: ${chainId}`);
+              } catch (error) {
+                console.error('❌ RainbowKit ネットワーク切り替えエラー:', error);
+              }
+            }
           }}
         />
 

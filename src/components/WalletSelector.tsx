@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronDown, Wallet, RefreshCw, Network, Monitor, TestTube, AlertTriangle } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
+import { useAccount, useSwitchChain, useDisconnect } from 'wagmi'; // RainbowKitのフックを追加
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import toast from 'react-hot-toast';
 
 interface WalletSelectorProps {
@@ -14,22 +16,34 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
   showChainSelector = true,
   onNetworkChange
 }) => {
+  // RainbowKitのウォレット情報を優先的に使用
+  const { address: rainbowAddress, chainId: rainbowChainId, isConnected: rainbowConnected } = useAccount();
+  const { switchChain } = useSwitchChain();
+  const { disconnect: rainbowDisconnect } = useDisconnect();
+  
+  // 独自のWalletContextもフォールバックとして保持
   const { 
-    address, 
-    chainId, 
-    isConnected, 
-    isConnecting, 
+    address: contextAddress, 
+    chainId: contextChainId, 
+    isConnected: contextConnected, 
+    isConnecting: contextConnecting, 
     hasMultipleAccounts, 
     supportedChains,
     lastConnectionStrategy,
     connect, 
-    disconnect, 
-    switchChain, 
+    disconnect: contextDisconnect, 
+    switchChain: contextSwitchChain, 
     switchAccount,
     openWalletModal
   } = useWallet();
 
-  const [isExpanded, setIsExpanded] = useState(false);
+  // RainbowKitの情報を優先、なければWalletContextを使用
+  const address = rainbowAddress || contextAddress;
+  const chainId = rainbowChainId || contextChainId;
+  const isConnected = rainbowConnected || contextConnected;
+  const isConnecting = contextConnecting; // 接続中状態はWalletContextから取得
+
+  const [isExpanded, setIsExpanded] = useState(true); // デフォルトで展開
   const [isSwitchingChain, setIsSwitchingChain] = useState(false);
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
 
@@ -40,7 +54,16 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
     
     setIsSwitchingChain(true);
     try {
-      await switchChain(targetChainId);
+      // RainbowKitのswitchChainを優先的に使用
+      if (switchChain && rainbowConnected) {
+        await switchChain({ chainId: targetChainId });
+        console.log(`✅ RainbowKit経由でネットワーク切り替え成功: ${targetChainId}`);
+      } else {
+        // フォールバック: 独自のswitchChainを使用
+        await contextSwitchChain(targetChainId);
+        console.log(`✅ WalletContext経由でネットワーク切り替え成功: ${targetChainId}`);
+      }
+      
       toast.success(`✅ ネットワークを ${supportedChains.find(c => c.chainId === targetChainId)?.name} に切り替えました`);
       if (onNetworkChange) {
         onNetworkChange(targetChainId);
@@ -147,18 +170,18 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
                   </div>
                 </div>
               </div>
-              <button
-                onClick={handleWalletConnect}
-                disabled={isConnecting}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center space-x-2"
-              >
-                {isConnecting ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Wallet className="w-4 h-4" />
+              {/* RainbowKitのConnectButtonを使用 */}
+              <ConnectButton.Custom>
+                {({ openConnectModal }) => (
+                  <button
+                    onClick={openConnectModal}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center space-x-2"
+                  >
+                    <Wallet className="w-4 h-4" />
+                    <span>ウォレットを選択</span>
+                  </button>
                 )}
-                <span>{isConnecting ? '接続中...' : 'ウォレットを選択'}</span>
-              </button>
+              </ConnectButton.Custom>
             </div>
           ) : (
             <div className="space-y-4">
@@ -204,7 +227,16 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
                     </button>
                   )}
                   <button
-                    onClick={disconnect}
+                    onClick={() => {
+                      // RainbowKitのdisconnectを優先的に使用
+                      if (rainbowConnected) {
+                        rainbowDisconnect();
+                        console.log('✅ RainbowKit経由でウォレット切断');
+                      } else {
+                        contextDisconnect();
+                        console.log('✅ WalletContext経由でウォレット切断');
+                      }
+                    }}
                     className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium py-2 px-3 rounded transition"
                   >
                     切断
