@@ -104,15 +104,24 @@ const QRPayment: React.FC = () => {
     const loadTemplates = async () => {
       try {
         const templates = await sbtStorage.getAllTemplates();
-        // アクティブなテンプレートを抽出（after_countとperiod_rangeパターン）
+        console.log('📦 IndexedDBから取得した全テンプレート:', templates);
+        
+        // アクティブなテンプレートを抽出（全パターン対応）
         const activeTemplates = templates
-          .filter((t: SBTTemplate) => 
-            t.status === 'active' && 
-            (t.issuePattern === 'after_count' || t.issuePattern === 'period_range')
-          )
+          .filter((t: SBTTemplate) => {
+            const isActive = t.status === 'active';
+            
+            if (!isActive) {
+              console.log(`❌ フィルター除外 (非アクティブ): ${t.name} (ID: ${t.id})`);
+            }
+            
+            return isActive;
+          })
           .sort((a: SBTTemplate, b: SBTTemplate) => a.maxStamps - b.maxStamps);
+        
         setSbtTemplates(activeTemplates);
-        console.log('📋 SBTテンプレート読み込み完了:', activeTemplates);
+        console.log('✅ QR決済ページで使用可能なテンプレート:', activeTemplates);
+        console.log(`📊 全 ${templates.length} 件中 ${activeTemplates.length} 件が表示対象`);
       } catch (error) {
         console.error('❌ SBTテンプレート取得エラー:', error);
         setSbtTemplates([]);
@@ -341,6 +350,28 @@ const QRPayment: React.FC = () => {
         console.log(`✅ 決済履歴を復元: ${sessions.length}件`);
       } catch (error) {
         console.error('決済履歴の復元に失敗:', error);
+      }
+    }
+    
+    // SBT発行ステータスを復元
+    const savedSBTStatus = localStorage.getItem('payment-sbt-status');
+    if (savedSBTStatus) {
+      try {
+        const data = JSON.parse(savedSBTStatus);
+        const statusMap = new Map<string, Map<string, { status: 'issuing' | 'completed' | 'error'; message: string; transactionHash?: string }>>();
+        
+        Object.entries(data).forEach(([sessionId, templates]: [string, any]) => {
+          const templateMap = new Map<string, { status: 'issuing' | 'completed' | 'error'; message: string; transactionHash?: string }>();
+          Object.entries(templates).forEach(([templateId, status]: [string, any]) => {
+            templateMap.set(templateId, status);
+          });
+          statusMap.set(sessionId, templateMap);
+        });
+        
+        setPaymentSBTStatus(statusMap);
+        console.log(`✅ SBT発行ステータスを復元: ${Object.keys(data).length}セッション`);
+      } catch (error) {
+        console.error('SBT発行ステータスの復元に失敗:', error);
       }
     }
   }, []);
@@ -1709,38 +1740,86 @@ const QRPayment: React.FC = () => {
                           </div>
                           
                           {/* SBT発行セクション */}
-                          {sbtTemplates.length > 0 && recommendation.matchedTemplates.length > 0 && (
-                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-3">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Award className="w-5 h-5 text-green-600" />
-                                <h4 className="font-bold text-green-900">SBT発行可能</h4>
+                          {sbtTemplates.length > 0 && (
+                            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg p-4">
+                              <div className="flex items-center gap-2 mb-3">
+                                <Award className="w-5 h-5 text-purple-600" />
+                                <h4 className="font-bold text-purple-900">SBT発行</h4>
                               </div>
-                              <p className="text-sm text-green-800 mb-3">
-                                {recommendation.message}
-                              </p>
                               
-                              {/* マッチしたテンプレート表示 */}
+                              {/* 達成状況の表示 */}
+                              {recommendation.shouldIssue ? (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-2 mb-3">
+                                  <p className="text-sm text-green-800 font-semibold">
+                                    🎊 {recommendation.message}
+                                  </p>
+                                  <p className="text-xs text-green-700 mt-1">
+                                    以下のテンプレートから選択して発行できます
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-3">
+                                  <p className="text-sm text-blue-800">
+                                    💡 現在 {paymentCount}回目 - {recommendation.message}
+                                  </p>
+                                  <p className="text-xs text-blue-700 mt-1">
+                                    達成前でも任意のテンプレートで発行可能です
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {/* 全テンプレート選択UI */}
                               <div className="space-y-2">
-                                {recommendation.matchedTemplates.map(template => {
+                                <p className="text-xs font-semibold text-gray-700 mb-2">
+                                  📋 利用可能なテンプレート ({sbtTemplates.length}件)
+                                </p>
+                                {sbtTemplates.map(template => {
+                                  const isRecommended = recommendation.matchedTemplates.some(t => t.id === template.id);
                                   const sbtStatus = paymentSBTStatus.get(session.id)?.get(template.id);
+                                  const validationResult = isTemplateValid(template);
                                   
                                   return (
-                                    <div key={template.id} className="bg-white border border-green-300 rounded-lg p-3">
+                                    <div 
+                                      key={template.id} 
+                                      className={`bg-white border-2 rounded-lg p-3 ${
+                                        isRecommended 
+                                          ? 'border-green-400 bg-green-50' 
+                                          : 'border-gray-200 hover:border-purple-300'
+                                      } transition`}
+                                    >
                                       <div className="flex items-start justify-between mb-2">
                                         <div className="flex-1">
-                                          <h5 className="font-bold text-gray-900">{template.name}</h5>
+                                          <div className="flex items-center gap-2">
+                                            <h5 className="font-bold text-gray-900">{template.name}</h5>
+                                            {isRecommended && (
+                                              <span className="text-xs font-bold text-green-700 bg-green-200 px-2 py-0.5 rounded-full">
+                                                おすすめ
+                                              </span>
+                                            )}
+                                          </div>
                                           <p className="text-xs text-gray-600 mt-1">{template.description}</p>
-                                          {template.issuePattern === 'period_range' && template.periodEndDate && (
-                                            <p className="text-xs text-orange-600 mt-1">
-                                              ⏰ 期間限定: {template.periodEndDate}まで
-                                            </p>
-                                          )}
+                                          <div className="flex items-center gap-2 mt-1 text-xs">
+                                            <span className="text-gray-700">
+                                              🎯 達成条件: {template.maxStamps}回
+                                            </span>
+                                            {template.issuePattern === 'period_range' && template.periodEndDate && (
+                                              validationResult.valid ? (
+                                                <span className="text-orange-600">
+                                                  ⏰ {template.periodEndDate}まで
+                                                </span>
+                                              ) : (
+                                                <span className="text-red-600">
+                                                  {validationResult.message}
+                                                </span>
+                                              )
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
                                       
                                       {/* SBT発行ステータス表示 */}
                                       {sbtStatus ? (
-                                        <div className="mt-2">
+                                        <div className="mt-2 space-y-2">
                                           {sbtStatus.status === 'issuing' && (
                                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
                                               <p className="text-sm text-blue-800 font-semibold">🔄 発行処理中...</p>
@@ -1769,23 +1848,99 @@ const QRPayment: React.FC = () => {
                                               <p className="text-xs text-red-600 mt-1">{sbtStatus.message}</p>
                                             </div>
                                           )}
+                                          
+                                          {/* ステータスリセットボタン */}
+                                          <button
+                                            onClick={() => {
+                                              const newStatus = new Map(paymentSBTStatus);
+                                              const sessionMap = newStatus.get(session.id) || new Map();
+                                              sessionMap.delete(template.id);
+                                              if (sessionMap.size === 0) {
+                                                newStatus.delete(session.id);
+                                              } else {
+                                                newStatus.set(session.id, sessionMap);
+                                              }
+                                              setPaymentSBTStatus(newStatus);
+                                              
+                                              // localStorageからも削除
+                                              try {
+                                                const saved = localStorage.getItem('payment-sbt-status');
+                                                if (saved) {
+                                                  const data = JSON.parse(saved);
+                                                  if (data[session.id]) {
+                                                    delete data[session.id][template.id];
+                                                    if (Object.keys(data[session.id]).length === 0) {
+                                                      delete data[session.id];
+                                                    }
+                                                    localStorage.setItem('payment-sbt-status', JSON.stringify(data));
+                                                  }
+                                                }
+                                              } catch (e) {
+                                                console.error('ステータス削除エラー:', e);
+                                              }
+                                              
+                                              toast.success('ステータスをリセットしました');
+                                            }}
+                                            className="w-full text-xs text-gray-600 hover:text-gray-800 underline"
+                                          >
+                                            ステータスをリセット
+                                          </button>
                                         </div>
                                       ) : (
-                                        <button
-                                          onClick={() => {
-                                            // SBT管理ページへ遷移
-                                            const params = new URLSearchParams({
-                                              template: template.id,
-                                              recipient: session.payerAddress!,
-                                              sessionId: session.id
-                                            });
-                                            window.location.href = `/sbt-management?${params.toString()}`;
-                                          }}
-                                          className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition flex items-center justify-center gap-2"
-                                        >
-                                          <Award className="w-4 h-4" />
-                                          このテンプレートでSBT発行
-                                        </button>
+                                        <div className="mt-2 space-y-2">
+                                          {/* SBT管理ページで発行 */}
+                                          <button
+                                            onClick={() => {
+                                              const params = new URLSearchParams({
+                                                template: template.id,
+                                                recipient: session.payerAddress!,
+                                                sessionId: session.id
+                                              });
+                                              window.location.href = `/sbt-management?${params.toString()}`;
+                                            }}
+                                            className="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition flex items-center justify-center gap-2"
+                                          >
+                                            <Award className="w-4 h-4" />
+                                            SBT管理ページで発行
+                                          </button>
+                                          
+                                          {/* 手動で発行完了を記録 */}
+                                          <button
+                                            onClick={() => {
+                                              const txHash = prompt('SBT発行トランザクションハッシュを入力してください（省略可）:');
+                                              
+                                              const newStatus = new Map(paymentSBTStatus);
+                                              const sessionMap = newStatus.get(session.id) || new Map();
+                                              sessionMap.set(template.id, {
+                                                status: 'completed',
+                                                message: `手動記録: ${new Date().toLocaleString('ja-JP')}`,
+                                                transactionHash: txHash || undefined
+                                              });
+                                              newStatus.set(session.id, sessionMap);
+                                              setPaymentSBTStatus(newStatus);
+                                              
+                                              // localStorageに保存
+                                              try {
+                                                const saved = localStorage.getItem('payment-sbt-status') || '{}';
+                                                const data = JSON.parse(saved);
+                                                if (!data[session.id]) data[session.id] = {};
+                                                data[session.id][template.id] = {
+                                                  status: 'completed',
+                                                  message: `手動記録: ${new Date().toLocaleString('ja-JP')}`,
+                                                  transactionHash: txHash || undefined
+                                                };
+                                                localStorage.setItem('payment-sbt-status', JSON.stringify(data));
+                                              } catch (e) {
+                                                console.error('ステータス保存エラー:', e);
+                                              }
+                                              
+                                              toast.success(`${template.name}の発行完了を記録しました`);
+                                            }}
+                                            className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition flex items-center justify-center gap-2"
+                                          >
+                                            ✅ 手動で発行完了を記録
+                                          </button>
+                                        </div>
                                       )}
                                     </div>
                                   );
