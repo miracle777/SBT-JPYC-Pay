@@ -22,6 +22,7 @@ import Dashboard from './pages/Dashboard';
 import QRPayment from './pages/QRPayment';
 import SBTManagement from './pages/SBTManagement';
 import Settings from './pages/Settings';
+import SetupGuide from './pages/SetupGuide';
 import NotFound from './pages/NotFound';
 
 // PWA Service Worker Registration with Update Notification
@@ -229,6 +230,10 @@ const router = createBrowserRouter([
       {
         path: "settings",
         element: <Settings />,
+      },
+      {
+        path: "setup-guide",
+        element: <SetupGuide />,
       },
       {
         path: "*",

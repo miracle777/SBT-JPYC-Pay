@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle, Copy, Server, Shield, Image } from 'lucide-react';
+import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle, Copy, Server, Shield, Image, Rocket } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
 import { useAccount, useSwitchChain } from 'wagmi'; // RainbowKitのフックを追加
@@ -1634,6 +1634,14 @@ const SBTManagement: React.FC = () => {
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">SBT管理</h1>
             </div>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <button
+                onClick={() => navigate('/setup-guide')}
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-orange-100 to-red-100 hover:from-orange-200 hover:to-red-200 text-orange-700 rounded-lg transition text-xs sm:text-sm font-semibold shadow-sm"
+                title="初回セットアップガイド"
+              >
+                <Rocket className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">セットアップガイド</span><span className="sm:hidden">セットアップ</span>
+              </button>
               <button
                 onClick={() => setShowExportModal(true)}
                 className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg transition text-xs sm:text-sm"

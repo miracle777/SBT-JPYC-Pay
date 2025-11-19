@@ -6,13 +6,17 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy": "hardhat run scripts/deploy.js",
+    "deploy:testnet": "hardhat run scripts/deploy-testnet.js --network polygonAmoy",
+    "deploy:mainnet": "hardhat run deploy-mainnet.js --network polygon",
     "deploy:polygon": "hardhat run scripts/deploy.js --network polygon",
     "deploy:polygon-mainnet": "hardhat run deploy-mainnet.js --network polygon",
     "deploy:avalanche": "hardhat run scripts/deploy.js --network avalanche",
-    "deploy:amoy": "hardhat run scripts/deploy.js --network polygonAmoy",
+    "deploy:amoy": "hardhat run scripts/deploy-testnet.js --network polygonAmoy",
     "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
     "deploy:localhost": "hardhat run scripts/deploy.js --network localhost",
     "verify": "hardhat verify",
+    "verify:polygon": "hardhat verify --network polygon",
+    "verify:amoy": "hardhat verify --network polygonAmoy",
     "node": "hardhat node"
   },
   "devDependencies": {
