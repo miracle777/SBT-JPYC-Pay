@@ -125,7 +125,8 @@ const SBTManagement: React.FC = () => {
   }>>({});
   
   // SBT発行先ネットワーク(Polygon Mainnet または Amoy Testnet)
-  const [selectedChainForSBT, setSelectedChainForSBT] = useState(80002); // デフォルトはPolygon Amoy(テストネット)
+  // 本番環境ではPolygon Mainnet (137)をデフォルトに設定
+  const [selectedChainForSBT, setSelectedChainForSBT] = useState(137); // デフォルトはPolygon Mainnet(本番)
   
   // 選択されたネットワークの情報を取得
   const selectedNetworkInfo = getNetworkDisplayInfo(selectedChainForSBT);
@@ -365,7 +366,9 @@ const SBTManagement: React.FC = () => {
         // ウォレットが接続されていない場合は権限を無効化
         console.log('⚠️ ウォレット未接続または選択チェーン未設定 - 権限無効化');
         if (isMounted) {
+          setContractOwner(null);
           setIsContractOwner(false);
+          setShopInfo(null);
           setIsShopOwner(false);
         }
         return;
@@ -381,7 +384,9 @@ const SBTManagement: React.FC = () => {
           return; // アンマウントされていたら中断
         }
         
-        if (ownerResult.owner) {
+        console.log(`📋 getContractOwner結果:`, ownerResult);
+        
+        if (ownerResult && ownerResult.owner && ownerResult.owner !== '') {
           setContractOwner(ownerResult.owner);
           console.log(`📋 コントラクトオーナー: ${ownerResult.owner}`);
           console.log(`📋 現在のウォレット: ${walletAddress}`);
@@ -400,47 +405,49 @@ const SBTManagement: React.FC = () => {
           } else {
             console.log('❌ 現在のウォレットはコントラクトオーナーではありません');
           }
-
-          // ショップ情報を取得
-          const shopResult = await getShopInfo(1, selectedChainForSBT);
-          
-          if (!isMounted) {
-            console.log('⚠️ コンポーネントがアンマウントされました - ショップ情報処理中断');
-            return; // アンマウントされていたら中断
-          }
-          
-          if (shopResult.owner) {
-            setShopInfo(shopResult);
-            console.log(`📋 ショップオーナー (ID:1): ${shopResult.owner}`);
-            
-            // アドレス比較を厳密に行う（小文字化して比較）
-            const isShopOwner = shopResult.owner.toLowerCase() === walletAddress.toLowerCase();
-            console.log(`📋 ショップ比較結果: ${isShopOwner ? '✅ 一致' : '❌ 不一致'}`);
-            
-            // 状態を更新
-            setIsShopOwner(isShopOwner);
-            console.log(`🔄 setIsShopOwner(${isShopOwner}) を呼び出しました`);
-            
-            if (isShopOwner) {
-              console.log('✅ 現在のウォレットはショップオーナー (ID:1) です');
-            } else {
-              console.log('❌ 現在のウォレットはショップオーナー (ID:1) ではありません');
-            }
-          } else {
-            setShopInfo(null);
-            setIsShopOwner(false);
-            if (shopResult.error) {
-              console.warn(`⚠️ ショップ情報取得エラー: ${shopResult.error}`);
-            }
-          }
-        } else if (ownerResult.error) {
-          console.warn(`⚠️ コントラクトオーナー取得エラー: ${ownerResult.error}`);
+        } else {
+          console.warn(`⚠️ コントラクトオーナー取得失敗:`, ownerResult);
+          setContractOwner(null);
           setIsContractOwner(false);
+        }
+
+        // ショップ情報を取得
+        const shopResult = await getShopInfo(1, selectedChainForSBT);
+        
+        if (!isMounted) {
+          console.log('⚠️ コンポーネントがアンマウントされました - ショップ情報処理中断');
+          return; // アンマウントされていたら中断
+        }
+        
+        console.log(`📋 getShopInfo結果:`, shopResult);
+        
+        if (shopResult && shopResult.owner && shopResult.owner !== '' && shopResult.owner !== '0x0000000000000000000000000000000000000000') {
+          setShopInfo(shopResult);
+          console.log(`📋 ショップオーナー (ID:1): ${shopResult.owner}`);
+          
+          // アドレス比較を厳密に行う（小文字化して比較）
+          const isShopOwner = shopResult.owner.toLowerCase() === walletAddress.toLowerCase();
+          console.log(`📋 ショップ比較結果: ${isShopOwner ? '✅ 一致' : '❌ 不一致'}`);
+          
+          // 状態を更新
+          setIsShopOwner(isShopOwner);
+          console.log(`🔄 setIsShopOwner(${isShopOwner}) を呼び出しました`);
+          
+          if (isShopOwner) {
+            console.log('✅ 現在のウォレットはショップオーナー (ID:1) です');
+          } else {
+            console.log('❌ 現在のウォレットはショップオーナー (ID:1) ではありません');
+          }
+        } else {
+          console.warn(`⚠️ ショップ情報取得失敗または未登録:`, shopResult);
+          setShopInfo(null);
           setIsShopOwner(false);
         }
       } catch (error) {
         console.error('❌ コントラクト所有者確認エラー:', error);
+        setContractOwner(null);
         setIsContractOwner(false);
+        setShopInfo(null);
         setIsShopOwner(false);
       }
       
@@ -2107,6 +2114,30 @@ const SBTManagement: React.FC = () => {
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">SBT発行</h2>
+          </div>
+
+          {/* 📡 ネットワーク情報表示 */}
+          <div className="mb-6 bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Server className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-bold text-blue-900 mb-2">📡 接続情報</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="bg-white rounded p-2">
+                    <p className="text-gray-600 text-xs">選択中のネットワーク</p>
+                    <p className="font-mono font-bold text-blue-900">{selectedNetworkInfo.displayName}</p>
+                    <p className="text-gray-500 text-xs mt-1">Chain ID: {selectedChainForSBT}</p>
+                  </div>
+                  <div className="bg-white rounded p-2">
+                    <p className="text-gray-600 text-xs">SBTコントラクトアドレス</p>
+                    <p className="font-mono text-xs text-blue-900 break-all">{selectedNetworkInfo.contractAddress}</p>
+                    {selectedNetworkInfo.contractAddress === '未デプロイ' && (
+                      <p className="text-red-600 text-xs mt-1">⚠️ このネットワークではまだデプロイされていません</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* ⚠️ コントラクト認可警告 */}
