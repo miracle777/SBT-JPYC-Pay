@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Home Page -->
+  <url>
+    <loc>https://your-domain.com/</loc>
+    <lastmod>2025-01-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <mobile:mobile/>
+  </url>
+
+  <!-- SBT Management Page -->
+  <url>
+    <loc>https://your-domain.com/sbt</loc>
+    <lastmod>2025-01-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <mobile:mobile/>
+  </url>
+
+  <!-- Payment Page -->
+  <url>
+    <loc>https://your-domain.com/payment</loc>
+    <lastmod>2025-01-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <mobile:mobile/>
+  </url>
+
+  <!-- User Guide -->
+  <url>
+    <loc>https://your-domain.com/guide</loc>
+    <lastmod>2025-01-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <mobile:mobile/>
+  </url>
+
+  <!-- Privacy Policy -->
+  <url>
+    <loc>https://your-domain.com/privacy</loc>
+    <lastmod>2025-01-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <!-- Terms of Service -->
+  <url>
+    <loc>https://your-domain.com/terms</loc>
+    <lastmod>2025-01-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+</urlset>

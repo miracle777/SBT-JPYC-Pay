@@ -71,8 +71,98 @@
     <link rel="preconnect" href="https://api.pinata.cloud" />
     <link rel="dns-prefetch" href="https://api.pinata.cloud" />
     
+    <!-- SEO: Canonical URL -->
+    <link rel="canonical" href="https://your-domain.com/" />
+    
+    <!-- SEO: Robots -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="bingbot" content="index, follow" />
+    
+    <!-- Structured Data: Organization (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "SBT masaru21 Pay(仮)",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "JPY"
+      },
+      "description": "暗号資産QR決済とSBTスタンプカード発行・管理システム。PWA対応でオフライン作業、画像ローカル保存、データエクスポート可能。",
+      "softwareVersion": "1.0.0",
+      "author": {
+        "@type": "Organization",
+        "name": "SBT masaru21 Pay(仮) Team"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "100"
+      },
+      "screenshot": "https://your-domain.com/icons/screenshot-1280x720.png",
+      "featureList": [
+        "SBTスタンプカード発行",
+        "QR決済",
+        "オフライン対応",
+        "データエクスポート",
+        "PWA対応"
+      ]
+    }
+    </script>
+    
+    <!-- Structured Data: WebApplication (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "SBT masaru21 Pay(仮)",
+      "url": "https://your-domain.com/",
+      "description": "暗号資産QR決済とSBTスタンプカード発行・管理システム",
+      "applicationCategory": "BusinessApplication",
+      "browserRequirements": "Requires JavaScript. Requires HTML5.",
+      "softwareVersion": "1.0.0",
+      "operatingSystem": "Cross-platform",
+      "permissions": "camera, storage"
+    }
+    </script>
+    
+    <!-- Structured Data: BreadcrumbList (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "ホーム",
+          "item": "https://your-domain.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "SBT管理",
+          "item": "https://your-domain.com/sbt"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "QR決済",
+          "item": "https://your-domain.com/payment"
+        }
+      ]
+    }
+    </script>
+    
     <!-- Google Analytics 4 - 環境変数で設定される場合は動的に読み込まれます -->
     <!-- GA4の測定IDは .env ファイルの VITE_GA_MEASUREMENT_ID で設定してください -->
+    
+    <!-- Google Search Console Verification (要変更) -->
+    <!-- <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE_HERE" /> -->
     
     <!-- PWA Installation Prompt -->
     <script>

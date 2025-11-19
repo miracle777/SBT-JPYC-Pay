@@ -1,0 +1,37 @@
+# robots.txt for SBT masaru21 Pay(仮)
+# Google Search Console対応
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+
+# Sitemap location
+Sitemap: https://your-domain.com/sitemap.xml
+
+# Crawl-delay (optional)
+Crawl-delay: 10
+
+# Google-specific rules
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /icons/
+Allow: /images/
+Allow: /sbt-images/
+
+# Bing-specific rules
+User-agent: Bingbot
+Allow: /
+
+# Block bad bots (optional)
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
