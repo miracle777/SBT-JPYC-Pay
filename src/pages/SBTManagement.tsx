@@ -2262,9 +2262,73 @@ const SBTManagement: React.FC = () => {
                   </ul>
                   <div className="bg-white rounded p-3 text-xs font-mono space-y-1 mb-3">
                     <p><span className="text-gray-600">コントラクトオーナー:</span> <span className="text-gray-900">{contractOwner?.slice(0, 12)}...{contractOwner?.slice(-8)}</span></p>
-                    <p><span className="text-gray-600">ショップオーナー (ID:1):</span> <span className="text-gray-900">{shopInfo?.owner?.slice(0, 12)}...{shopInfo?.owner?.slice(-8)}</span></p>
+                    <p><span className="text-gray-600">ショップオーナー (ID:1):</span> <span className="text-gray-900">{shopInfo?.owner ? `${shopInfo.owner.slice(0, 12)}...${shopInfo.owner.slice(-8)}` : '未登録'}</span></p>
                     <p><span className="text-gray-600">現在のウォレット:</span> <span className="text-gray-900">{walletAddress?.slice(0, 12)}...{walletAddress?.slice(-8)}</span></p>
                   </div>
+
+                  {/* ショップ登録案内 */}
+                  {!shopInfo?.owner && (
+                    <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
+                      <h4 className="font-semibold text-blue-900 text-sm mb-2">🏪 ショップオーナーとして登録する</h4>
+                      <p className="text-xs text-blue-800 mb-2">
+                        設定画面で登録したショップオーナーアドレスをブロックチェーンに記録します。
+                      </p>
+                      <button
+                        onClick={async () => {
+                          // 設定画面のショップ情報を取得
+                          const savedShopInfo = localStorage.getItem('shop-info');
+                          if (!savedShopInfo) {
+                            toast.error('まず設定画面で店舗情報を登録してください');
+                            return;
+                          }
+
+                          const shopData = JSON.parse(savedShopInfo);
+                          if (!shopData.ownerAddress) {
+                            toast.error('設定画面でショップオーナーアドレスを設定してください');
+                            return;
+                          }
+
+                          if (!shopData.name) {
+                            toast.error('設定画面で店舗名を設定してください');
+                            return;
+                          }
+
+                          setIsRegisteringShop(true);
+                          try {
+                            const result = await registerShop({
+                              shopId: 1,
+                              shopName: shopData.name,
+                              description: shopData.description || `${shopData.name}のスタンプカード`,
+                              shopOwnerAddress: shopData.ownerAddress,
+                              requiredVisits: 10,
+                              chainId: selectedChainForSBT,
+                            });
+
+                            if (result.success) {
+                              toast.success(`🎉 ショップオーナー登録完了！\nオーナー: ${shopData.ownerAddress.slice(0, 10)}...\nこのアドレスでSBTを発行できます。`, {
+                                duration: 8000
+                              });
+                              // ページをリロードして権限を再確認
+                              setTimeout(() => window.location.reload(), 2000);
+                            } else {
+                              toast.error(result.error || 'ショップ登録に失敗しました');
+                            }
+                          } catch (error: any) {
+                            toast.error(`登録エラー: ${error.message}`);
+                          } finally {
+                            setIsRegisteringShop(false);
+                          }
+                        }}
+                        disabled={isRegisteringShop}
+                        className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded font-semibold text-sm transition"
+                      >
+                        {isRegisteringShop ? '登録中...' : '🏪 ショップオーナーとして登録する'}
+                      </button>
+                      <p className="text-xs text-blue-700 mt-2">
+                        💡 MetaMaskで署名が必要です（ガス代: 約0.01 POL）
+                      </p>
+                    </div>
+                  )}
                   
                   {/* デバッグ用: 権限状態を表示 */}
                   <div className="bg-yellow-50 rounded p-2 text-xs mb-3 font-mono">
