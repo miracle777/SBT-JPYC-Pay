@@ -27,10 +27,12 @@ export const BICONOMY_CONFIG = {
 export const getBiconomyConfig = (chainId: number) => {
   const bundlerUrl = import.meta.env[`VITE_BICONOMY_BUNDLER_URL_${chainId}`];
   const paymasterKey = import.meta.env[`VITE_BICONOMY_PAYMASTER_KEY_${chainId}`];
+  const paymasterUrl = paymasterKey ? `https://paymaster.biconomy.io/api/v1/${chainId}/${paymasterKey}` : null;
   
   return {
     bundlerUrl: bundlerUrl || null,
     paymasterKey: paymasterKey || null,
+    paymasterUrl: paymasterUrl || null,
   };
 };
 

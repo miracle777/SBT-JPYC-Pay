@@ -10,8 +10,12 @@ import { metaMaskWallet, rainbowWallet, walletConnectWallet, coinbaseWallet, tru
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { mainnet, polygon, sepolia } from 'wagmi/chains';
+import { initializeAnalytics, setupPWATracking, trackSWUpdate, trackError } from './utils/analytics';
 
 // Wagmi / RainbowKit - Using getDefaultConfig for better compatibility
+
+// Google Analytics 初期化
+initializeAnalytics();
 
 // ページコンポーネントのimport
 import Dashboard from './pages/Dashboard';
@@ -32,12 +36,18 @@ if ('serviceWorker' in navigator) {
       
       console.log('✅ PWA: Service Worker registered', registration);
       
+      // PWAトラッキングのセットアップ
+      setupPWATracking();
+      
       // Update checking with user notification
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // Service Worker更新をトラッキング
+              trackSWUpdate();
+              
               // 新バージョン利用可能通知
               toast((t) => (
                 <div className="flex flex-col gap-2">
@@ -85,6 +95,9 @@ if ('serviceWorker' in navigator) {
     } catch (error) {
       console.error('❌ PWA: Service Worker registration failed:', error);
       
+      // エラーをトラッキング
+      trackError(String(error), 'service_worker_registration');
+      
       // SW registration failure notification
       setTimeout(() => {
         toast.error('PWA機能の登録に失敗しました\n一部機能が制限される可能性があります', {
@@ -111,6 +124,7 @@ if ('serviceWorker' in navigator) {
   // SW error monitoring
   navigator.serviceWorker.addEventListener('error', (error) => {
     console.error('❌ PWA: Service Worker error:', error);
+    trackError(String(error), 'service_worker_error');
     
     setTimeout(() => {
       toast.error('PWAサービスでエラーが発生しました\nページを再読み込みしてください', {

@@ -24,7 +24,7 @@ export async function sendGaslessTransaction(
     }
 
     // 店舗側のウォレットを作成（ガス代支払い用）
-    const provider = new ethers.providers.JsonRpcProvider(getRpcUrl(chainId));
+    const provider = new ethers.JsonRpcProvider(getRpcUrl(chainId));
     const shopWallet = new ethers.Wallet(shopPrivateKey, provider);
 
     // Biconomy Smart Accountを初期化
@@ -36,7 +36,7 @@ export async function sendGaslessTransaction(
     });
 
     // JPYCトークン送金のトランザクションデータを作成
-    const jpycInterface = new ethers.utils.Interface([
+    const jpycInterface = new ethers.Interface([
       'function transfer(address to, uint256 amount) returns (bool)',
     ]);
 
