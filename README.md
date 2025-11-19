@@ -352,13 +352,16 @@ Avalanche テストネットでテストを行う際は、テストネットAVAX
   3. Fujiテストネットでトークンを受け取り
   4. MetaMaskでブリッジして本番AVAXをテスト用に変換可能
 
-### ガスレス決済について
+### ⚠️ ガス代について
 
-このアプリは **ガスレス決済モデル** を採用しています：
+現在、このアプリでは **通常のガス代支払い方式** を使用しています：
 
-- **お店が負担**: ガス代（POL）
-- **ユーザーが負担**: 商品代金（JPYC）
-- **メリット**: ユーザーはガス代を気にせずSBT受け取り可能
+- **SBT発行時**: お店側がガス代（POL）を負担
+- **JPYC決済時**: ユーザー側がガス代を負担
+
+#### ガス代の自動負担（ガスレス決済）について
+
+店舗側がガス代を自動負担する機能の実装を検討する場合は、[GASLESS_PAYMENT_GUIDE.md](./GASLESS_PAYMENT_GUIDE.md) をご参照ください。
 
 ### 💰 ガス代表示機能
 
@@ -374,7 +377,6 @@ Avalanche テストネットでテストを行う際は、テストネットAVAX
 
 - SBTミント時のガス代を自動計算
 - NFT発行は通常のトランザクションより多くガスを消費
-- お店がガスレス決済を通じて負担
 
 #### ガス代計算の仕組み
 
@@ -445,7 +447,7 @@ Avalanche テストネットでテストを行う際は、テストネットAVAX
 ## 🔗 関連リポジトリ
 
 - [jpycwallet-x402](https://github.com/miracle777/jpycwallet-x402) - QRコード規格参考
-- [jpycwallet.dev](https://github.com/miracle777/jpycwallet.dev) - ガスレス決済参考
+- [jpycwallet.dev](https://github.com/miracle777/jpycwallet.dev) - 関連実装参考
 - [jpyc-payment-scanner](https://github.com/miracle777/jpyc-payment-scanner) - ユーザー側アプリ
 
 ## 📁 プロジェクト構造

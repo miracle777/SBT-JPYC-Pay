@@ -1620,9 +1620,6 @@ const SBTManagement: React.FC = () => {
                           {estimatedSBTGasPOL} POL
                           {sbtGasPrice && <span className="ml-2 text-gray-600">（{sbtGasPrice} Gwei）</span>}
                         </p>
-                        {isLowCostNetwork(currentChainId || 137) && (
-                          <p className="text-green-700 mt-1">💡 ガスレス決済：お店がガス代を負担します</p>
-                        )}
                       </div>
                     </div>
                   </div>

@@ -71,22 +71,10 @@ VITE_PINATA_GATEWAY=your_custom_gateway_url
 
 **注意**: 未設定の場合、SBTメタデータのIPFSアップロード機能が無効化されます。
 
-#### 4. Biconomy (ガスレス決済) - オプション
+#### 4. Biconomy (Account Abstraction) - オプション
 
-```
-VITE_BICONOMY_BUNDLER_URL_137=https://bundler.biconomy.io/api/v2/137/YOUR_KEY
-VITE_BICONOMY_PAYMASTER_KEY_137=YOUR_PAYMASTER_KEY
-
-VITE_BICONOMY_BUNDLER_URL_80002=https://bundler.biconomy.io/api/v2/80002/YOUR_KEY
-VITE_BICONOMY_PAYMASTER_KEY_80002=YOUR_PAYMASTER_KEY
-```
-
-**取得方法**:
-- [Biconomy Dashboard](https://dashboard.biconomy.io/)でプロジェクト作成
-- Paymaster APIキーを取得
-- 詳細は`GASLESS_PAYMENT_GUIDE.md`を参照
-
-**注意**: 未設定の場合、通常のウォレット決済が使用されます。
+**注意**: 現在、このアプリではガス代の自動負担機能は実装されていません。
+実装を検討する場合は [GASLESS_PAYMENT_GUIDE.md](./GASLESS_PAYMENT_GUIDE.md) をご参照ください。
 
 ### 環境変数の設定方法（Vercel）
 
@@ -210,7 +198,6 @@ vercel dev コマンド使用時
 - ⚠️ Google Analytics: 無効（トラッキングされない）
 - ⚠️ WalletConnect: 無効（MetaMaskは使用可能）
 - ⚠️ IPFSアップロード: 無効（ローカル保存のみ）
-- ⚠️ ガスレス決済: 無効（通常の決済のみ）
 
 ## 🔐 セキュリティのベストプラクティス
 
