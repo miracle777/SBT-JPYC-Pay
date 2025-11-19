@@ -10,6 +10,27 @@ import QRCodeDisplay from '../components/QRCodeDisplay';
 import QRCodeWindow from '../components/QRCodeWindow';
 import WalletSelector from '../components/WalletSelector';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
+import { sbtStorage } from '../utils/storage';
+
+// SBTテンプレート型定義
+interface SBTTemplate {
+  id: string;
+  shopId: number;
+  name: string;
+  description: string;
+  issuePattern: 'per_payment' | 'after_count' | 'time_period' | 'period_range';
+  maxStamps: number;
+  rewardDescription: string;
+  imageUrl: string;
+  status: 'active' | 'inactive';
+}
+
+interface SBTRecommendation {
+  shouldIssue: boolean;
+  milestone: number | null;
+  message: string;
+  matchedTemplates: SBTTemplate[];
+}
 
 interface PaymentSession {
   id: string;
@@ -50,6 +71,7 @@ const QRPayment: React.FC = () => {
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [lastBalanceCheck, setLastBalanceCheck] = useState<string>('');
   const [shopInfo, setShopInfo] = useState({ name: DEFAULT_SHOP_INFO.name, id: DEFAULT_SHOP_INFO.id });
+  const [sbtTemplates, setSbtTemplates] = useState<SBTTemplate[]>([]);
 
   // 店舗情報をローカルストレージから読み込む
   useEffect(() => {
@@ -66,6 +88,25 @@ const QRPayment: React.FC = () => {
     } catch (error) {
       console.warn('店舗情報読み込みエラー:', error);
     }
+  }, []);
+
+  // SBTテンプレート一覧を取得
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        const templates = await sbtStorage.getAllTemplates();
+        // アクティブなafter_countパターンのみ抽出してmaxStampsでソート
+        const activeTemplates = templates
+          .filter((t: SBTTemplate) => t.status === 'active' && t.issuePattern === 'after_count')
+          .sort((a: SBTTemplate, b: SBTTemplate) => a.maxStamps - b.maxStamps);
+        setSbtTemplates(activeTemplates);
+        console.log('📋 SBTテンプレート読み込み完了:', activeTemplates);
+      } catch (error) {
+        console.error('❌ SBTテンプレート取得エラー:', error);
+        setSbtTemplates([]);
+      }
+    };
+    loadTemplates();
   }, []);
 
   // JPYC残高を取得する関数
@@ -568,33 +609,46 @@ const QRPayment: React.FC = () => {
     return <span className={`px-3 py-1 rounded-full text-sm font-medium ${s.bg} ${s.text}`}>{s.label}</span>;
   };
 
-  // SBT発行推奨を判定する関数
-  const getSBTRecommendation = (paymentCount: number) => {
-    const milestones = [10, 20, 30, 50, 100]; // スタンプカードのマイルストーン
-    const nextMilestone = milestones.find(m => m === paymentCount);
+  // SBT発行推奨を判定する関数（動的テンプレート対応）
+  const getSBTRecommendation = (paymentCount: number): SBTRecommendation => {
+    if (sbtTemplates.length === 0) {
+      return {
+        shouldIssue: false,
+        milestone: null,
+        message: 'テンプレート未設定',
+        matchedTemplates: []
+      };
+    }
+
+    // 現在の支払回数で達成可能なテンプレートを検索
+    const matchedTemplates = sbtTemplates.filter(t => t.maxStamps === paymentCount);
     
-    if (nextMilestone) {
+    if (matchedTemplates.length > 0) {
       return {
         shouldIssue: true,
-        milestone: nextMilestone,
-        message: `🎊 ${nextMilestone}回目達成！SBT発行推奨`
+        milestone: paymentCount,
+        message: `🎊 ${paymentCount}回目達成！SBT発行可能`,
+        matchedTemplates
       };
     }
     
-    const upcoming = milestones.find(m => m > paymentCount);
+    // 次のマイルストーンを検索
+    const upcoming = sbtTemplates.find(t => t.maxStamps > paymentCount);
     if (upcoming) {
-      const remaining = upcoming - paymentCount;
+      const remaining = upcoming.maxStamps - paymentCount;
       return {
         shouldIssue: false,
-        milestone: upcoming,
-        message: `次回SBT: ${remaining}回後（${upcoming}回目）`
+        milestone: upcoming.maxStamps,
+        message: `次回SBT: ${remaining}回後（${upcoming.maxStamps}回目）`,
+        matchedTemplates: []
       };
     }
     
     return {
       shouldIssue: false,
       milestone: null,
-      message: '🏆 全マイルストーン達成済み'
+      message: '🏆 全マイルストーン達成済み',
+      matchedTemplates: []
     };
   };
 
@@ -1270,7 +1324,7 @@ const QRPayment: React.FC = () => {
                           return (
                             <div key={address} className={`p-3 rounded-lg border-2 ${
                               recommendation.shouldIssue 
-                                ? 'bg-green-50 border-green-200' 
+                                ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-300 shadow-md' 
                                 : 'bg-white border-gray-200'
                             }`}>
                               <div className="flex items-center justify-between mb-2">
@@ -1278,19 +1332,57 @@ const QRPayment: React.FC = () => {
                                   {formatCustomerAddress(address)}
                                 </span>
                                 {recommendation.shouldIssue && (
-                                  <Award className="w-4 h-4 text-green-600" />
+                                  <Award className="w-5 h-5 text-green-600 animate-pulse" />
                                 )}
                               </div>
                               <div className="text-lg font-bold text-gray-900 mb-1">
                                 {count}回
                               </div>
-                              <div className={`text-xs font-semibold ${
+                              <div className={`text-xs font-semibold mb-2 ${
                                 recommendation.shouldIssue 
                                   ? 'text-green-700' 
                                   : 'text-gray-600'
                               }`}>
                                 {recommendation.message}
                               </div>
+
+                              {/* 達成したSBTテンプレートを表示 */}
+                              {recommendation.shouldIssue && recommendation.matchedTemplates && recommendation.matchedTemplates.length > 0 && (
+                                <div className="mt-3 space-y-2">
+                                  {recommendation.matchedTemplates.map((template: SBTTemplate) => (
+                                    <div key={template.id} className="bg-white rounded-lg border border-green-300 p-2">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        {template.imageUrl && (
+                                          <img 
+                                            src={template.imageUrl} 
+                                            alt={template.name}
+                                            className="w-12 h-12 rounded-lg object-cover border border-gray-200"
+                                          />
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs font-bold text-gray-900 truncate">
+                                            🎁 {template.name}
+                                          </p>
+                                          <p className="text-xs text-gray-600 truncate">
+                                            {template.description}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <button
+                                        onClick={() => {
+                                          // SBT発行処理へ遷移（SBTManagementページへ）
+                                          toast.success(`${template.name}の発行準備完了！`);
+                                          window.location.href = `/sbt-management?template=${template.id}&recipient=${address}`;
+                                        }}
+                                        className="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2 px-3 rounded-lg transition flex items-center justify-center gap-1"
+                                      >
+                                        <Award className="w-3 h-3" />
+                                        SBT発行
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           );
                         })
@@ -1458,7 +1550,6 @@ const QRPayment: React.FC = () => {
                 </details>
               </div>
             )}
-          </div>
         </div>
       </div>
 
