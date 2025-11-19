@@ -533,17 +533,8 @@ const QRPayment: React.FC = () => {
       return;
     }
 
-    // 残高チェック（JPYC残高がある場合）
-    if (jpycBalance !== null) {
-      const requestAmount = parseFloat(amount);
-      const currentBalance = parseFloat(jpycBalance.replace(/,/g, ''));
-      
-      if (requestAmount > currentBalance) {
-        const contractMeta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
-        toast.error(`残高不足です。現在の${contractMeta.symbol}残高: ${jpycBalance}`);
-        return;
-      }
-    }
+    // 🔄 支払いを受ける側（店舗側）なので、残高チェックは不要
+    // お客様が支払う時に、お客様の残高がチェックされます
 
     if (!shopWalletAddress) {
       toast.error('ウォレットアドレスが設定されていません');
