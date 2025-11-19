@@ -1417,10 +1417,31 @@ const QRPayment: React.FC = () => {
                 {/* 顧客別統計サマリー */}
                 {customerPaymentStats.size > 0 && (
                   <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
-                    <h3 className="flex items-center gap-2 font-semibold text-gray-900 mb-3">
-                      <User className="w-4 h-4 text-purple-600" />
-                      顧客別支払い統計
-                    </h3>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="flex items-center gap-2 font-semibold text-gray-900">
+                        <User className="w-4 h-4 text-purple-600" />
+                        顧客別支払い統計
+                      </h3>
+                      {sbtTemplates.length === 0 && (
+                        <a
+                          href="/sbt-management"
+                          className="flex items-center gap-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-1.5 rounded-lg transition font-semibold"
+                        >
+                          <Award className="w-3 h-3" />
+                          SBTテンプレート設定
+                        </a>
+                      )}
+                    </div>
+                    
+                    {sbtTemplates.length === 0 && (
+                      <div className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <p className="text-xs text-orange-700">
+                          ⚠️ <strong>SBTテンプレートが未設定です。</strong><br />
+                          SBT管理ページでテンプレートを作成すると、支払回数に応じて自動的にSBT発行を推奨します。
+                        </p>
+                      </div>
+                    )}
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {Array.from(customerPaymentStats.entries())
                         .sort(([,a], [,b]) => b - a) // 支払い回数の多い順
