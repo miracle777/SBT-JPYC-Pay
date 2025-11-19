@@ -132,6 +132,14 @@ const SBTManagement: React.FC = () => {
   // 選択されたネットワークの情報を取得
   const selectedNetworkInfo = getNetworkDisplayInfo(selectedChainForSBT);
 
+  // ウォレットのネットワークが切り替わったときにselectedChainForSBTも同期させる
+  useEffect(() => {
+    if (currentChainId && currentChainId !== selectedChainForSBT) {
+      console.log(`🔄 ウォレットネットワーク変更検知: ${currentChainId} (前回: ${selectedChainForSBT})`);
+      setSelectedChainForSBT(currentChainId);
+    }
+  }, [currentChainId]);
+
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [showIssuanceForm, setShowIssuanceForm] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
