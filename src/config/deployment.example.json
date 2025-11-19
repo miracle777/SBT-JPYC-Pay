@@ -7,5 +7,10 @@
     "blockNumber": "0",
     "timestamp": "2025-01-01T00:00:00.000Z",
     "transactionHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "_instructions": {
+    "note": "このファイルをコピーして deployment.json を作成してください",
+    "usage": "SBTコントラクトをデプロイした後、実際の情報に置き換えてください",
+    "security": "deployment.json は .gitignore に含まれているため、Gitにコミットされません"
   }
 }

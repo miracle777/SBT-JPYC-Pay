@@ -18,6 +18,9 @@ out/
 .env.test.local
 .env.production.local
 
+# Deployment information (contains wallet addresses)
+src/config/deployment.json
+
 # IDEs
 .vscode/
 .idea/
