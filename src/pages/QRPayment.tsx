@@ -362,30 +362,26 @@ const QRPayment: React.FC = () => {
                   )
                 );
                 
-                // リアルタイム決済完了通知（強化版）
-                toast.success(
-                  `🎉 決済完了！\n💰 ${session.amount} ${(() => {
-                    const contractMeta = getJpycContractMeta(chainId, contractAddress);
-                    return contractMeta.symbol;
-                  })()}\n📋 Tx: ${txHash.slice(0, 12)}...`,
-                  {
-                    duration: 6000,
-                    style: {
-                      background: '#10B981',
-                      color: 'white',
-                      fontSize: '14px',
-                      fontWeight: 'bold'
-                    }
-                  }
-                );
-                
-                // サウンド通知（対応ブラウザのみ）
+                // 決済完了音を再生（シンプルなビープ音）
                 try {
-                  const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApMn+DyvGYeAC1+yujZgyQGV6nn8KCRL...');
-                  audio.volume = 0.3;
-                  audio.play().catch(() => {});
+                  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                  const oscillator = audioContext.createOscillator();
+                  const gainNode = audioContext.createGain();
+                  
+                  oscillator.connect(gainNode);
+                  gainNode.connect(audioContext.destination);
+                  
+                  oscillator.frequency.value = 800; // 周波数 800Hz
+                  oscillator.type = 'sine'; // サイン波
+                  
+                  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                  
+                  oscillator.start(audioContext.currentTime);
+                  oscillator.stop(audioContext.currentTime + 0.3);
                 } catch (error) {
                   // サウンド再生エラーは無視
+                  console.log('決済音の再生に失敗:', error);
                 }
                 
                 console.log(`🎉 決済完了通知: ${session.amount} ${(() => {
@@ -635,7 +631,7 @@ const QRPayment: React.FC = () => {
               現在のQRコード
             </h2>
             
-            {paymentSessions.length === 0 || !paymentSessions.some(s => s.status === 'pending') ? (
+            {paymentSessions.length === 0 ? (
               <div className="text-center py-12">
                 <QrCode className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500 mb-4">まだQRコードを生成していません</p>
@@ -643,10 +639,36 @@ const QRPayment: React.FC = () => {
               </div>
             ) : (
               <div className="flex flex-col items-center space-y-4">
-                {paymentSessions
-                  .filter(s => s.status === 'pending')
-                  .slice(0, 1)
-                  .map((session) => (
+                {/* pending セッションがあればそれを表示、なければ最新のcompletedセッションを表示 */}
+                {(() => {
+                  const pendingSession = paymentSessions.find(s => s.status === 'pending');
+                  const displaySession = pendingSession || paymentSessions.filter(s => s.status === 'completed').slice(-1)[0];
+                  if (!displaySession) return null;
+                  
+                  return (
+                    <div key={displaySession.id} className="w-full">
+                      {/* 決済完了バナー（completedの場合のみ表示） */}
+                      {displaySession.status === 'completed' && (
+                        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg p-6 mb-4 text-center animate-pulse">
+                          <div className="flex items-center justify-center gap-3 mb-2">
+                            <CheckCircle className="w-8 h-8" />
+                            <h3 className="text-2xl font-bold">🎉 決済完了！</h3>
+                          </div>
+                          <p className="text-lg font-semibold">
+                            💰 {displaySession.amount} {(() => {
+                              const contractMeta = getJpycContractMeta(displaySession.chainId, paymentContractAddress);
+                              return contractMeta.symbol;
+                            })()}
+                          </p>
+                          <p className="text-sm mt-2 opacity-90">
+                            {displaySession.detectedAt}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {(() => {
+                        const session = displaySession;
+                        return (
                     <div key={session.id} className="w-full">
                       {/* 決済情報 */}
                       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
@@ -767,7 +789,8 @@ const QRPayment: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* リアルタイム決済監視状態表示 */}
+                      {/* リアルタイム決済監視状態表示（pendingの場合のみ） */}
+                      {session.status === 'pending' && (
                       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-4 mt-4">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
