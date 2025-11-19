@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle, Copy, Server, Shield, Image, Rocket } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
@@ -76,6 +77,8 @@ const getNetworkDisplayInfo = (chainId: number | null) => {
 };
 
 const SBTManagement: React.FC = () => {
+  const navigate = useNavigate();
+  
   // RainbowKitのウォレット情報を優先的に使用
   const { address: rainbowAddress, chainId: rainbowChainId, isConnected: rainbowConnected } = useAccount();
   const { switchChain } = useSwitchChain();
