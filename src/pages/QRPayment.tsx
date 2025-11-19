@@ -478,15 +478,19 @@ const QRPayment: React.FC = () => {
         paymentContractAddress,
         expiresAtTimestamp,
         paymentId,
-        `Payment from ${shopInfo.name}`
+        `Payment from ${shopInfo.name}`,
+        qrContractMeta.symbol // 通貨シンボル (JPYC または tJPYC) を渡す
       );
 
       console.log('QRコード生成:', {
         selectedChain: selectedChainForPayment,
         networkName: paymentNetwork.displayName,
         contractAddress: paymentContractAddress,
+        currencySymbol: qrContractMeta.symbol,
         amount: amountNum,
-        payloadChainId: payload.chainId
+        payloadChainId: payload.chainId,
+        payloadContractAddress: payload.contractAddress,
+        payloadCurrency: payload.currency
       });
 
       // QRコード形式に応じてエンコード

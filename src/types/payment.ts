@@ -22,7 +22,8 @@ export const createPaymentPayload = (
   contractAddress: string,
   expiresAt: number,
   paymentId: string,
-  description?: string
+  description?: string,
+  currencySymbol?: string // 追加: 通貨シンボル (JPYC または tJPYC)
 ): PaymentPayload => {
   return {
     version: '1.0',
@@ -31,7 +32,7 @@ export const createPaymentPayload = (
     shopName,
     shopWallet,
     amount,
-    currency: 'JPYC',
+    currency: currencySymbol || 'JPYC',
     chainId,
     paymentId,
     expiresAt,
@@ -63,6 +64,7 @@ export const encodePaymentPayloadForJPYCPay = (payload: PaymentPayload): string 
     type: 'JPYC_PAYMENT',  // 統一標準形式
     to: payload.shopWallet,        // 受取先アドレス
     amount: amountJPYC,            // JPYC単位の金額
+    currency: payload.currency,    // 通貨シンボル (JPYC または tJPYC)
     network: networkMap[payload.chainId] || 'unknown',  // ネットワーク名
     chainId: payload.chainId,      // ネットワークID
     contractAddress: payload.contractAddress, // JPYCコントラクトアドレス
