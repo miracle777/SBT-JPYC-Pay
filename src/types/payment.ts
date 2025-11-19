@@ -80,41 +80,29 @@ export const encodePaymentPayloadForJPYCPay = (payload: PaymentPayload): string 
   return JSON.stringify(jpycPayData);
 };
 
-// MetaMask QRコード規格：ethereum: スキーム形式（EIP-681準拠）
+// MetaMask互換形式：ウォレットアドレスのみ（シンプル形式）
+// MetaMaskアプリの標準QRスキャナーに対応
+// 注意: 金額情報は含まれないため、顧客が手入力する必要があります
 export const encodePaymentPayloadForMetaMask = (payload: PaymentPayload): string => {
-  // EIP-681準拠のethereum: URIスキーム
-  // 形式: ethereum:<address>[@<chainId>][?<parameters>]
+  // MetaMaskの標準QRコード機能は、単純なウォレットアドレス文字列のみをサポート
+  // EIP-681形式（ethereum: URI）やERC-20のcontract callには対応していない
   
-  const contractAddress = payload.contractAddress;
-  const chainId = payload.chainId;
+  const walletAddress = payload.shopWallet;
   
-  // ERC-20 transfer(address,uint256) function selector: 0xa9059cbb
-  const functionSelector = 'a9059cbb';
-  
-  // 受取人アドレス（32バイトにパディング）
-  const recipientPadded = payload.shopWallet.replace('0x', '').toLowerCase().padStart(64, '0');
-  
-  // 金額（Wei単位を16進数に変換、32バイトにパディング）
-  const amountHex = BigInt(payload.amount).toString(16).padStart(64, '0');
-  
-  // dataフィールド: functionSelector + recipientPadded + amountHex
-  const data = `0x${functionSelector}${recipientPadded}${amountHex}`;
-  
-  console.log('🦊 MetaMask QRコード生成:', {
-    contractAddress,
-    chainId,
-    recipient: payload.shopWallet,
-    amountWei: payload.amount,
-    data,
-    dataLength: data.length
+  console.log('📋 MetaMask互換QRコード生成（アドレスのみ）:', {
+    address: walletAddress,
+    note: '金額情報は含まれません - 顧客が手入力する必要があります',
+    chainId: payload.chainId,
+    originalAmount: payload.amount,
+    amountJPYC: (BigInt(payload.amount) / BigInt(10 ** 18)).toString()
   });
   
-  // URIパラメータ
-  const params = new URLSearchParams();
-  params.append('data', data);
+  console.warn('⚠️ MetaMask形式の制限: QRコードには金額・トークン情報が含まれません');
+  console.info('💡 決済用途には JPYC_PAYMENT 形式の使用を推奨します');
   
-  // ethereum:<contract>@<chainId>?data=<encodedData>
-  return `ethereum:${contractAddress}@${chainId}?${params.toString()}`;
+  // シンプルにウォレットアドレスのみを返す
+  // MetaMaskアプリでスキャンすると、このアドレスが送金先として入力される
+  return walletAddress;
 };
 
 export const decodePaymentPayload = (encoded: string): PaymentPayload => {

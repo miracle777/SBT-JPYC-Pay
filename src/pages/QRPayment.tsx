@@ -940,15 +940,20 @@ const QRPayment: React.FC = () => {
                           {qrCodeFormat === 'jpyc-payment' ? (
                             <>
                               💰 <strong>JPYC対応アプリ</strong>でスキャンしてください<br />
-                              <span className="text-gray-400">統一標準形式 | {paymentNetwork?.displayName} | {paymentContractAddress.slice(0, 8)}...</span>
+                              <span className="text-gray-600">金額・トークン・ネットワーク情報を含む完全な決済QRコード</span><br />
+                              <span className="text-gray-400 text-xs">統一標準形式 | {paymentNetwork?.displayName} | {paymentContractAddress.slice(0, 8)}...</span>
                             </>
                           ) : qrCodeFormat === 'metamask' ? (
                             <>
-                              🦊 <strong>MetaMaskアプリ</strong>のQRスキャンで読み取ってください<br />
-                              <span className="text-gray-400">ethereum: URI形式 | ガス代: 65,000 gas</span>
+                              📋 <strong>MetaMaskアプリ</strong>でスキャン → <strong className="text-red-600">金額を手入力</strong>してください<br />
+                              <span className="text-gray-600">アドレス: {shopWalletAddress.slice(0, 8)}...{shopWalletAddress.slice(-6)}</span><br />
+                              <span className="text-red-600 text-xs font-semibold">⚠️ 金額 {amount} JPYC とトークン選択を忘れずに！</span>
                             </>
                           ) : (
-                            '💻 レガシーQRコード（互換性維持用、新規非推奨）'
+                            <>
+                              💻 <strong>レガシーQRコード</strong>（互換性維持用、新規非推奨）<br />
+                              <span className="text-gray-400 text-xs">payment形式</span>
+                            </>
                           )}
                         </p>
                       </div>
@@ -1272,23 +1277,34 @@ const QRPayment: React.FC = () => {
                       onChange={(e) => setQrCodeFormat(e.target.value as 'jpyc-payment' | 'metamask' | 'legacy')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     >
-                      <option value="jpyc-payment">💰 masaru21QR_PAYMENT (統一標準形式)</option>
-                      <option value="metamask">🦊 MetaMask QR対応 (ethereum: URI)</option>
+                      <option value="jpyc-payment">💰 JPYC_PAYMENT (統一標準形式) 【推奨】</option>
+                      <option value="metamask">📋 アドレスのみ (MetaMask互換)</option>
                       <option value="legacy">💻 レガシー形式 (payment)</option>
                     </select>
                     <div className="mt-2">
                       {qrCodeFormat === 'jpyc-payment' ? (
                         <div className="p-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700">
-                          <p className="font-semibold">💰 masaru21QR_PAYMENT 統一標準形式</p>
-                          <p>jpyc-pay.app や全てのJPYCアプリで対応、テスト・本番統一</p>
-                          <p className="mt-1">✅ ネットワーク: {paymentNetwork?.displayName}</p>
+                          <p className="font-semibold">✅ 💰 JPYC_PAYMENT 統一標準形式【推奨】</p>
+                          <p>金額・トークン・ネットワーク情報を全て含む完全な決済QRコード</p>
+                          <p className="mt-1">✅ jpyc-pay.app や全てのJPYCアプリで対応</p>
+                          <p>✅ ネットワーク: {paymentNetwork?.displayName}</p>
                           <p>✅ コントラクト: {paymentContractAddress.slice(0, 10)}...{paymentContractAddress.slice(-8)}</p>
                         </div>
                       ) : qrCodeFormat === 'metamask' ? (
-                        <div className="p-2 bg-orange-50 border border-orange-200 rounded-lg text-xs text-orange-700">
-                          <p className="font-semibold">🦊 MetaMask QR機能</p>
-                          <p>MetaMaskアプリのQRスキャンで直接トランザクション実行</p>
-                          <p className="mt-1 font-mono text-orange-600">ethereum:{paymentContractAddress.slice(0, 10)}...@{selectedChainForPayment}</p>
+                        <div className="p-2 bg-yellow-50 border border-yellow-300 rounded-lg text-xs text-yellow-800">
+                          <p className="font-semibold mb-1">📋 アドレスのみのQRコード（MetaMask互換）</p>
+                          <p className="mb-2">⚠️ <strong>このQRコードには金額情報が含まれません</strong></p>
+                          <div className="bg-yellow-100 border border-yellow-400 rounded p-2 mb-2">
+                            <p className="font-semibold text-yellow-900">利用方法:</p>
+                            <ol className="list-decimal list-inside space-y-1 ml-2 mt-1">
+                              <li>QRコードをスキャン → アドレスが入力される</li>
+                              <li><strong>顧客が金額を手入力</strong></li>
+                              <li><strong>顧客がトークン（JPYC）を選択</strong></li>
+                              <li>送信実行</li>
+                            </ol>
+                          </div>
+                          <p className="text-yellow-900">💡 <strong>決済用途には「JPYC_PAYMENT形式」を推奨します</strong></p>
+                          <p className="mt-1 font-mono text-yellow-700 text-[10px]">アドレス: {shopWalletAddress.slice(0, 12)}...{shopWalletAddress.slice(-10)}</p>
                         </div>
                       ) : (
                         <div className="p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700">
