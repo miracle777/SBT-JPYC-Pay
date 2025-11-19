@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor, Zap, User, Award, Hash, Network } from 'lucide-react';
+import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor, Zap, User, Award, Hash, Network, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { BrowserProvider, ethers } from 'ethers';
 import { NETWORKS, JPYC, getContractAddress, getJpycContracts, getJpycContractMeta } from '../config/networks';
@@ -10,6 +10,7 @@ import QRCodeDisplay from '../components/QRCodeDisplay';
 import WalletSelector from '../components/WalletSelector';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
 import { sbtStorage } from '../utils/storage';
+import { isGaslessAvailable } from '../utils/gaslessPayment';
 
 // ウォレットアドレスを省略表示する関数 (0x1234...5678 形式)
 const shortenAddress = (address: string, startChars: number = 6, endChars: number = 4): string => {

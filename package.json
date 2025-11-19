@@ -13,6 +13,10 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@biconomy/account": "^4.5.7",
+    "@biconomy/bundler": "^3.1.4",
+    "@biconomy/core-types": "^3.1.4",
+    "@biconomy/paymaster": "^3.1.4",
     "@rainbow-me/rainbowkit": "^2.2.9",
     "@types/qrcode": "^1.5.5",
     "@types/uuid": "^10.0.0",
