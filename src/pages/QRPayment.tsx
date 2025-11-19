@@ -96,9 +96,12 @@ const QRPayment: React.FC = () => {
     const loadTemplates = async () => {
       try {
         const templates = await sbtStorage.getAllTemplates();
-        // アクティブなafter_countパターンのみ抽出してmaxStampsでソート
+        // アクティブなテンプレートを抽出（after_countとperiod_rangeパターン）
         const activeTemplates = templates
-          .filter((t: SBTTemplate) => t.status === 'active' && t.issuePattern === 'after_count')
+          .filter((t: SBTTemplate) => 
+            t.status === 'active' && 
+            (t.issuePattern === 'after_count' || t.issuePattern === 'period_range')
+          )
           .sort((a: SBTTemplate, b: SBTTemplate) => a.maxStamps - b.maxStamps);
         setSbtTemplates(activeTemplates);
         console.log('📋 SBTテンプレート読み込み完了:', activeTemplates);
@@ -108,6 +111,17 @@ const QRPayment: React.FC = () => {
       }
     };
     loadTemplates();
+
+    // ページがフォーカスされたときにもテンプレートを再読み込み
+    const handleFocus = () => {
+      console.log('🔄 ページフォーカス検出 - テンプレート再読み込み');
+      loadTemplates();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   // JPYC残高を取得する関数
