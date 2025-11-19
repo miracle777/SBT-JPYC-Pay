@@ -383,6 +383,7 @@ const Settings: React.FC = () => {
             <ul className="text-sm text-amber-800 space-y-1">
               <li>• <strong>店舗名</strong>: SBTスタンプカードに表示される店舗名（必須）</li>
               <li>• <strong>店舗ID</strong>: PWAインストール時に自動発行されます（ウェブ版も同様）</li>
+              <li>• <strong>ショップオーナーアドレス</strong>: SBT発行権限を持つウォレットアドレス（必須）</li>
               <li>• <strong>データ保存</strong>: ブラウザのローカルストレージに保存されます</li>
               <li>• <strong>バックアップ推奨</strong>: 設定完了後はデータエクスポートをお勧めします</li>
             </ul>
