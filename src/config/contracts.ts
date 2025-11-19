@@ -792,8 +792,8 @@ export const JPYC_ADDRESS_TYPE_LABELS: Record<JpycAddressType, string> = {
 
 // SBT スタンプシステムコントラクトアドレス
 export const SBT_CONTRACT_ADDRESS: Record<number, string> = {
-  // Mainnet - 本番環境用（未デプロイ）
-  137: '0x0000000000000000000000000000000000000000', // Polygon Mainnet - デプロイ待ち（contracts/deploy-mainnet.js で初回デプロイ）
+  // Mainnet - 本番環境用(デプロイ済み)
+  137: '0x32DB68478777F649AbC4fC550F9EEC38b3dEe9E0', // Polygon Mainnet - 2025/01/20デプロイ済み ✅
   1: '0x0000000000000000000000000000000000000000',   // Ethereum Mainnet - デプロイ待ち
   43114: '0x0000000000000000000000000000000000000000', // Avalanche - デプロイ待ち
   // Testnet - テスト環境用（デプロイ済み）
