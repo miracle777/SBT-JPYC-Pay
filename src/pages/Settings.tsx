@@ -238,6 +238,11 @@ const Settings: React.FC = () => {
         description: shopInfo.description.trim(),
         ownerAddress: shopInfo.ownerAddress.trim(),
         rankThresholds: rankThresholds,
+        // コントラクトアドレス情報も保存（参照用）
+        contractAddresses: {
+          amoy: getSBTContractAddress(80002),
+          mainnet: getSBTContractAddress(137),
+        },
         updatedAt: new Date().toISOString(),
       };
       
@@ -593,6 +598,113 @@ const Settings: React.FC = () => {
           >
             <Save className="w-4 h-4" /> ランク設定を保存
           </button>
+        </div>
+
+        {/* SBTコントラクト情報 */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <Server className="w-6 h-6 text-indigo-600" />
+            <h2 className="text-lg font-bold text-gray-900">SBT コントラクト情報</h2>
+          </div>
+          
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-indigo-800 mb-2">
+              <span className="font-semibold">📍 1つのコントラクトで複数ショップ管理</span>
+            </p>
+            <p className="text-xs text-indigo-700">
+              このアプリでは、1つのSBTコントラクトアドレスで複数のお店のスタンプカードを管理します。
+              各ショップは「ショップID」で区別され、ショップオーナーは自分のショップのSBTのみ発行できます。
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {/* Polygon Amoy Testnet */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-gray-900">🧪 Polygon Amoy (Testnet)</h3>
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">テスト用</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={getSBTContractAddress(80002)}
+                  disabled
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-mono text-sm"
+                />
+                <button
+                  onClick={() => copyToClipboard(getSBTContractAddress(80002), 'Amoyコントラクトアドレス')}
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+                <a
+                  href={`https://amoy.polygonscan.com/address/${getSBTContractAddress(80002)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition flex items-center gap-1"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span className="text-sm">確認</span>
+                </a>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Chain ID: 80002 | デプロイ済み ✅
+              </p>
+            </div>
+
+            {/* Polygon Mainnet */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-gray-900">🌐 Polygon Mainnet (本番)</h3>
+                <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">本番環境</span>
+              </div>
+              {getSBTContractAddress(137) === '0x0000000000000000000000000000000000000000' ? (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-sm text-yellow-800 font-semibold mb-1">⚠️ 未デプロイ</p>
+                  <p className="text-xs text-yellow-700">
+                    本番環境用のコントラクトはまだデプロイされていません。
+                    デプロイ後、contracts.ts を更新してください。
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={getSBTContractAddress(137)}
+                      disabled
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-mono text-sm"
+                    />
+                    <button
+                      onClick={() => copyToClipboard(getSBTContractAddress(137), 'Mainnetコントラクトアドレス')}
+                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                    <a
+                      href={`https://polygonscan.com/address/${getSBTContractAddress(137)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition flex items-center gap-1"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span className="text-sm">確認</span>
+                    </a>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Chain ID: 137 | デプロイ済み ✅
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <p className="text-xs text-gray-600">
+              💡 <strong>ヒント:</strong> ユーザーがMetaMaskでSBTを表示するには、このコントラクトアドレスが必要です。
+              OpenSeaなどのNFTマーケットプレイスでも、このアドレスからSBTを検索できます。
+            </p>
+          </div>
         </div>
 
         {/* ウォレット & ネットワーク情報 */}

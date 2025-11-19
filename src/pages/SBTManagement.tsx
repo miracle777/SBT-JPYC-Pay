@@ -2863,7 +2863,23 @@ const SBTManagement: React.FC = () => {
                               {getNetworkByChainId(selectedSBT.chainId)?.isTestnet ? ' (テスト用)' : ' (本番用)'}
                             </span></p>
                             <p><span className="font-semibold">Chain ID:</span> <span className="font-mono">{selectedSBT.chainId}</span></p>
-                            <p><span className="font-semibold">コントラクト:</span> <span className="font-mono text-xs break-all">{getSBTContractAddress(selectedSBT.chainId)}</span></p>
+                            <div className="mt-2">
+                              <span className="font-semibold">コントラクト:</span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="font-mono text-xs bg-white px-2 py-1 rounded border break-all flex-1">{getSBTContractAddress(selectedSBT.chainId)}</span>
+                                <a
+                                  href={selectedSBT.chainId === 80002 
+                                    ? `https://amoy.polygonscan.com/address/${getSBTContractAddress(selectedSBT.chainId)}`
+                                    : `https://polygonscan.com/address/${getSBTContractAddress(selectedSBT.chainId)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 whitespace-nowrap"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                  <span className="text-xs">確認</span>
+                                </a>
+                              </div>
+                            </div>
                           </div>
                         )}
                         
