@@ -62,7 +62,7 @@ const QRPayment: React.FC = () => {
   const { address: walletAddress, chainId: currentChainId } = useWallet();
   const [amount, setAmount] = useState('');
   const [selectedChainForPayment, setSelectedChainForPayment] = useState(
-    NETWORKS.POLYGON_AMOY.chainId  // デフォルトでPolygon Amoyを選択
+    NETWORKS.SEPOLIA.chainId  // デフォルトでSepoliaテストネットを選択
   );
   const [selectedJpycContract, setSelectedJpycContract] = useState<string>(''); // 選択されたJPYCコントラクトアドレス
   const [paymentSessions, setPaymentSessions] = useState<PaymentSession[]>([]);
@@ -832,11 +832,31 @@ const QRPayment: React.FC = () => {
               </div>
             ) : (
               <div className="flex flex-col items-center space-y-4">
+                {/* 選択中のネットワークと一致するセッションのみ表示 */}
                 {/* pending セッションがあればそれを表示、なければ最新のcompletedセッションを表示 */}
                 {(() => {
-                  const pendingSession = paymentSessions.find(s => s.status === 'pending');
-                  const displaySession = pendingSession || paymentSessions.filter(s => s.status === 'completed').slice(-1)[0];
-                  if (!displaySession) return null;
+                  // 選択中のネットワークと一致するセッションのみをフィルタ
+                  const matchingNetworkSessions = paymentSessions.filter(s => s.chainId === selectedChainForPayment);
+                  
+                  const pendingSession = matchingNetworkSessions.find(s => s.status === 'pending');
+                  const displaySession = pendingSession || matchingNetworkSessions.filter(s => s.status === 'completed').slice(-1)[0];
+                  
+                  if (!displaySession) {
+                    return (
+                      <div className="text-center py-8 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                        <Network className="w-12 h-12 text-blue-400 mx-auto mb-3" />
+                        <p className="text-gray-600 mb-2">
+                          現在のネットワーク: <strong>{paymentNetwork?.displayName}</strong>
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          このネットワークでのQRコードはまだ生成されていません
+                        </p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          下の「設定」でQRコードを生成してください
+                        </p>
+                      </div>
+                    );
+                  }
                   
                   return (
                     <div key={displaySession.id} className="w-full">
