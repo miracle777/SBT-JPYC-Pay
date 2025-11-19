@@ -2248,7 +2248,7 @@ const SBTManagement: React.FC = () => {
                   <div key={address} className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
                     <div className="mb-3">
                       <p className="text-xs text-gray-600 font-medium mb-1">ウォレットアドレス</p>
-                      <p className="font-mono text-xs text-gray-900 break-all">{address}</p>
+                      <p className="font-mono text-xs text-gray-900" title={address}>{shortenAddress(address)}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-white rounded p-2">

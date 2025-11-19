@@ -11,6 +11,13 @@ import WalletSelector from '../components/WalletSelector';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
 import { sbtStorage } from '../utils/storage';
 
+// ウォレットアドレスを省略表示する関数 (0x1234...5678 形式)
+const shortenAddress = (address: string, startChars: number = 6, endChars: number = 4): string => {
+  if (!address) return '';
+  if (address.length <= startChars + endChars) return address;
+  return `${address.slice(0, startChars)}...${address.slice(-endChars)}`;
+};
+
 // SBTテンプレート型定義
 interface SBTTemplate {
   id: string;
@@ -1724,8 +1731,8 @@ const QRPayment: React.FC = () => {
                           
                           <div className="bg-gray-50 rounded-lg p-3 mb-3">
                             <p className="text-xs text-gray-600 mb-1">支払者アドレス</p>
-                            <p className="font-mono text-sm text-gray-900 break-all">
-                              {session.payerAddress}
+                            <p className="font-mono text-sm text-gray-900" title={session.payerAddress}>
+                              {shortenAddress(session.payerAddress || '')}
                             </p>
                             <div className="mt-2 flex items-center gap-2">
                               <span className="text-sm font-semibold text-gray-700">
