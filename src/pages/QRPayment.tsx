@@ -665,11 +665,10 @@ const QRPayment: React.FC = () => {
                           </p>
                         </div>
                       )}
-                      
+
                       {(() => {
                         const session = displaySession;
-                        return (
-                    <div key={session.id} className="w-full">
+                        return (<>
                       {/* 決済情報 */}
                       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
                         <div className="grid grid-cols-3 gap-2 text-center mb-2 sm:mb-3">
@@ -818,6 +817,7 @@ const QRPayment: React.FC = () => {
                           </p>
                         </div>
                       </div>
+                      )}
 
                       {/* ペイロード情報 */}
                       <div className="bg-gray-50 p-3 rounded-lg mt-4">
@@ -848,8 +848,11 @@ const QRPayment: React.FC = () => {
                           }
                         })()}
                       </div>
+                      </>);
+                      })()}
                     </div>
-                  ))}
+                  );
+                })()}
               </div>
             )}
           </div>
