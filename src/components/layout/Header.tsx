@@ -19,7 +19,7 @@ const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
           <Link to="/" className="flex items-center gap-1.5 xs:gap-2 hover:opacity-80 transition flex-shrink-0">
             <Store className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 text-blue-600" />
             <span className="text-lg xs:text-xl sm:text-2xl font-bold text-gray-900 hidden xs:inline">
-              SBT JPYC Pay
+              SBT masaru21 Pay
             </span>
             <span className="text-base font-bold text-blue-600 xs:hidden">
               SBT Pay

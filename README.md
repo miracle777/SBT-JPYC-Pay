@@ -1,28 +1,28 @@
 # SBT-JPYC-Pay
 
-> お店側のSBTスタンプカード発行・管理システム
+> お店側のSBTスタンプカード発行・管理システム (SBT masaru21 Pay)
 >
-> 📱 **[JPYCペイアプリ](https://jpyc-pay.app/)との連携対応**
+> 📱 **暗号資産決済とSBTスタンプカードの統合管理**
 
-This is a Progressive Web App (PWA) for shop owners to issue and manage SBT (Soulbound Token) stamp cards with JPYC payment integration.
+This is a Progressive Web App (PWA) for shop owners to issue and manage SBT (Soulbound Token) stamp cards with cryptocurrency payment integration.
 
 ## 🌟 主要機能
 
 - **SBT発行管理**: お店独自のデザインでSBTスタンプを発行
 - **動的メタデータ**: 店舗設定に基づくSBTメタデータの自動生成
 - **QRコード決済**: 制限時間付きQRコード決済システム
-- **JPYCペイアプリ連携**: [jpyc-pay.app](https://jpyc-pay.app/) での顧客決済・SBT受け取りに対応
+- **暗号資産決済連携**: 様々な暗号資産決済アプリに対応
 - **ウォレット接続**: MetaMask、WalletConnect対応
 - **Pinata連携**: 分散ストレージによる画像・メタデータ管理
 - **PWA対応**: スマートフォンアプリのような操作感
 - **マルチチェーン対応**: Polygon、Avalanche、Ethereum
 
-## 🔗 JPYCペイアプリとの連携
+## 🔗 暗号資産決済との連携
 
-このシステムは **[JPYCペイアプリ（jpyc-pay.app）](https://jpyc-pay.app/)** との連携を前提として開発されています：
+このシステムは暗号資産決済アプリとの連携を前提として開発されています：
 
 - **店舗側（このアプリ）**: QRコード生成、SBT発行設定、決済管理
-- **顧客側（JPYCペイアプリ）**: QR読み取り、JPYC決済、SBT受け取り
+- **顧客側（決済アプリ）**: QR読み取り、暗号資産決済、SBT受け取り
 - **データ連携**: 店舗情報、SBTテンプレート、決済履歴の統合管理
 
 ## 📚 利用ガイド

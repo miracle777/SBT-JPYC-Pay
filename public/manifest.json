@@ -1,8 +1,8 @@
 {
-  "name": "SBT JPYC Pay - JPYC決済 & スタンプカード管理",
-  "short_name": "SBT JPYC Pay",
-  "description": "JPYC QR決済とSBTスタンプカード発行・管理システム。PWA対応でオフライン作業、画像ローカル保存、データエクスポート可能。パソコン・タブレット・スマートフォンで使用できます。",
-  "id": "sbt-jpyc-pay-wallet",
+  "name": "SBT masaru21 Pay - 暗号資産決済 & スタンプカード管理",
+  "short_name": "SBT masaru21 Pay",
+  "description": "暗号資産QR決済とSBTスタンプカード発行・管理システム。PWA対応でオフライン作業、画像ローカル保存、データエクスポート可能。パソコン・タブレット・スマートフォンで使用できます。",
+  "id": "sbt-masaru21-pay-wallet",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

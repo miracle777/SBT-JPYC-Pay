@@ -114,7 +114,7 @@ export const Navigation: React.FC = () => {
       {/* Footer Section */}
       <div className="p-4 border-t border-gray-200">
         <div className="text-xs text-gray-500 text-center">
-          <p>SBT JPYC Pay v1.0.0</p>
+          <p>SBT masaru21 Pay v1.0.0</p>
           <p className="mt-1">© 2024 miracle777</p>
         </div>
       </div>

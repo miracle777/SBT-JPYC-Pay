@@ -2180,7 +2180,7 @@ const QRPayment: React.FC = () => {
             </div>
           </div>
           <div className="text-center text-xs text-gray-500 pt-3 border-t border-gray-200">
-            <p>SBT JPYC Pay &copy; 2024-2025</p>
+            <p>SBT masaru21 Pay &copy; 2024-2025</p>
           </div>
         </div>
       </footer>

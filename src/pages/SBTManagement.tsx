@@ -263,7 +263,7 @@ const SBTManagement: React.FC = () => {
           if (savedShopInfo) {
             const shop = JSON.parse(savedShopInfo);
             setShopSettings({
-              name: shop.name || 'SBT JPYC Pay Demo Store',
+              name: shop.name || 'SBT masaru21 Pay Demo Store',
               id: shop.id || 'shop-001',
               category: shop.category || '',
               description: shop.description || 'デモンストレーション用の店舗'
@@ -526,7 +526,7 @@ const SBTManagement: React.FC = () => {
         if (savedShopInfo) {
           const shop = JSON.parse(savedShopInfo);
           setShopSettings({
-            name: shop.name || 'SBT JPYC Pay Demo Store',
+            name: shop.name || 'SBT masaru21 Pay Demo Store',
             id: shop.id || 'shop-001',
             category: shop.category || '',
             description: shop.description || 'デモンストレーション用の店舗'
@@ -737,7 +737,7 @@ const SBTManagement: React.FC = () => {
       const exportMetadata = {
         currentNetwork: currentNetworkInfo,
         selectedNetwork: selectedNetworkInfo,
-        exportSource: 'SBT JPYC Pay Management'
+        exportSource: 'SBT masaru21 Pay Management'
       };
       
       await sbtStorage.downloadExport(filename, exportMetadata);
