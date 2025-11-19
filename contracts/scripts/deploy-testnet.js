@@ -1,19 +1,18 @@
-// Polygon Mainnet用のデプロイスクリプト
+// Polygon Amoy Testnet用のデプロイスクリプト
 const { ethers } = require("hardhat");
 const fs = require("fs");
 const path = require("path");
 
 async function main() {
-  console.log("🚀 Polygon Mainnet へのコントラクトデプロイを開始します...");
-  console.log("⚠️  注意: これは本番環境へのデプロイです！");
+  console.log("🚀 Polygon Amoy Testnet へのコントラクトデプロイを開始します...");
   console.log("=".repeat(60));
 
-  // デプロイ実行前の確認
+  // ネットワーク確認
   const network = await ethers.provider.getNetwork();
   console.log(`📡 接続ネットワーク: ${network.name} (Chain ID: ${network.chainId})`);
   
-  if (network.chainId !== 137n) {
-    throw new Error("❌ Polygon Mainnet (Chain ID: 137) に接続してください");
+  if (network.chainId !== 80002n) {
+    throw new Error("❌ Polygon Amoy Testnet (Chain ID: 80002) に接続してください");
   }
 
   // アカウント情報取得
@@ -25,20 +24,15 @@ async function main() {
   console.log("💰 アカウント残高:", ethers.formatEther(balance), "POL");
   
   if (balance < ethers.parseEther("0.01")) {
+    console.log("\n⚠️  警告: 残高が少ないです");
+    console.log("💡 Polygon Faucet でテストPOLを取得してください:");
+    console.log("   https://faucet.polygon.technology/");
     throw new Error("❌ 残高不足: 最低 0.01 POL が必要です");
   }
 
   // ガス価格確認
   const feeData = await deployer.provider.getFeeData();
   console.log("⛽ 現在のガス価格:", ethers.formatUnits(feeData.gasPrice || 0n, "gwei"), "Gwei");
-
-  // 最終確認
-  console.log("\n⚠️  デプロイ前の最終確認:");
-  console.log("   - テストネットで十分なテストを実施済みですか？");
-  console.log("   - コントラクトコードのレビューは完了していますか？");
-  console.log("   - デプロイ後の手順を確認していますか？");
-  console.log("\n5秒後にデプロイを開始します...");
-  await new Promise(resolve => setTimeout(resolve, 5000));
 
   // コントラクトデプロイ
   console.log("\n📋 JpycStampSBT コントラクトをデプロイ中...");
@@ -83,8 +77,8 @@ async function main() {
 
   // デプロイ情報をファイルに保存
   const deploymentInfo = {
-    network: "Polygon Mainnet",
-    chainId: 137,
+    network: "Polygon Amoy Testnet",
+    chainId: 80002,
     contractAddress: contractAddress,
     deployer: deployer.address,
     transactionHash: txHash,
@@ -93,12 +87,12 @@ async function main() {
     blockNumber: (await ethers.provider.getBlockNumber()).toString(),
   };
 
-  const deploymentPath = path.join(__dirname, "deployments");
+  const deploymentPath = path.join(__dirname, "..", "deployments");
   if (!fs.existsSync(deploymentPath)) {
     fs.mkdirSync(deploymentPath, { recursive: true });
   }
 
-  const deploymentFile = path.join(deploymentPath, "polygon-deployment.json");
+  const deploymentFile = path.join(deploymentPath, "amoy-deployment.json");
   fs.writeFileSync(deploymentFile, JSON.stringify(deploymentInfo, null, 2));
   console.log("\n💾 デプロイ情報を保存しました:", deploymentFile);
   
@@ -106,37 +100,49 @@ async function main() {
   console.log("\n" + "=".repeat(60));
   console.log("📋 デプロイ完了サマリー");
   console.log("=".repeat(60));
-  console.log(`Network: Polygon Mainnet (Chain ID: 137)`);
+  console.log(`Network: Polygon Amoy Testnet (Chain ID: 80002)`);
   console.log(`Contract Address: ${contractAddress}`);
   console.log(`Deployer: ${deployer.address}`);
-  console.log(`Transaction: https://polygonscan.com/tx/${txHash}`);
-  console.log(`Contract: https://polygonscan.com/address/${contractAddress}`);
+  console.log(`Transaction: https://amoy.polygonscan.com/tx/${txHash}`);
+  console.log(`Contract: https://amoy.polygonscan.com/address/${contractAddress}`);
   console.log("=".repeat(60));
   
   console.log("\n📝 次の手順:");
   console.log("━".repeat(60));
   console.log("1️⃣  src/config/contracts.ts を更新");
-  console.log(`   137: '${contractAddress}',`);
+  console.log(`   80002: '${contractAddress}',`);
   console.log("");
-  console.log("2️⃣  Polygonscan でコントラクトを検証（Verify）");
-  console.log(`   npx hardhat verify --network polygon ${contractAddress} "${deployer.address}"`);
-  console.log("");
-  console.log("3️⃣  アプリケーションでショップオーナー登録");
-  console.log("   - MetaMaskでPolygon Mainnetに接続");
+  console.log("2️⃣  アプリケーションでショップオーナー登録");
+  console.log("   - MetaMaskでAmoyテストネットに接続");
   console.log("   - 設定画面で店舗情報を入力");
   console.log("   - SBT管理画面でショップオーナー登録を実行");
   console.log("");
-  console.log("4️⃣  本番環境での動作確認");
-  console.log("   - SBT発行のテスト");
-  console.log("   - ユーザーでの受取確認");
+  console.log("3️⃣  SBT発行のテスト");
+  console.log("   - ユーザーアドレスを指定してSBTを発行");
+  console.log("   - Pinataに画像をアップロード");
+  console.log("   - メタデータURIを生成して発行");
+  console.log("");
+  console.log("4️⃣  本番環境デプロイ（準備ができたら）");
+  console.log("   - Polygon MainnetにPOLを用意");
+  console.log("   - deploy-mainnet.js を実行");
   console.log("━".repeat(60));
 
-  console.log("\n🎉 本番環境デプロイが正常に完了しました!");
+  console.log("\n💡 ヒント:");
+  console.log("   - Faucet: https://faucet.polygon.technology/");
+  console.log("   - Explorer: https://amoy.polygonscan.com/");
+  console.log("   - RPC: https://rpc-amoy.polygon.technology/");
+  
+  console.log("\n🎉 テストネットデプロイが正常に完了しました!");
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("❌ デプロイエラー:", error);
+    console.error("\n❌ デプロイエラー:", error);
+    console.error("\n💡 トラブルシューティング:");
+    console.error("   1. .env ファイルのPRIVATE_KEYが正しいか確認");
+    console.error("   2. Amoy テストネットに接続しているか確認");
+    console.error("   3. アカウントにテストPOLがあるか確認");
+    console.error("   4. hardhat.config.js の設定を確認");
     process.exit(1);
   });
