@@ -73,6 +73,14 @@ const QRPayment: React.FC = () => {
   const [shopInfo, setShopInfo] = useState({ name: DEFAULT_SHOP_INFO.name, id: DEFAULT_SHOP_INFO.id });
   const [sbtTemplates, setSbtTemplates] = useState<SBTTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('all'); // 'all' = 全テンプレート, それ以外 = 特定テンプレートID
+  
+  // 支払いセッションごとのSBT発行ステータス管理
+  // Map<sessionId, Map<templateId, { status: 'issuing' | 'completed' | 'error', message: string, transactionHash?: string }>>
+  const [paymentSBTStatus, setPaymentSBTStatus] = useState<Map<string, Map<string, { 
+    status: 'issuing' | 'completed' | 'error'; 
+    message: string; 
+    transactionHash?: string 
+  }>>>(new Map());
 
   // 店舗情報をローカルストレージから読み込む
   useEffect(() => {
@@ -1500,7 +1508,7 @@ const QRPayment: React.FC = () => {
             {paymentSessions.filter(s => s.status === 'completed').length === 0 ? (
               <p className="text-gray-500 text-sm">完了した支払いはまだありません</p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {/* 顧客別統計サマリー */}
                 {customerPaymentStats.size > 0 && (
                   <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
@@ -1536,6 +1544,21 @@ const QRPayment: React.FC = () => {
                             SBTテンプレート設定
                           </a>
                         )}
+                        
+                        {/* デバッグ: テンプレート情報確認ボタン */}
+                        <button
+                          onClick={() => {
+                            console.log('=== SBTテンプレート情報 ===');
+                            console.log('読み込み済みテンプレート数:', sbtTemplates.length);
+                            console.log('テンプレート詳細:', sbtTemplates);
+                            console.log('選択中のテンプレートID:', selectedTemplateId);
+                            toast.success(`テンプレート ${sbtTemplates.length} 件読み込み済み (コンソール確認)`);
+                          }}
+                          className="flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1.5 rounded-lg transition whitespace-nowrap"
+                          title="コンソールにテンプレート情報を表示"
+                        >
+                          📋 {sbtTemplates.length}件
+                        </button>
                       </div>
                     </div>
                     
@@ -1634,6 +1657,161 @@ const QRPayment: React.FC = () => {
                     )}
                   </div>
                 )}
+                
+                {/* 個別決済セッション表示（SBT発行機能付き） */}
+                <div className="space-y-3">
+                  {paymentSessions
+                    .filter(s => s.status === 'completed' && s.payerAddress)
+                    .sort((a, b) => new Date(b.detectedAt || '').getTime() - new Date(a.detectedAt || '').getTime())
+                    .map((session) => {
+                      const paymentCount = customerPaymentStats.get(session.payerAddress!) || 0;
+                      const recommendation = getSBTRecommendation(paymentCount);
+                      
+                      return (
+                        <div key={session.id} className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h3 className="font-bold text-gray-900 text-lg">
+                                {session.amount} {session.currency} - {session.chainName}
+                              </h3>
+                              <p className="text-sm text-gray-600 mt-1">
+                                決済日: {session.detectedAt || session.createdAt}
+                              </p>
+                            </div>
+                            {session.transactionHash && (
+                              <a
+                                href={`${Object.values(NETWORKS).find(n => n.chainId === session.chainId)?.blockExplorerUrl}/tx/${session.transactionHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-semibold"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                                Tx確認
+                              </a>
+                            )}
+                          </div>
+                          
+                          <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                            <p className="text-xs text-gray-600 mb-1">支払者アドレス</p>
+                            <p className="font-mono text-sm text-gray-900 break-all">
+                              {session.payerAddress}
+                            </p>
+                            <div className="mt-2 flex items-center gap-2">
+                              <span className="text-sm font-semibold text-gray-700">
+                                支払回数: {paymentCount}回目
+                              </span>
+                              {recommendation.shouldIssue && (
+                                <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full">
+                                  🎊 {recommendation.milestone}回達成！
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* SBT発行セクション */}
+                          {sbtTemplates.length > 0 && recommendation.matchedTemplates.length > 0 && (
+                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Award className="w-5 h-5 text-green-600" />
+                                <h4 className="font-bold text-green-900">SBT発行可能</h4>
+                              </div>
+                              <p className="text-sm text-green-800 mb-3">
+                                {recommendation.message}
+                              </p>
+                              
+                              {/* マッチしたテンプレート表示 */}
+                              <div className="space-y-2">
+                                {recommendation.matchedTemplates.map(template => {
+                                  const sbtStatus = paymentSBTStatus.get(session.id)?.get(template.id);
+                                  
+                                  return (
+                                    <div key={template.id} className="bg-white border border-green-300 rounded-lg p-3">
+                                      <div className="flex items-start justify-between mb-2">
+                                        <div className="flex-1">
+                                          <h5 className="font-bold text-gray-900">{template.name}</h5>
+                                          <p className="text-xs text-gray-600 mt-1">{template.description}</p>
+                                          {template.issuePattern === 'period_range' && template.periodEndDate && (
+                                            <p className="text-xs text-orange-600 mt-1">
+                                              ⏰ 期間限定: {template.periodEndDate}まで
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      
+                                      {/* SBT発行ステータス表示 */}
+                                      {sbtStatus ? (
+                                        <div className="mt-2">
+                                          {sbtStatus.status === 'issuing' && (
+                                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                                              <p className="text-sm text-blue-800 font-semibold">🔄 発行処理中...</p>
+                                              <p className="text-xs text-blue-600 mt-1">{sbtStatus.message}</p>
+                                            </div>
+                                          )}
+                                          {sbtStatus.status === 'completed' && (
+                                            <div className="bg-green-50 border border-green-200 rounded-lg p-2">
+                                              <p className="text-sm text-green-800 font-semibold">✅ 発行完了</p>
+                                              <p className="text-xs text-green-600 mt-1">{sbtStatus.message}</p>
+                                              {sbtStatus.transactionHash && (
+                                                <a
+                                                  href={`${Object.values(NETWORKS).find(n => n.chainId === session.chainId)?.blockExplorerUrl}/tx/${sbtStatus.transactionHash}`}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="text-xs text-blue-600 hover:text-blue-800 underline mt-1 inline-block"
+                                                >
+                                                  SBT発行トランザクション確認
+                                                </a>
+                                              )}
+                                            </div>
+                                          )}
+                                          {sbtStatus.status === 'error' && (
+                                            <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+                                              <p className="text-sm text-red-800 font-semibold">❌ 発行失敗</p>
+                                              <p className="text-xs text-red-600 mt-1">{sbtStatus.message}</p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => {
+                                            // SBT管理ページへ遷移
+                                            const params = new URLSearchParams({
+                                              template: template.id,
+                                              recipient: session.payerAddress!,
+                                              sessionId: session.id
+                                            });
+                                            window.location.href = `/sbt-management?${params.toString()}`;
+                                          }}
+                                          className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition flex items-center justify-center gap-2"
+                                        >
+                                          <Award className="w-4 h-4" />
+                                          このテンプレートでSBT発行
+                                        </button>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {sbtTemplates.length === 0 && (
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                              <p className="text-sm text-orange-700">
+                                📋 SBTテンプレート未設定
+                              </p>
+                              <a
+                                href="/sbt-management"
+                                className="inline-block mt-2 text-sm text-orange-600 hover:text-orange-800 underline font-semibold"
+                              >
+                                → SBT管理ページでテンプレートを作成
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  }
+                </div>
                 
                 {/* 詳細な支払い履歴テーブル */}
                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
