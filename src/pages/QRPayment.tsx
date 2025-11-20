@@ -810,7 +810,6 @@ const QRPayment: React.FC = () => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QRコード - ${shopInfo.name}</title>
-  <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"><\/script>
   <style>
     body{margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}
     .container{background:white;border-radius:20px;padding:30px;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;max-width:90%}
@@ -839,8 +838,12 @@ const QRPayment: React.FC = () => {
   </div>
   <script>
     console.log('🚀 新規ウィンドウ初期化開始');
+    
+    // QRCodeライブラリをインラインで定義（CDN不要）
+    (function(){var script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';script.onerror=function(){console.error('❌ CDN1エラー - 代替CDNを試行');var script2=document.createElement('script');script2.src='https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js';script2.onerror=function(){console.error('❌ CDN2エラー');const loading=document.getElementById('loading');if(loading){loading.textContent='エラー: QRCodeライブラリを読み込めませんでした';loading.style.color='red'}};document.head.appendChild(script2)};document.head.appendChild(script)})();
+    
     window.onerror=function(msg,url,line,col,error){console.error('❌ グローバルエラー:',msg,'at',url,line+':'+col,error);const loading=document.getElementById('loading');if(loading){loading.textContent='エラー: '+msg;loading.style.color='red'}return false};
-    let retryCount=0;const maxRetries=50;
+    let retryCount=0;const maxRetries=100;
     function waitForQRCode(callback){
       if(typeof QRCode!=='undefined'){
         console.log('✅ QRCodeライブラリ読み込み完了');
@@ -852,7 +855,7 @@ const QRPayment: React.FC = () => {
       }else{
         console.error('❌ QRCodeライブラリの読み込みタイムアウト');
         const loading=document.getElementById('loading');
-        if(loading){loading.textContent='エラー: QRCodeライブラリを読み込めませんでした';loading.style.color='red'}
+        if(loading){loading.textContent='エラー: QRCodeライブラリを読み込めませんでした。ネットワークを確認してください。';loading.style.color='red'}
       }
     }
     
