@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Store, Menu, X, HelpCircle } from 'lucide-react';
+import { Store, Menu, X, HelpCircle, Settings } from 'lucide-react';
 import { WalletButton } from '../WalletButton';
-import { useState } from 'react';
+import { useWallet } from '../../hooks/useWallet';
+import { Contract } from 'ethers';
+import { getContractForChain } from '../../config/contracts';
+import JPYCStampSBTABI from '../../contracts/JPYCStampSBT.json';
 
 interface HeaderProps {
   onHelpClick?: () => void;
@@ -10,6 +13,36 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { address, provider, chainId } = useWallet();
+  const [isContractOwner, setIsContractOwner] = useState(false);
+
+  // コントラクトオーナー判定
+  useEffect(() => {
+    const checkOwner = async () => {
+      if (!address || !provider || !chainId) {
+        setIsContractOwner(false);
+        return;
+      }
+
+      try {
+        const contractAddress = getContractForChain(chainId);
+        if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
+          setIsContractOwner(false);
+          return;
+        }
+
+        const signer = await provider.getSigner();
+        const contract = new Contract(contractAddress, JPYCStampSBTABI.abi, signer);
+        const owner = await contract.owner();
+        setIsContractOwner(owner.toLowerCase() === address.toLowerCase());
+      } catch (error) {
+        console.error('Error checking contract owner:', error);
+        setIsContractOwner(false);
+      }
+    };
+
+    checkOwner();
+  }, [address, provider, chainId]);
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -46,6 +79,16 @@ const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
             >
               SBT管理
             </Link>
+            {isContractOwner && (
+              <Link
+                to="/shop-admin"
+                className="text-blue-600 hover:text-blue-800 font-semibold transition flex items-center gap-1"
+                title="コントラクトオーナー専用"
+              >
+                <Settings className="w-4 h-4" />
+                ショップ管理
+              </Link>
+            )}
             <Link
               to="/settings"
               className="text-gray-600 hover:text-gray-900 font-medium transition"
@@ -105,6 +148,16 @@ const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
             >
               SBT管理
             </Link>
+            {isContractOwner && (
+              <Link
+                to="/shop-admin"
+                className="block px-3 xs:px-4 py-1.5 xs:py-2 text-sm xs:text-base text-blue-600 hover:bg-blue-50 rounded-lg transition truncate font-semibold flex items-center gap-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Settings className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">ショップ管理 (オーナー専用)</span>
+              </Link>
+            )}
             <Link
               to="/settings"
               className="block px-3 xs:px-4 py-1.5 xs:py-2 text-sm xs:text-base text-gray-600 hover:bg-gray-100 rounded-lg transition truncate"
