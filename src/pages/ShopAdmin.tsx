@@ -42,8 +42,7 @@ const ShopAdmin: React.FC = () => {
     shopId: '',
     name: '',
     description: '',
-    ownerAddress: '',
-    requiredVisits: 10
+    ownerAddress: ''
   });
 
   // 簡易的なBASIC認証（本番では環境変数から取得）
@@ -126,8 +125,7 @@ const ShopAdmin: React.FC = () => {
       shopId: '1', // デフォルトでショップID 1
       name: settings.name || '',
       description: settings.description || '',
-      ownerAddress: walletAddress || '', // 自分のウォレットアドレス
-      requiredVisits: 10
+      ownerAddress: walletAddress || '' // 自分のウォレットアドレス
     });
     toast.success('✅ 設定画面の情報を読み込みました');
   };
@@ -157,7 +155,7 @@ const ShopAdmin: React.FC = () => {
         shopName: newShop.name,
         description: newShop.description || `${newShop.name}のSBTシステム`,
         shopOwnerAddress: newShop.ownerAddress,
-        requiredVisits: newShop.requiredVisits,
+        requiredVisits: 10, // デフォルト値（SBT発行時に動的に設定される）
         chainId
       });
 
@@ -168,8 +166,7 @@ const ShopAdmin: React.FC = () => {
           shopId: '',
           name: '',
           description: '',
-          ownerAddress: '',
-          requiredVisits: 10
+          ownerAddress: ''
         });
         
         // リストを再読み込み
@@ -481,17 +478,11 @@ const ShopAdmin: React.FC = () => {
                   <p className="text-xs text-gray-500 mt-1">このアドレスがSBTを発行できるようになります</p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    必要利用回数
-                  </label>
-                  <input
-                    type="number"
-                    value={newShop.requiredVisits}
-                    onChange={(e) => setNewShop({...newShop, requiredVisits: parseInt(e.target.value) || 10})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    min="1"
-                  />
+                <div className="bg-gray-50 border border-gray-200 rounded p-3">
+                  <p className="text-xs text-gray-600">
+                    <strong>ℹ️ 注意:</strong> 必要利用回数はSBT発行時にテンプレートごとに動的に設定されます。
+                    ショップ登録時には設定不要です。
+                  </p>
                 </div>
 
                 <div className="flex gap-2">
