@@ -1252,37 +1252,11 @@ const QRPayment: React.FC = () => {
                                     <button class="close-btn" onclick="window.close()">✕ 閉じる</button>
                                   </div>
                                   
-                                  <!-- QRCodeライブラリを読み込み -->
-                                  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
-                                  
                                   <script>
-                                    console.log('🔧 QRウィンドウ: スクリプト開始');
-                                    
-                                    // ライブラリの読み込みを待ってからQRコードを生成
-                                    let retryCount = 0;
-                                    const maxRetries = 50; // 5秒間リトライ
-                                    
-                                    function initQRCode() {
-                                      retryCount++;
+                                    // QRコード生成処理（動的ライブラリ読み込み）
+                                    (function() {
+                                      console.log('🔧 QRウィンドウ: QRコード生成開始');
                                       
-                                      if (typeof QRCode === 'undefined') {
-                                        if (retryCount < maxRetries) {
-                                          console.log(\`QRCodeライブラリ読み込み待機中... (\${retryCount}/\${maxRetries})\`);
-                                          setTimeout(initQRCode, 100);
-                                        } else {
-                                          console.error('QRCodeライブラリの読み込みがタイムアウトしました');
-                                          const loading = document.getElementById('loading');
-                                          if (loading) {
-                                            loading.textContent = 'エラー: QRコードライブラリが読み込めませんでした';
-                                            loading.style.color = 'red';
-                                          }
-                                        }
-                                        return;
-                                      }
-                                      
-                                      console.log('✅ QRCodeライブラリ読み込み完了');
-                                      
-                                      // QRコードを生成してCanvasに描画
                                       const qrData = ${JSON.stringify(session.qrCodeData)};
                                       const canvas = document.getElementById('qrCanvas');
                                       const loading = document.getElementById('loading');
@@ -1292,65 +1266,113 @@ const QRPayment: React.FC = () => {
                                         return;
                                       }
                                       
-                                      console.log('📝 QRコードデータ長:', qrData.length);
+                                      // 詳細なデバッグログ
+                                      try {
+                                        const payloadObj = JSON.parse(qrData);
+                                        console.log('📝 QRコードペイロード:', {
+                                          dataLength: qrData.length,
+                                          chainId: payloadObj.chainId,
+                                          network: payloadObj.network || 'N/A',
+                                          amount: payloadObj.amount,
+                                          currency: payloadObj.currency,
+                                          contractAddress: payloadObj.contractAddress || payloadObj.token
+                                        });
+                                      } catch (e) {
+                                        console.log('📝 QRコードデータ:', {
+                                          length: qrData.length,
+                                          preview: qrData.substring(0, 100)
+                                        });
+                                      }
                                       
-                                      QRCode.toCanvas(canvas, qrData, {
-                                        errorCorrectionLevel: 'H',
-                                        margin: 2,
-                                        width: 350,
-                                        color: {
-                                          dark: '#000000',
-                                          light: '#FFFFFF'
-                                        }
-                                      }, function(error) {
-                                        if (error) {
-                                          console.error('❌ QRコード生成エラー:', error);
+                                      // QRコード生成ライブラリを動的ロード
+                                      const script = document.createElement('script');
+                                      script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+                                      
+                                      script.onload = function() {
+                                        console.log('✅ QRCodeライブラリ読み込み完了');
+                                        
+                                        try {
+                                          window.QRCode.toCanvas(canvas, qrData, {
+                                            errorCorrectionLevel: 'H',
+                                            margin: 2,
+                                            width: 350,
+                                            color: {
+                                              dark: '#000000',
+                                              light: '#FFFFFF'
+                                            }
+                                          }, function(error) {
+                                            if (error) {
+                                              console.error('❌ QRコード生成エラー:', error);
+                                              if (loading) {
+                                                loading.textContent = 'エラー: QRコード生成に失敗 - ' + error.message;
+                                                loading.style.color = 'red';
+                                              }
+                                              return;
+                                            }
+                                            
+                                            console.log('✅ QRコード生成成功');
+                                            
+                                            // ローディング非表示
+                                            if (loading) {
+                                              loading.style.display = 'none';
+                                            }
+                                            
+                                            // QRコードの中央にJPYCロゴを追加
+                                            const ctx = canvas.getContext('2d');
+                                            const logo = new Image();
+                                            logo.crossOrigin = 'anonymous';
+                                            
+                                            logo.onload = function() {
+                                              const logoSize = canvas.width * 0.2;
+                                              const logoX = (canvas.width - logoSize) / 2;
+                                              const logoY = (canvas.height - logoSize) / 2;
+                                              
+                                              // 白い背景を描画（ロゴの視認性向上）
+                                              const padding = logoSize * 0.1;
+                                              ctx.fillStyle = 'white';
+                                              ctx.fillRect(
+                                                logoX - padding,
+                                                logoY - padding,
+                                                logoSize + padding * 2,
+                                                logoSize + padding * 2
+                                              );
+                                              
+                                              // ロゴを描画
+                                              ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+                                              console.log('✅ JPYCロゴ追加完了');
+                                            };
+                                            
+                                            logo.onerror = function(err) {
+                                              console.warn('⚠️ ロゴの読み込みに失敗:', err);
+                                              console.warn('試行URL:', logo.src);
+                                            };
+                                            
+                                            // 絶対URLでロゴを読み込み（親ウィンドウのoriginを使用）
+                                            logo.src = window.opener ? 
+                                              window.opener.location.origin + '/images/jpyc-logo.svg' : 
+                                              window.location.origin + '/images/jpyc-logo.svg';
+                                            console.log('📥 ロゴ読み込み開始:', logo.src);
+                                          });
+                                        } catch (err) {
+                                          console.error('❌ QRコード生成中の例外:', err);
                                           if (loading) {
-                                            loading.textContent = 'エラー: QRコード生成に失敗しました';
+                                            loading.textContent = 'エラー: ' + err.message;
                                             loading.style.color = 'red';
                                           }
-                                          return;
                                         }
-                                        
-                                        console.log('✅ QRコード生成成功');
-                                        
-                                        // ローディング非表示
+                                      };
+                                      
+                                      script.onerror = function(err) {
+                                        console.error('❌ QRCodeライブラリの読み込みエラー:', err);
                                         if (loading) {
-                                          loading.style.display = 'none';
+                                          loading.textContent = 'エラー: QRコードライブラリが読み込めませんでした';
+                                          loading.style.color = 'red';
                                         }
-                                        
-                                        // QRコードの中央にJPYCロゴを追加
-                                        const ctx = canvas.getContext('2d');
-                                        const logo = new Image();
-                                        logo.crossOrigin = 'anonymous';
-                                        logo.onload = function() {
-                                          const logoSize = canvas.width * 0.2;
-                                          const logoX = (canvas.width - logoSize) / 2;
-                                          const logoY = (canvas.height - logoSize) / 2;
-                                          
-                                          // 白い背景を描画（ロゴの視認性向上）
-                                          const padding = logoSize * 0.1;
-                                          ctx.fillStyle = 'white';
-                                          ctx.fillRect(
-                                            logoX - padding,
-                                            logoY - padding,
-                                            logoSize + padding * 2,
-                                            logoSize + padding * 2
-                                          );
-                                          
-                                          // ロゴを描画
-                                          ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
-                                          console.log('✅ JPYCロゴ追加完了');
-                                        };
-                                        logo.onerror = function() {
-                                          console.warn('⚠️ ロゴの読み込みに失敗しました（QRコードは表示されています）');
-                                        };
-                                        logo.src = '${window.location.origin}/images/jpyc-logo.svg';
-                                      });
-                                    }
-                                    
-                                    // スクリプト読み込み後すぐに実行
-                                    initQRCode();
+                                      };
+                                      
+                                      document.head.appendChild(script);
+                                      console.log('📦 QRCodeライブラリ読み込み開始...');
+                                    })();
                                   <\/script>
                                 </body>
                                 </html>
