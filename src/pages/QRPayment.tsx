@@ -662,6 +662,16 @@ const QRPayment: React.FC = () => {
         payloadCurrency: payload.currency
       });
 
+      // ⚠️ 重要: チェーン情報の一致確認
+      if (payload.chainId !== selectedChainForPayment) {
+        console.error('❌ チェーンID不一致エラー:', {
+          expected: selectedChainForPayment,
+          actual: payload.chainId
+        });
+        toast.error('ネットワーク設定エラー: チェーンIDが一致しません');
+        return;
+      }
+
       // QRコード形式に応じてエンコード
       let encodedPayload: string;
       
@@ -706,6 +716,16 @@ const QRPayment: React.FC = () => {
       setPaymentSessions([newSession, ...paymentSessions]);
       setAmount('');
       const selectedContractMeta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
+      
+      console.log('✅ QRコード生成完了:', {
+        sessionId: newSession.id,
+        chainId: newSession.chainId,
+        chainName: newSession.chainName,
+        amount: newSession.amount,
+        currency: newSession.currency,
+        format: qrCodeFormat
+      });
+      
       toast.success(`QRコードを生成しました (${selectedContractMeta.label})`);
     } catch (error) {
       console.error('QRコード生成エラー:', error);
@@ -1069,6 +1089,23 @@ const QRPayment: React.FC = () => {
                       <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-3 sm:mt-4 justify-center">
                         <button
                           onClick={() => {
+                            // デバッグ: セッション情報を確認
+                            console.log('🪟 新規ウィンドウ表示 - セッション情報:', {
+                              sessionId: session.id,
+                              chainId: session.chainId,
+                              chainName: session.chainName,
+                              amount: session.amount,
+                              currency: session.currency,
+                              contractAddress: (() => {
+                                try {
+                                  const parsed = JSON.parse(session.qrCodeData);
+                                  return parsed.contractAddress || parsed.contract_address || 'N/A';
+                                } catch {
+                                  return 'parse error';
+                                }
+                              })()
+                            });
+                            
                             // 新しいウィンドウで開く(別タブではなく別ウィンドウ)
                             const width = 500;
                             const height = 700;
