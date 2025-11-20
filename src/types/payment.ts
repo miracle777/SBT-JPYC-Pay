@@ -61,7 +61,7 @@ export const encodePaymentPayloadForJPYCPay = (payload: PaymentPayload): string 
   const amountJPYC = (BigInt(payload.amount) / BigInt(10 ** 18)).toString();
   
   const jpycPayData = {
-    type: 'JPYC_PAYMENT',  // 統一標準形式
+    type: 'MASARU21_PAYMENT',  // 統一標準形式（推奨）
     to: payload.shopWallet,        // 受取先アドレス
     amount: amountJPYC,            // JPYC単位の金額
     currency: payload.currency,    // 通貨シンボル (JPYC または tJPYC)
@@ -146,8 +146,8 @@ export const decodePaymentPayload = (encoded: string): PaymentPayload => {
   try {
     const data = JSON.parse(encoded);
     
-    // JPYC_PAYMENT統一標準形式の場合
-    if (data.type === 'JPYC_PAYMENT') {
+    // MASARU21_PAYMENT統一標準形式の場合
+    if (data.type === 'MASARU21_PAYMENT' || data.type === 'JPYC_PAYMENT') {
       // JPYC単位からWei単位へ変換
       const amountWei = (BigInt(data.amount || 0) * BigInt(10 ** 18)).toString();
       
