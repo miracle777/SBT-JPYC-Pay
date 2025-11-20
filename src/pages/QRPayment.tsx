@@ -1143,7 +1143,6 @@ const QRPayment: React.FC = () => {
                                   <meta charset="UTF-8">
                                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                   <title>QRコード - ${shopInfo.name}</title>
-                                  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
                                   <style>
                                     body {
                                       margin: 0;
@@ -1180,6 +1179,11 @@ const QRPayment: React.FC = () => {
                                       border-radius: 15px;
                                       display: inline-block;
                                       margin: 20px 0;
+                                      min-width: 350px;
+                                      min-height: 350px;
+                                      display: flex;
+                                      align-items: center;
+                                      justify-content: center;
                                     }
                                     .amount {
                                       font-size: 32px;
@@ -1208,6 +1212,10 @@ const QRPayment: React.FC = () => {
                                     #qrCanvas {
                                       border: 1px solid #e5e7eb;
                                     }
+                                    .loading {
+                                      color: #667eea;
+                                      font-size: 14px;
+                                    }
                                     @keyframes slideDown {
                                       from {
                                         transform: translateX(-50%) translateY(-100%);
@@ -1226,28 +1234,54 @@ const QRPayment: React.FC = () => {
                                     <div class="shop-name">${shopInfo.name}</div>
                                     <div class="qr-container">
                                       <canvas id="qrCanvas"></canvas>
+                                      <div id="loading" class="loading">QRコード生成中...</div>
                                     </div>
                                     <div class="amount">${session.amount} ${session.currency}</div>
                                     <div class="network">📡 ${session.chainName}</div>
                                     <button class="close-btn" onclick="window.close()">✕ 閉じる</button>
                                   </div>
+                                  
+                                  <!-- QRCodeライブラリを読み込み -->
+                                  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
+                                  
                                   <script>
+                                    console.log('🔧 QRウィンドウ: スクリプト開始');
+                                    
                                     // ライブラリの読み込みを待ってからQRコードを生成
+                                    let retryCount = 0;
+                                    const maxRetries = 50; // 5秒間リトライ
+                                    
                                     function initQRCode() {
+                                      retryCount++;
+                                      
                                       if (typeof QRCode === 'undefined') {
-                                        console.log('QRCodeライブラリ読み込み中...');
-                                        setTimeout(initQRCode, 100);
+                                        if (retryCount < maxRetries) {
+                                          console.log(\`QRCodeライブラリ読み込み待機中... (\${retryCount}/\${maxRetries})\`);
+                                          setTimeout(initQRCode, 100);
+                                        } else {
+                                          console.error('QRCodeライブラリの読み込みがタイムアウトしました');
+                                          const loading = document.getElementById('loading');
+                                          if (loading) {
+                                            loading.textContent = 'エラー: QRコードライブラリが読み込めませんでした';
+                                            loading.style.color = 'red';
+                                          }
+                                        }
                                         return;
                                       }
+                                      
+                                      console.log('✅ QRCodeライブラリ読み込み完了');
                                       
                                       // QRコードを生成してCanvasに描画
                                       const qrData = ${JSON.stringify(session.qrCodeData)};
                                       const canvas = document.getElementById('qrCanvas');
+                                      const loading = document.getElementById('loading');
                                       
                                       if (!canvas) {
-                                        console.error('Canvas要素が見つかりません');
+                                        console.error('❌ Canvas要素が見つかりません');
                                         return;
                                       }
+                                      
+                                      console.log('📝 QRコードデータ長:', qrData.length);
                                       
                                       QRCode.toCanvas(canvas, qrData, {
                                         errorCorrectionLevel: 'H',
@@ -1259,11 +1293,20 @@ const QRPayment: React.FC = () => {
                                         }
                                       }, function(error) {
                                         if (error) {
-                                          console.error('QRコード生成エラー:', error);
+                                          console.error('❌ QRコード生成エラー:', error);
+                                          if (loading) {
+                                            loading.textContent = 'エラー: QRコード生成に失敗しました';
+                                            loading.style.color = 'red';
+                                          }
                                           return;
                                         }
                                         
-                                        console.log('QRコード生成成功');
+                                        console.log('✅ QRコード生成成功');
+                                        
+                                        // ローディング非表示
+                                        if (loading) {
+                                          loading.style.display = 'none';
+                                        }
                                         
                                         // QRコードの中央にJPYCロゴを追加
                                         const ctx = canvas.getContext('2d');
@@ -1286,22 +1329,18 @@ const QRPayment: React.FC = () => {
                                           
                                           // ロゴを描画
                                           ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
-                                          console.log('JPYCロゴ追加完了');
+                                          console.log('✅ JPYCロゴ追加完了');
                                         };
                                         logo.onerror = function() {
-                                          console.warn('ロゴの読み込みに失敗しました');
+                                          console.warn('⚠️ ロゴの読み込みに失敗しました（QRコードは表示されています）');
                                         };
                                         logo.src = '${window.location.origin}/images/jpyc-logo.svg';
                                       });
                                     }
                                     
-                                    // DOMの準備ができたら実行
-                                    if (document.readyState === 'loading') {
-                                      document.addEventListener('DOMContentLoaded', initQRCode);
-                                    } else {
-                                      initQRCode();
-                                    }
-                                  </script>
+                                    // スクリプト読み込み後すぐに実行
+                                    initQRCode();
+                                  <\/script>
                                 </body>
                                 </html>
                               `);
