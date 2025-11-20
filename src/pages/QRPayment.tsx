@@ -887,11 +887,6 @@ const QRPayment: React.FC = () => {
       }, 1000);
     }
   };
-    } catch (error) {
-      console.error('QRコード生成エラー:', error);
-      toast.error('QRコード生成に失敗しました');
-    }
-  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
