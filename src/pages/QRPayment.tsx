@@ -1069,7 +1069,7 @@ const QRPayment: React.FC = () => {
           file,
           template.name,
           template.description,
-          { name: shopInfo.name, id: shopIdNumber },
+          { name: shopInfo.name, id: shopInfo.id, category: '', description: '' },
           {
             shopId: template.shopId,
             maxStamps: template.maxStamps,
