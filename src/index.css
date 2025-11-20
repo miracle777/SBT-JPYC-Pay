@@ -69,3 +69,15 @@ body {
     }
   }
 }
+
+/* number型inputのスピナー(上下矢印)を完全に非表示 */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

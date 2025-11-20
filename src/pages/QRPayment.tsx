@@ -1124,52 +1124,59 @@ const QRPayment: React.FC = () => {
             ) : (
               <div className="flex flex-col items-center space-y-4">
                 {/* 選択中のネットワークと一致するセッションのみ表示 */}
-                {/* pending セッションがあればそれを表示、なければ最新のcompletedセッションを表示 */}
+                {/* pending セッションがあればそれを表示、なければ待機画面を表示 */}
                 {(() => {
                   // 選択中のネットワークと一致するセッションのみをフィルタ
                   const matchingNetworkSessions = paymentSessions.filter(s => s.chainId === selectedChainForPayment);
                   
                   const pendingSession = matchingNetworkSessions.find(s => s.status === 'pending');
-                  const displaySession = pendingSession || matchingNetworkSessions.filter(s => s.status === 'completed').slice(-1)[0];
                   
-                  if (!displaySession) {
+                  // pendingセッションがない場合は待機画面を表示
+                  if (!pendingSession) {
+                    // 完了したセッションがある場合はその情報も表示
+                    const completedSessions = matchingNetworkSessions.filter(s => s.status === 'completed');
+                    const lastCompleted = completedSessions.slice(-1)[0];
+                    
                     return (
-                      <div className="text-center py-8 bg-blue-50 border-2 border-blue-200 rounded-lg">
-                        <Network className="w-12 h-12 text-blue-400 mx-auto mb-3" />
-                        <p className="text-gray-600 mb-2">
-                          現在のネットワーク: <strong>{paymentNetwork?.displayName}</strong>
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          このネットワークでのQRコードはまだ生成されていません
-                        </p>
-                        <p className="text-xs text-gray-400 mt-2">
-                          下の「設定」でQRコードを生成してください
-                        </p>
+                      <div className="text-center py-8">
+                        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-4">
+                          <Clock className="w-16 h-16 text-blue-400 mx-auto mb-3 animate-pulse" />
+                          <h3 className="text-lg font-bold text-gray-800 mb-2">
+                            💤 待機中
+                          </h3>
+                          <p className="text-gray-600 mb-2">
+                            現在のネットワーク: <strong>{paymentNetwork?.displayName}</strong>
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            新しいQRコードを生成してください
+                          </p>
+                        </div>
+                        
+                        {lastCompleted && (
+                          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                              <CheckCircle className="w-5 h-5 text-green-600" />
+                              <h4 className="text-sm font-semibold text-gray-700">最後の決済</h4>
+                            </div>
+                            <p className="text-lg font-bold text-green-600">
+                              {lastCompleted.amount} {(() => {
+                                const contractMeta = getJpycContractMeta(lastCompleted.chainId, paymentContractAddress);
+                                return contractMeta.symbol;
+                              })()}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {lastCompleted.detectedAt}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     );
                   }
                   
+                  const displaySession = pendingSession;
+                  
                   return (
                     <div key={displaySession.id} className="w-full">
-                      {/* 決済完了バナー（completedの場合のみ表示） */}
-                      {displaySession.status === 'completed' && (
-                        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg p-6 mb-4 text-center animate-pulse">
-                          <div className="flex items-center justify-center gap-3 mb-2">
-                            <CheckCircle className="w-8 h-8" />
-                            <h3 className="text-2xl font-bold">🎉 決済完了！</h3>
-                          </div>
-                          <p className="text-lg font-semibold">
-                            💰 {displaySession.amount} {(() => {
-                              const contractMeta = getJpycContractMeta(displaySession.chainId, paymentContractAddress);
-                              return contractMeta.symbol;
-                            })()}
-                          </p>
-                          <p className="text-sm mt-2 opacity-90">
-                            {displaySession.detectedAt}
-                          </p>
-                        </div>
-                      )}
-
                       {(() => {
                         const session = displaySession;
                         return (<>
@@ -1486,12 +1493,23 @@ const QRPayment: React.FC = () => {
                       })() : 'JPYC'})
                     </label>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*\.?[0-9]*"
                       value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // 数字とドットのみ許可
+                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                          setAmount(value);
+                        }
+                      }}
                       placeholder="例: 100"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      style={{
+                        WebkitAppearance: 'none',
+                        MozAppearance: 'textfield'
+                      }}
                     />
                   </div>
 
