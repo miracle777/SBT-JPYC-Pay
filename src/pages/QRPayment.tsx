@@ -1175,48 +1175,75 @@ const QRPayment: React.FC = () => {
                                     <button class="close-btn" onclick="window.close()">✕ 閉じる</button>
                                   </div>
                                   <script>
-                                    // QRコードを生成してCanvasに描画
-                                    const qrData = ${JSON.stringify(session.qrCodeData)};
-                                    const canvas = document.getElementById('qrCanvas');
-                                    
-                                    QRCode.toCanvas(canvas, qrData, {
-                                      errorCorrectionLevel: 'H',
-                                      margin: 2,
-                                      width: 350,
-                                      color: {
-                                        dark: '#000000',
-                                        light: '#FFFFFF'
-                                      }
-                                    }, function(error) {
-                                      if (error) {
-                                        console.error('QRコード生成エラー:', error);
+                                    // ライブラリの読み込みを待ってからQRコードを生成
+                                    function initQRCode() {
+                                      if (typeof QRCode === 'undefined') {
+                                        console.log('QRCodeライブラリ読み込み中...');
+                                        setTimeout(initQRCode, 100);
                                         return;
                                       }
                                       
-                                      // QRコードの中央にJPYCロゴを追加
-                                      const ctx = canvas.getContext('2d');
-                                      const logo = new Image();
-                                      logo.crossOrigin = 'anonymous';
-                                      logo.onload = function() {
-                                        const logoSize = canvas.width * 0.2;
-                                        const logoX = (canvas.width - logoSize) / 2;
-                                        const logoY = (canvas.height - logoSize) / 2;
+                                      // QRコードを生成してCanvasに描画
+                                      const qrData = ${JSON.stringify(session.qrCodeData)};
+                                      const canvas = document.getElementById('qrCanvas');
+                                      
+                                      if (!canvas) {
+                                        console.error('Canvas要素が見つかりません');
+                                        return;
+                                      }
+                                      
+                                      QRCode.toCanvas(canvas, qrData, {
+                                        errorCorrectionLevel: 'H',
+                                        margin: 2,
+                                        width: 350,
+                                        color: {
+                                          dark: '#000000',
+                                          light: '#FFFFFF'
+                                        }
+                                      }, function(error) {
+                                        if (error) {
+                                          console.error('QRコード生成エラー:', error);
+                                          return;
+                                        }
                                         
-                                        // 白い背景を描画（ロゴの視認性向上）
-                                        const padding = logoSize * 0.1;
-                                        ctx.fillStyle = 'white';
-                                        ctx.fillRect(
-                                          logoX - padding,
-                                          logoY - padding,
-                                          logoSize + padding * 2,
-                                          logoSize + padding * 2
-                                        );
+                                        console.log('QRコード生成成功');
                                         
-                                        // ロゴを描画
-                                        ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
-                                      };
-                                      logo.src = '${window.location.origin}/images/jpyc-logo.svg';
-                                    });
+                                        // QRコードの中央にJPYCロゴを追加
+                                        const ctx = canvas.getContext('2d');
+                                        const logo = new Image();
+                                        logo.crossOrigin = 'anonymous';
+                                        logo.onload = function() {
+                                          const logoSize = canvas.width * 0.2;
+                                          const logoX = (canvas.width - logoSize) / 2;
+                                          const logoY = (canvas.height - logoSize) / 2;
+                                          
+                                          // 白い背景を描画（ロゴの視認性向上）
+                                          const padding = logoSize * 0.1;
+                                          ctx.fillStyle = 'white';
+                                          ctx.fillRect(
+                                            logoX - padding,
+                                            logoY - padding,
+                                            logoSize + padding * 2,
+                                            logoSize + padding * 2
+                                          );
+                                          
+                                          // ロゴを描画
+                                          ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+                                          console.log('JPYCロゴ追加完了');
+                                        };
+                                        logo.onerror = function() {
+                                          console.warn('ロゴの読み込みに失敗しました');
+                                        };
+                                        logo.src = '${window.location.origin}/images/jpyc-logo.svg';
+                                      });
+                                    }
+                                    
+                                    // DOMの準備ができたら実行
+                                    if (document.readyState === 'loading') {
+                                      document.addEventListener('DOMContentLoaded', initQRCode);
+                                    } else {
+                                      initQRCode();
+                                    }
                                   </script>
                                 </body>
                                 </html>
