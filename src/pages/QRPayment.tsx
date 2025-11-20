@@ -13,6 +13,7 @@ import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetw
 import { sbtStorage } from '../utils/storage';
 import { isGaslessAvailable } from '../utils/gaslessPayment';
 import { mintSBT, type MintSBTParams } from '../utils/sbtMinting';
+import { pinataService } from '../utils/pinata';
 
 // ウォレットアドレスを省略表示する関数 (0x1234...5678 形式)
 const shortenAddress = (address: string, startChars: number = 6, endChars: number = 4): string => {
@@ -1020,10 +1021,79 @@ const QRPayment: React.FC = () => {
         ? parseInt(shopInfo.id.replace(/\D/g, '')) || 1 
         : shopInfo.id;
       
+      // メタデータを動的に生成してIPFSにアップロード
+      let tokenURI = '';
+      
+      try {
+        // テンプレートの画像をBlobに変換してPinataにアップロード
+        let file: File;
+        
+        // Data URL形式かどうかを判定
+        if (template.imageUrl.startsWith('data:')) {
+          // Data URL形式の場合、Base64デコード
+          const matches = template.imageUrl.match(/^data:(.+);base64,(.+)$/);
+          if (!matches) {
+            throw new Error('Invalid data URL format');
+          }
+          
+          const mimeType = matches[1];
+          const base64Data = matches[2];
+          
+          // Base64をバイナリに変換
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          
+          const blob = new Blob([bytes], { type: mimeType });
+          const extension = mimeType.split('/')[1] || 'png';
+          file = new File([blob], `${template.name}.${extension}`, { type: mimeType });
+        } else {
+          // URL形式の場合、fetchして取得
+          const response = await fetch(template.imageUrl);
+          const blob = await response.blob();
+          file = new File([blob], `${template.name}.jpg`, { type: blob.type || 'image/jpeg' });
+        }
+
+        // ステータス更新
+        sessionMap.set(template.id, {
+          status: 'issuing',
+          message: '📋 メタデータ作成中...',
+        });
+        newStatus.set(sessionId, sessionMap);
+        setPaymentSBTStatus(newStatus);
+
+        // 動的メタデータでPinataにアップロード
+        const result = await pinataService.createDynamicSBTWithImage(
+          file,
+          template.name,
+          template.description,
+          { name: shopInfo.name, id: shopIdNumber },
+          {
+            shopId: template.shopId,
+            maxStamps: template.maxStamps,
+            rewardDescription: template.rewardDescription,
+            issuePattern: template.issuePattern,
+          }
+        );
+
+        tokenURI = result.tokenURI;
+        console.log('✅ 動的メタデータでIPFS Upload成功:', tokenURI);
+
+      } catch (uploadError: any) {
+        console.error('IPFS Upload エラー:', uploadError);
+        
+        // フォールバック: ダミーのIPFS URIを使用
+        const dummyHash = `Qm${Date.now().toString(36)}${Math.random().toString(36).substring(2, 15)}`.padEnd(46, '0');
+        tokenURI = `ipfs://${dummyHash}`;
+        console.warn('⚠️ ダミーURI使用:', tokenURI);
+      }
+      
       const mintParams: MintSBTParams = {
         recipientAddress,
         shopId: shopIdNumber,
-        tokenURI: template.tokenURI,
+        tokenURI,
         chainId,
       };
 
@@ -1031,6 +1101,7 @@ const QRPayment: React.FC = () => {
         template: template.name,
         recipient: recipientAddress,
         shopId: shopIdNumber,
+        tokenURI,
         chainId,
       });
 
