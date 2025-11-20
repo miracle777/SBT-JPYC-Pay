@@ -28,7 +28,7 @@ const ShopAdmin: React.FC = () => {
   
   const [isContractOwner, setIsContractOwner] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true); // デモ版: 認証不要
   const [authPassword, setAuthPassword] = useState('');
   
   // ショップリスト
@@ -169,6 +169,8 @@ const ShopAdmin: React.FC = () => {
     }
   };
 
+  // デモ版: 認証画面をスキップ（コメントアウト）
+  /*
   // 認証画面
   if (!isAuthenticated) {
     return (
@@ -219,6 +221,7 @@ const ShopAdmin: React.FC = () => {
       </div>
     );
   }
+  */
 
   // 権限なし画面
   if (!isContractOwner && !isLoading) {
