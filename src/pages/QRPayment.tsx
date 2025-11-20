@@ -616,6 +616,26 @@ const QRPayment: React.FC = () => {
       return;
     }
 
+    // ⚠️ ウォレットの接続ネットワークと支払いネットワークの一致確認
+    if (currentChainId && currentChainId !== selectedChainForPayment) {
+      const currentNet = Object.values(NETWORKS).find(n => n.chainId === currentChainId);
+      const selectedNet = Object.values(NETWORKS).find(n => n.chainId === selectedChainForPayment);
+      
+      toast.error(
+        `ネットワークが一致しません。\n現在のウォレット: ${currentNet?.displayName || 'Unknown'}\n選択された支払いネットワーク: ${selectedNet?.displayName || 'Unknown'}\n\nウォレットのネットワークを切り替えてください。`,
+        { duration: 5000 }
+      );
+      
+      console.error('❌ ネットワーク不一致:', {
+        walletChainId: currentChainId,
+        walletNetwork: currentNet?.displayName,
+        selectedChainId: selectedChainForPayment,
+        selectedNetwork: selectedNet?.displayName
+      });
+      
+      return;
+    }
+
     try {
       const paymentId = `PAY${Date.now()}`;
       const expiresAtTimestamp = Math.floor(Date.now() / 1000) + expiryTimeMinutes * 60;
@@ -1679,9 +1699,15 @@ const QRPayment: React.FC = () => {
                   {/* 生成ボタン */}
                   <button
                     type="submit"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 text-sm"
+                    disabled={isNetworkMismatch}
+                    className={`w-full font-bold py-2 px-4 rounded-lg transition duration-200 text-sm ${
+                      isNetworkMismatch
+                        ? 'bg-gray-400 cursor-not-allowed text-gray-200'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                    title={isNetworkMismatch ? 'ウォレットのネットワークを支払いネットワークに切り替えてください' : ''}
                   >
-                    QRコード生成
+                    {isNetworkMismatch ? '⚠️ ネットワークを切り替えてください' : 'QRコード生成'}
                   </button>
                 </form>
               </div>
