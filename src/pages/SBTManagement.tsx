@@ -2327,64 +2327,25 @@ const SBTManagement: React.FC = () => {
 
                   {/* ショップ登録案内 */}
                   {!shopInfo?.owner && (
-                    <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
-                      <h4 className="font-semibold text-blue-900 text-sm mb-2">🏪 ショップオーナーとして登録する</h4>
-                      <p className="text-xs text-blue-800 mb-2">
-                        設定画面で登録したショップオーナーアドレスをブロックチェーンに記録します。
+                    <div className="bg-gray-50 border border-gray-300 rounded p-3 mb-3">
+                      <h4 className="font-semibold text-gray-700 text-sm mb-2">🔒 ショップオーナー登録</h4>
+                      <p className="text-xs text-gray-600 mb-3">
+                        この機能は<strong>コントラクトオーナー専用</strong>です。
                       </p>
+                      <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2">
+                        <p className="text-xs text-yellow-800">
+                          <strong>💡 ショップオーナーになりたい方へ:</strong><br/>
+                          コントラクトオーナーに連絡して、あなたのウォレットアドレスをショップオーナーとして登録してもらう必要があります。
+                        </p>
+                      </div>
                       <button
-                        onClick={async () => {
-                          // 設定画面のショップ情報を取得
-                          const savedShopInfo = localStorage.getItem('shop-info');
-                          if (!savedShopInfo) {
-                            toast.error('まず設定画面で店舗情報を登録してください');
-                            return;
-                          }
-
-                          const shopData = JSON.parse(savedShopInfo);
-                          if (!shopData.ownerAddress) {
-                            toast.error('設定画面でショップオーナーアドレスを設定してください');
-                            return;
-                          }
-
-                          if (!shopData.name) {
-                            toast.error('設定画面で店舗名を設定してください');
-                            return;
-                          }
-
-                          setIsRegisteringShop(true);
-                          try {
-                            const result = await registerShop({
-                              shopId: 1,
-                              shopName: shopData.name,
-                              description: shopData.description || `${shopData.name}のスタンプカード`,
-                              shopOwnerAddress: shopData.ownerAddress,
-                              requiredVisits: 10,
-                              chainId: selectedChainForSBT,
-                            });
-
-                            if (result.success) {
-                              toast.success(`🎉 ショップオーナー登録完了！\nオーナー: ${shopData.ownerAddress.slice(0, 10)}...\nこのアドレスでSBTを発行できます。`, {
-                                duration: 8000
-                              });
-                              // ページをリロードして権限を再確認
-                              setTimeout(() => window.location.reload(), 2000);
-                            } else {
-                              toast.error(result.error || 'ショップ登録に失敗しました');
-                            }
-                          } catch (error: any) {
-                            toast.error(`登録エラー: ${error.message}`);
-                          } finally {
-                            setIsRegisteringShop(false);
-                          }
-                        }}
-                        disabled={isRegisteringShop}
-                        className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded font-semibold text-sm transition"
+                        disabled
+                        className="w-full px-4 py-2 bg-gray-300 text-gray-500 rounded font-semibold text-sm cursor-not-allowed"
                       >
-                        {isRegisteringShop ? '登録中...' : '🏪 ショップオーナーとして登録する'}
+                        🔒 権限がありません
                       </button>
-                      <p className="text-xs text-blue-700 mt-2">
-                        💡 MetaMaskで署名が必要です（ガス代: 約0.01 POL）
+                      <p className="text-xs text-gray-500 mt-2">
+                        ※ この操作にはコントラクトオーナー権限が必要です
                       </p>
                     </div>
                   )}
@@ -2438,11 +2399,27 @@ const SBTManagement: React.FC = () => {
                 <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <h3 className="font-bold text-green-900">✅ SBT発行権限OK</h3>
-                  <p className="text-sm text-green-800 mt-1">
+                  <p className="text-sm text-green-800 mt-1 mb-3">
                     {isContractOwner 
                       ? 'コントラクトオーナーとしてSBTをミントできます' 
                       : 'ショップオーナーとしてSBTをミントできます'}
                   </p>
+                  
+                  {/* コントラクトオーナー専用: ショップ管理リンク */}
+                  {isContractOwner && (
+                    <div className="bg-white border border-green-200 rounded-lg p-3">
+                      <h4 className="font-semibold text-gray-900 mb-2">🏪 ショップ管理機能</h4>
+                      <p className="text-xs text-gray-600 mb-3">
+                        新しいショップをシステムに登録したり、既存ショップの管理ができます。
+                      </p>
+                      <button
+                        onClick={() => navigate('/shop-admin')}
+                        className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition font-semibold"
+                      >
+                        🔧 ショップ管理画面を開く
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
