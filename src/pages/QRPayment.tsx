@@ -231,8 +231,9 @@ const QRPayment: React.FC = () => {
     }
   }, [selectedChainForPayment]);
 
-  const isNetworkMismatch =
-    currentChainId && currentChainId !== selectedChainForPayment;
+  const isNetworkMismatch = Boolean(
+    currentChainId && currentChainId !== selectedChainForPayment
+  );
 
   // ガス代を計算
   useEffect(() => {
