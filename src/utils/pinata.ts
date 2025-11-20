@@ -327,6 +327,8 @@ export class PinataService {
         name: sbtName,
         description: sbtDescription,
         image: `ipfs://${imageResult.IpfsHash}`,
+        image_url: `https://gateway.pinata.cloud/ipfs/${imageResult.IpfsHash}`, // OpenSea/Polygonscan対応
+        external_url: `https://gateway.pinata.cloud/ipfs/${imageResult.IpfsHash}`, // 追加のHTTPSアクセス
         shopId: template.shopId,
         required_visits: template.maxStamps,
         benefits: benefits,

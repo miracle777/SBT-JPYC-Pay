@@ -40,6 +40,8 @@ export interface SBTMetadata {
   name: string;
   description: string;
   image: string;
+  image_url?: string; // OpenSea/Polygonscan対応 - HTTPSゲートウェイURL
+  external_url?: string; // 外部リンク用URL
   shopId?: number;
   required_visits?: number;
   benefits?: string[];
