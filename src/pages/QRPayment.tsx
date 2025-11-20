@@ -625,6 +625,13 @@ const QRPayment: React.FC = () => {
           break;
       }
 
+      console.log('📋 エンコード後のペイロード:', {
+        format: qrCodeFormat,
+        payloadLength: encodedPayload?.length || 0,
+        payload: encodedPayload,
+        payloadPreview: encodedPayload?.substring(0, 100) + '...'
+      });
+
       const newSession: PaymentSession = {
         id: paymentId,
         amount: amountNum,
@@ -994,7 +1001,7 @@ const QRPayment: React.FC = () => {
                             <>
                               📋 <strong>MetaMaskアプリ</strong>でスキャン → <strong className="text-red-600">金額を手入力</strong>してください<br />
                               <span className="text-gray-600">アドレス: {shopWalletAddress.slice(0, 8)}...{shopWalletAddress.slice(-6)}</span><br />
-                              <span className="text-red-600 text-xs font-semibold">⚠️ 金額 {amount} JPYC とトークン選択を忘れずに！</span>
+                              <span className="text-red-600 text-xs font-semibold">⚠️ 金額 {session.amount} JPYC とトークン選択を忘れずに！</span>
                             </>
                           ) : (
                             <>
