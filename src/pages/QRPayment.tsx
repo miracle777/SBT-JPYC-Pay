@@ -838,12 +838,22 @@ const QRPayment: React.FC = () => {
     <button class="close-btn" onclick="window.close()">✕ 閉じる</button>
   </div>
   <script>
-    window.addEventListener('load',function(){
+    // QRCodeライブラリが読み込まれるまで待機
+    function waitForQRCode(callback){
+      if(typeof QRCode!=='undefined'){
+        callback();
+      }else{
+        console.log('⏳QRCodeライブラリ読み込み待機中...');
+        setTimeout(function(){waitForQRCode(callback)},100);
+      }
+    }
+    
+    waitForQRCode(function(){
+      console.log('✅QRCodeライブラリ読み込み完了');
       const qrData=${JSON.stringify(session.qrCodeData)};
       const canvas=document.getElementById('qrCanvas');
       const loading=document.getElementById('loading');
       if(!canvas){console.error('Canvas要素が見つかりません');return}
-      if(typeof QRCode==='undefined'){console.error('QRCodeライブラリ未読み込み');if(loading){loading.textContent='エラー: ライブラリ未読み込み';loading.style.color='red'}return}
       try{
         const payloadObj=JSON.parse(qrData);
         console.log('📝QRペイロード:',{chainId:payloadObj.chainId,network:payloadObj.network,amount:payloadObj.amount,currency:payloadObj.currency,contract:payloadObj.contractAddress||payloadObj.token});
