@@ -33,8 +33,41 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
     
     if (!data) {
       console.warn('QRCodeDisplay: Missing data');
+      // データがない場合はCanvasとSVGをクリア
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        }
+      }
+      if (finalCanvasRef.current) {
+        const ctx = finalCanvasRef.current.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, finalCanvasRef.current.width, finalCanvasRef.current.height);
+        }
+      }
+      setSvgString('');
+      setIsRendered(false);
       return;
     }
+
+    // 既存のCanvasをクリア
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      }
+    }
+    if (finalCanvasRef.current) {
+      const ctx = finalCanvasRef.current.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, finalCanvasRef.current.width, finalCanvasRef.current.height);
+      }
+    }
+    
+    // SVGもクリア
+    setSvgString('');
+    setIsRendered(false);
 
     // ロゴが指定されている場合はCanvas形式で生成（ロゴを追加するため）
     if (logoUrl && canvasRef.current) {
