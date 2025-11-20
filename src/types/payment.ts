@@ -88,49 +88,26 @@ export const encodePaymentPayloadForMetaMask = (payload: PaymentPayload): string
   
   const { contractAddress, chainId, shopWallet, amount } = payload;
   
-  // 🔧 MetaMaskアプリ向けの修正版EIP-681形式
-  // transfer(address to, uint256 value) の関数シグネチャを使用
-  // MetaMaskが正しく認識するように、パラメータを16進数形式でエンコード
+  // 🔧 MetaMaskアプリ向けの標準EIP-681形式
+  // 方式1: 関数名形式（より互換性が高い）
+  // ethereum:<contract>@<chainId>/transfer?address=<to>&uint256=<amount>
   
-  // アドレスを32バイト（64文字）の16進数にパディング
-  const paddedAddress = shopWallet.slice(2).padStart(64, '0');
+  const eip681Uri = `ethereum:${contractAddress}@${chainId}/transfer?address=${shopWallet}&uint256=${amount}`;
   
-  // 金額を32バイト（64文字）の16進数に変換
-  const amountBigInt = BigInt(amount);
-  const paddedAmount = amountBigInt.toString(16).padStart(64, '0');
-  
-  // transfer(address,uint256) のFunction Selector: 0xa9059cbb
-  const transferFunctionSelector = 'a9059cbb';
-  
-  // dataパラメータを構築（Function Selector + パディング済みアドレス + パディング済み金額）
-  const data = `0x${transferFunctionSelector}${paddedAddress}${paddedAmount}`;
-  
-  // 16進数形式のChainID
-  const chainIdHex = '0x' + chainId.toString(16);
-  
-  // EIP-681形式のURI構築（data形式）
-  // ethereum:<トークンコントラクト>@<ChainID>?data=<encodedFunctionCall>
-  const eip681Uri = `ethereum:${contractAddress}@${chainId}?data=${data}`;
-  
-  console.log('🦊 MetaMask互換QRコード生成 (EIP-681形式 - データエンコード版):', {
+  console.log('🦊 MetaMask互換QRコード生成 (EIP-681標準形式):', {
     uri: eip681Uri,
     contractAddress,
     chainId,
-    chainIdHex,
     recipient: shopWallet,
     amountWei: amount,
     amountJPYC: (BigInt(amount) / BigInt(10 ** 18)).toString() + ' JPYC',
     standard: 'EIP-681',
-    encoding: 'Function Call Data',
-    functionSelector: transferFunctionSelector,
-    paddedAddress,
-    paddedAmount,
-    fullData: data,
+    format: 'Function Name Format (transfer)',
     uriLength: eip681Uri.length
   });
   
-  console.info('✅ EIP-681準拠（データエンコード形式）: MetaMaskで金額・トークン・ネットワーク情報が自動入力されます');
-  console.warn('⚠️ MetaMaskアプリでスキャン後、金額が正しく表示されるか確認してください');
+  console.info('✅ EIP-681準拠（関数名形式）: MetaMaskで自動的にトランザクションが構築されます');
+  console.warn('⚠️ MetaMaskアプリでスキャン後、トランザクション確認画面が表示されるか確認してください');
   
   return eip681Uri;
 };
