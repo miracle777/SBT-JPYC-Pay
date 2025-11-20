@@ -12,6 +12,7 @@ import WalletSelector from '../components/WalletSelector';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
 import { sbtStorage } from '../utils/storage';
 import { isGaslessAvailable } from '../utils/gaslessPayment';
+import { mintSBT, type MintSBTParams } from '../utils/sbtMinting';
 
 // ウォレットアドレスを省略表示する関数 (0x1234...5678 形式)
 const shortenAddress = (address: string, startChars: number = 6, endChars: number = 4): string => {
@@ -978,6 +979,126 @@ const QRPayment: React.FC = () => {
   const deleteSession = (id: string) => {
     setPaymentSessions(paymentSessions.filter((s) => s.id !== id));
     toast.success('削除しました');
+  };
+
+  // SBT発行処理関数
+  const handleIssueSBT = async (
+    template: SBTTemplate,
+    recipientAddress: string,
+    sessionId: string,
+    chainId: number
+  ) => {
+    try {
+      // 発行中ステータスを設定
+      const newStatus = new Map(paymentSBTStatus);
+      const sessionMap = newStatus.get(sessionId) || new Map();
+      sessionMap.set(template.id, {
+        status: 'issuing',
+        message: 'SBTを発行しています...',
+      });
+      newStatus.set(sessionId, sessionMap);
+      setPaymentSBTStatus(newStatus);
+
+      // localStorageに保存
+      try {
+        const saved = localStorage.getItem('payment-sbt-status') || '{}';
+        const data = JSON.parse(saved);
+        if (!data[sessionId]) data[sessionId] = {};
+        data[sessionId][template.id] = {
+          status: 'issuing',
+          message: 'SBTを発行しています...',
+        };
+        localStorage.setItem('payment-sbt-status', JSON.stringify(data));
+      } catch (e) {
+        console.error('ステータス保存エラー:', e);
+      }
+
+      // MetaMaskが接続されていることを確認
+      if (!window.ethereum) {
+        throw new Error('MetaMaskがインストールされていません');
+      }
+
+      const provider = new BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+
+      // SBT発行パラメータを構築
+      const mintParams: MintSBTParams = {
+        recipientAddress,
+        shopId: shopInfo.id,
+        tokenURI: template.tokenURI,
+        chainId,
+      };
+
+      console.log('🎯 SBT発行開始:', {
+        template: template.name,
+        recipient: recipientAddress,
+        shopId: shopInfo.id,
+        chainId,
+      });
+
+      // SBT発行実行
+      const result = await mintSBT(mintParams, signer);
+
+      if (result.success) {
+        // 成功ステータスを設定
+        const successStatus = new Map(paymentSBTStatus);
+        const successSessionMap = successStatus.get(sessionId) || new Map();
+        successSessionMap.set(template.id, {
+          status: 'completed',
+          message: 'SBTの発行が完了しました！',
+          transactionHash: result.transactionHash,
+        });
+        successStatus.set(sessionId, successSessionMap);
+        setPaymentSBTStatus(successStatus);
+
+        // localStorageに保存
+        try {
+          const saved = localStorage.getItem('payment-sbt-status') || '{}';
+          const data = JSON.parse(saved);
+          if (!data[sessionId]) data[sessionId] = {};
+          data[sessionId][template.id] = {
+            status: 'completed',
+            message: 'SBTの発行が完了しました！',
+            transactionHash: result.transactionHash,
+          };
+          localStorage.setItem('payment-sbt-status', JSON.stringify(data));
+        } catch (e) {
+          console.error('ステータス保存エラー:', e);
+        }
+
+        toast.success(`✅ ${template.name}を発行しました！`);
+      } else {
+        throw new Error(result.error || 'SBT発行に失敗しました');
+      }
+    } catch (error: any) {
+      console.error('❌ SBT発行エラー:', error);
+
+      // エラーステータスを設定
+      const errorStatus = new Map(paymentSBTStatus);
+      const errorSessionMap = errorStatus.get(sessionId) || new Map();
+      errorSessionMap.set(template.id, {
+        status: 'error',
+        message: error.message || 'SBT発行に失敗しました',
+      });
+      errorStatus.set(sessionId, errorSessionMap);
+      setPaymentSBTStatus(errorStatus);
+
+      // localStorageに保存
+      try {
+        const saved = localStorage.getItem('payment-sbt-status') || '{}';
+        const data = JSON.parse(saved);
+        if (!data[sessionId]) data[sessionId] = {};
+        data[sessionId][template.id] = {
+          status: 'error',
+          message: error.message || 'SBT発行に失敗しました',
+        };
+        localStorage.setItem('payment-sbt-status', JSON.stringify(data));
+      } catch (e) {
+        console.error('ステータス保存エラー:', e);
+      }
+
+      toast.error(`❌ SBT発行失敗: ${error.message}`);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -2019,10 +2140,30 @@ const QRPayment: React.FC = () => {
                                         </div>
                                       </div>
                                       <button
-                                        onClick={() => {
-                                          // SBT発行処理へ遷移（SBTManagementページへ）
-                                          toast.success(`${template.name}の発行準備完了！`);
-                                          window.location.href = `/sbt-management?template=${template.id}&recipient=${address}`;
+                                        onClick={async () => {
+                                          // この顧客の最新の決済セッションを取得
+                                          const latestSession = paymentSessions
+                                            .filter(s => s.status === 'completed' && s.payerAddress === address)
+                                            .sort((a, b) => new Date(b.detectedAt || '').getTime() - new Date(a.detectedAt || '').getTime())[0];
+                                          
+                                          if (!latestSession) {
+                                            toast.error('決済セッションが見つかりません');
+                                            return;
+                                          }
+                                          
+                                          // テンプレート有効期間チェック
+                                          const validation = isTemplateValid(template);
+                                          if (!validation.valid) {
+                                            toast.error(validation.message || 'このテンプレートは現在使用できません');
+                                            return;
+                                          }
+                                          
+                                          await handleIssueSBT(
+                                            template,
+                                            address,
+                                            latestSession.id,
+                                            latestSession.chainId
+                                          );
                                         }}
                                         className="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2 px-3 rounded-lg transition flex items-center justify-center gap-1"
                                       >
@@ -2245,20 +2386,32 @@ const QRPayment: React.FC = () => {
                                         </div>
                                       ) : (
                                         <div className="mt-2 space-y-2">
-                                          {/* SBT管理ページで発行 */}
+                                          {/* ここでSBT発行 */}
                                           <button
-                                            onClick={() => {
-                                              const params = new URLSearchParams({
-                                                template: template.id,
-                                                recipient: session.payerAddress!,
-                                                sessionId: session.id
-                                              });
-                                              window.location.href = `/sbt-management?${params.toString()}`;
+                                            onClick={async () => {
+                                              if (!session.payerAddress) {
+                                                toast.error('支払者アドレスが不明です');
+                                                return;
+                                              }
+                                              
+                                              // テンプレート有効期間チェック
+                                              const validation = isTemplateValid(template);
+                                              if (!validation.valid) {
+                                                toast.error(validation.message || 'このテンプレートは現在使用できません');
+                                                return;
+                                              }
+                                              
+                                              await handleIssueSBT(
+                                                template,
+                                                session.payerAddress,
+                                                session.id,
+                                                session.chainId
+                                              );
                                             }}
                                             className="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition flex items-center justify-center gap-2"
                                           >
                                             <Award className="w-4 h-4" />
-                                            SBT管理ページで発行
+                                            ここでSBT発行
                                           </button>
                                           
                                           {/* 手動で発行完了を記録 */}
