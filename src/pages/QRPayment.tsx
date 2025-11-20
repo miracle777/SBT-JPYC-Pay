@@ -594,6 +594,16 @@ const QRPayment: React.FC = () => {
   const generateQRCode = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    console.log('🎯 QRコード生成開始 - 現在の設定:', {
+      selectedChainForPayment,
+      selectedChainName: paymentNetwork?.displayName,
+      currentChainId,
+      currentChainName: Object.values(NETWORKS).find(n => n.chainId === currentChainId)?.displayName,
+      paymentContractAddress,
+      selectedJpycContract,
+      isNetworkMismatch
+    });
+
     if (!amount || parseFloat(amount) <= 0) {
       toast.error('有効な金額を入力してください');
       return;
@@ -1465,9 +1475,17 @@ const QRPayment: React.FC = () => {
                     </label>
                     <select
                       value={selectedChainForPayment}
-                      onChange={(e) =>
-                        setSelectedChainForPayment(parseInt(e.target.value))
-                      }
+                      onChange={(e) => {
+                        const newChainId = parseInt(e.target.value);
+                        const network = Object.values(NETWORKS).find(n => n.chainId === newChainId);
+                        console.log('🔄 支払いネットワーク変更:', {
+                          from: selectedChainForPayment,
+                          fromName: paymentNetwork?.displayName,
+                          to: newChainId,
+                          toName: network?.displayName
+                        });
+                        setSelectedChainForPayment(newChainId);
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     >
                       {Object.values(NETWORKS).map((network) => (
