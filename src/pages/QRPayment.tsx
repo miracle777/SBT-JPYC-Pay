@@ -1015,9 +1015,14 @@ const QRPayment: React.FC = () => {
       }
 
       // SBT発行パラメータを構築
+      // shopInfo.idは文字列なので数値に変換（例: "shop-001" -> 1）
+      const shopIdNumber = typeof shopInfo.id === 'string' 
+        ? parseInt(shopInfo.id.replace(/\D/g, '')) || 1 
+        : shopInfo.id;
+      
       const mintParams: MintSBTParams = {
         recipientAddress,
-        shopId: shopInfo.id,
+        shopId: shopIdNumber,
         tokenURI: template.tokenURI,
         chainId,
       };
@@ -1025,7 +1030,7 @@ const QRPayment: React.FC = () => {
       console.log('🎯 SBT発行開始:', {
         template: template.name,
         recipient: recipientAddress,
-        shopId: shopInfo.id,
+        shopId: shopIdNumber,
         chainId,
       });
 
