@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor, Zap, User, Award, Hash, Network, Sparkles } from 'lucide-react';
+import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor, Zap, User, Award, Hash, Network, Sparkles, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { BrowserProvider, ethers } from 'ethers';
 import { NETWORKS, JPYC, getContractAddress, getJpycContracts, getJpycContractMeta } from '../config/networks';
@@ -2407,11 +2407,11 @@ const QRPayment: React.FC = () => {
                                     <span className="ml-2 font-medium text-green-600">{session.detectedAt}</span>
                                   </div>
                                 )}
-                                {session.status === 'completed' && session.customerAddress && (
+                                {session.status === 'completed' && session.payerAddress && (
                                   <div>
                                     <span className="text-gray-600">顧客:</span>
                                     <span className="ml-2 font-mono text-xs">
-                                      {formatCustomerAddress(session.customerAddress)}
+                                      {formatCustomerAddress(session.payerAddress)}
                                     </span>
                                   </div>
                                 )}
