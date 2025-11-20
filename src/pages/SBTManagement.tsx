@@ -2128,9 +2128,9 @@ const SBTManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* 完了した支払いセッション一覧 */}
+        {/* SBT発行 */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">支払い完了一覧</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">SBT発行</h2>
           {completedPayments.length === 0 ? (
             <div className="bg-white rounded-xl shadow-lg p-8 text-center">
               <p className="text-gray-500">完了した支払いセッションはありません</p>
@@ -2227,10 +2227,10 @@ const SBTManagement: React.FC = () => {
           )}
         </div>
 
-        {/* SBT発行 */}
+        {/* 完了した支払いセッション一覧 */}
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">SBT発行</h2>
+            <h2 className="text-2xl font-bold text-gray-900">支払い完了一覧</h2>
           </div>
 
           {/* 📡 ネットワーク情報表示 */}

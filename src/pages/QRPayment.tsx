@@ -333,17 +333,34 @@ const QRPayment: React.FC = () => {
   useEffect(() => {
     const completedSessions = paymentSessions.filter(s => s.status === 'completed' && s.payerAddress);
     if (completedSessions.length > 0) {
-      localStorage.setItem('completedPaymentSessions', JSON.stringify(completedSessions));
+      // 既存の保存データを読み込んで、重複を避けながらマージ
+      const savedSessions = localStorage.getItem('completedPaymentSessions');
+      let allCompletedSessions = completedSessions;
       
-      // 顧客別支払い回数を計算
+      if (savedSessions) {
+        try {
+          const existingSessions: PaymentSession[] = JSON.parse(savedSessions);
+          const existingIds = new Set(completedSessions.map(s => s.id));
+          const oldSessions = existingSessions.filter(s => !existingIds.has(s.id));
+          allCompletedSessions = [...oldSessions, ...completedSessions];
+        } catch (error) {
+          console.error('既存の決済履歴の読み込みに失敗:', error);
+        }
+      }
+      
+      localStorage.setItem('completedPaymentSessions', JSON.stringify(allCompletedSessions));
+      
+      // 顧客別支払い回数を計算（全ての完了セッションを含む）
       const stats = new Map<string, number>();
-      completedSessions.forEach(session => {
+      allCompletedSessions.forEach(session => {
         if (session.payerAddress) {
           const currentCount = stats.get(session.payerAddress) || 0;
           stats.set(session.payerAddress, currentCount + 1);
         }
       });
       setCustomerPaymentStats(stats);
+      
+      console.log(`💾 決済履歴を保存: ${allCompletedSessions.length}件`);
     }
   }, [paymentSessions]);
   
@@ -492,23 +509,42 @@ const QRPayment: React.FC = () => {
                   )
                 );
                 
-                // 決済完了音を再生（音量調整可能）
+                // 決済完了音を再生（音量調整可能）- より聞き取りやすい2音階の通知音
                 try {
                   const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-                  const oscillator = audioContext.createOscillator();
-                  const gainNode = audioContext.createGain();
                   
-                  oscillator.connect(gainNode);
-                  gainNode.connect(audioContext.destination);
+                  // 1音目: 高めの音 (E音 - 659Hz)
+                  const oscillator1 = audioContext.createOscillator();
+                  const gainNode1 = audioContext.createGain();
                   
-                  oscillator.frequency.value = 800; // 周波数 800Hz
-                  oscillator.type = 'sine'; // サイン波
+                  oscillator1.connect(gainNode1);
+                  gainNode1.connect(audioContext.destination);
                   
-                  gainNode.gain.setValueAtTime(notificationVolume, audioContext.currentTime);
-                  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                  oscillator1.frequency.value = 659; // E音
+                  oscillator1.type = 'sine';
                   
-                  oscillator.start(audioContext.currentTime);
-                  oscillator.stop(audioContext.currentTime + 0.3);
+                  gainNode1.gain.setValueAtTime(notificationVolume * 0.8, audioContext.currentTime);
+                  gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                  
+                  oscillator1.start(audioContext.currentTime);
+                  oscillator1.stop(audioContext.currentTime + 0.15);
+                  
+                  // 2音目: さらに高い音 (A音 - 880Hz)
+                  const oscillator2 = audioContext.createOscillator();
+                  const gainNode2 = audioContext.createGain();
+                  
+                  oscillator2.connect(gainNode2);
+                  gainNode2.connect(audioContext.destination);
+                  
+                  oscillator2.frequency.value = 880; // A音
+                  oscillator2.type = 'sine';
+                  
+                  gainNode2.gain.setValueAtTime(0, audioContext.currentTime + 0.12);
+                  gainNode2.gain.linearRampToValueAtTime(notificationVolume, audioContext.currentTime + 0.15);
+                  gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                  
+                  oscillator2.start(audioContext.currentTime + 0.12);
+                  oscillator2.stop(audioContext.currentTime + 0.4);
                 } catch (error) {
                   // サウンド再生エラーは無視
                   console.log('決済音の再生に失敗:', error);
