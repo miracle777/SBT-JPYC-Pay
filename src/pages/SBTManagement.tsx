@@ -1461,13 +1461,9 @@ const SBTManagement: React.FC = () => {
           }
         );
       } else {
-        // ❌ mint 失敗
-        sbt.sbtMintStatus = 'failed';
-        await sbtStorage.saveSBT(sbt);
-        setIssuedSBTs(prev =>
-          prev.map(s => (s.id === sbt.id ? sbt : s))
-        );
-
+        // ❌ mint 失敗 - ローカルストレージには保存しない（ブロックチェーンに記録されていないため）
+        console.error('❌ SBT発行失敗:', result.error);
+        
         // ネットワーク問題かどうかを判定
         const isNetworkIssue = result.error?.includes('RPC接続') || result.error?.includes('Internal JSON-RPC error');
         
