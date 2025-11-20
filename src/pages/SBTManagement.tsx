@@ -101,11 +101,10 @@ const SBTManagement: React.FC = () => {
   
   // 初期テンプレート用のショップID（固定値）
   // 毎回変わらないように固定値を使用
-  // ⭐ Shop ID 2 に統一（新規登録用）
   const initialShopIds = {
-    stampCard: 2, // ショップID: 2
-    milestone: 2, // ショップID: 2
-    campaign: 2,  // ショップID: 2
+    stampCard: 1, // ショップID: 1
+    milestone: 2, // ショップID: 2 
+    campaign: 3,  // ショップID: 3
   };
   
   const [templates, setTemplates] = useState<SBTTemplate[]>([]);
@@ -469,7 +468,7 @@ const SBTManagement: React.FC = () => {
         }
 
         // ショップ情報を取得
-        const shopResult = await getShopInfo(2, selectedChainForSBT);
+        const shopResult = await getShopInfo(1, selectedChainForSBT);
         
         if (!isMounted) {
           console.log('⚠️ コンポーネントがアンマウントされました - ショップ情報処理中断');
@@ -480,7 +479,7 @@ const SBTManagement: React.FC = () => {
         
         if (shopResult && shopResult.owner && shopResult.owner !== '' && shopResult.owner !== '0x0000000000000000000000000000000000000000') {
           setShopInfo(shopResult);
-          console.log(`✅ ショップオーナー (ID:2): ${shopResult.owner}`);
+          console.log(`✅ ショップオーナー (ID:1): ${shopResult.owner}`);
           
           if (walletAddress) {
             // アドレス比較を厳密に行う（小文字化して比較）
@@ -490,9 +489,9 @@ const SBTManagement: React.FC = () => {
             setIsShopOwner(isShopOwner);
             
             if (isShopOwner) {
-              console.log('✅ 現在のウォレットはショップオーナー (ID:2) です');
+              console.log('✅ 現在のウォレットはショップオーナー (ID:1) です');
             } else {
-              console.log('❌ 現在のウォレットはショップオーナー (ID:2) ではありません');
+              console.log('❌ 現在のウォレットはショップオーナー (ID:1) ではありません');
             }
           } else {
             console.log('ℹ️ ウォレット未接続のため、ショップ権限チェックをスキップします');
@@ -772,14 +771,14 @@ const SBTManagement: React.FC = () => {
       setIsTogglingShopActive(true);
       
       const result = isCurrentlyActive 
-        ? await deactivateShop({ shopId: 2, chainId: currentChainId })
-        : await activateShop({ shopId: 2, chainId: currentChainId });
+        ? await deactivateShop({ shopId: 1, chainId: currentChainId })
+        : await activateShop({ shopId: 1, chainId: currentChainId });
 
       if (result.success) {
         toast.success(`✅ ショップを${action}しました！`);
         
         // ショップ情報を再取得
-        const updatedShopInfo = await getShopInfo(2, currentChainId);
+        const updatedShopInfo = await getShopInfo(1, currentChainId);
         setShopInfo(updatedShopInfo);
       } else {
         toast.error(result.error || `ショップ${action}に失敗しました`);
@@ -2895,7 +2894,7 @@ const SBTManagement: React.FC = () => {
                         <button onClick={() => setShowRegisterShopModal(false)} className="text-gray-500 hover:text-gray-800">✕</button>
                       </div>
                       <p className="text-sm text-gray-600 mb-4">
-                        現在のウォレットをショップID 2 のオーナーとして登録します。店舗情報は設定画面の内容が使用されます。
+                        現在のウォレットをショップID 1 のオーナーとして登録します。店舗情報は設定画面の内容が使用されます。
                       </p>
                       <form
                         onSubmit={async (e) => {
@@ -2904,7 +2903,7 @@ const SBTManagement: React.FC = () => {
                           setIsRegisteringShop(true);
                           
                           const result = await registerShop({
-                            shopId: 2,
+                            shopId: 1,
                             shopName: shopSettings.name,
                             description: shopSettings.description || 'SBT対応店舗',
                             shopOwnerAddress: walletAddress || '',
