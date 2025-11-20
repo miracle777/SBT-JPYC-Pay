@@ -78,8 +78,10 @@ const QRPayment: React.FC = () => {
   );
   const [selectedJpycContract, setSelectedJpycContract] = useState<string>(''); // 選択されたJPYCコントラクトアドレス
   const [paymentSessions, setPaymentSessions] = useState<PaymentSession[]>([]);
-  const [expiryTimeMinutes, setExpiryTimeMinutes] = useState(15); // デフォルト15分
+  const [expiryTimeMinutes, setExpiryTimeMinutes] = useState(5); // デフォルト5分
   const [qrCodeFormat, setQrCodeFormat] = useState<'jpyc-payment' | 'metamask' | 'legacy'>('jpyc-payment'); // QRコード形式
+  const [notificationVolume, setNotificationVolume] = useState(0.7); // 決済音の音量(0.0-1.0)
+  const [qrWindowRef, setQrWindowRef] = useState<Window | null>(null); // 新規ウィンドウの参照
   const [estimatedGasPOL, setEstimatedGasPOL] = useState<string>('0.002275'); // デフォルト値（Polygon 35 Gwei, 65000 gas）
   const [gasPrice, setGasPrice] = useState<string>('35.00'); // デフォルト値（Polygon標準）
   const [loadingGasEstimate, setLoadingGasEstimate] = useState(false);
@@ -487,7 +489,7 @@ const QRPayment: React.FC = () => {
                   )
                 );
                 
-                // 決済完了音を再生（シンプルなビープ音）
+                // 決済完了音を再生（音量調整可能）
                 try {
                   const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
                   const oscillator = audioContext.createOscillator();
@@ -499,7 +501,7 @@ const QRPayment: React.FC = () => {
                   oscillator.frequency.value = 800; // 周波数 800Hz
                   oscillator.type = 'sine'; // サイン波
                   
-                  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                  gainNode.gain.setValueAtTime(notificationVolume, audioContext.currentTime);
                   gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
                   
                   oscillator.start(audioContext.currentTime);
@@ -507,6 +509,57 @@ const QRPayment: React.FC = () => {
                 } catch (error) {
                   // サウンド再生エラーは無視
                   console.log('決済音の再生に失敗:', error);
+                }
+                
+                // ブラウザ通知を表示
+                try {
+                  if ('Notification' in window && Notification.permission === 'granted') {
+                    const contractMeta = getJpycContractMeta(chainId, contractAddress);
+                    new Notification('💰 決済完了！', {
+                      body: `${session.amount} ${contractMeta.symbol} の支払いを受け付けました`,
+                      icon: '/images/jpyc-logo.svg',
+                      tag: 'payment-complete',
+                    });
+                  } else if ('Notification' in window && Notification.permission === 'default') {
+                    // 通知の許可をリクエスト
+                    Notification.requestPermission();
+                  }
+                } catch (error) {
+                  console.log('通知の表示に失敗:', error);
+                }
+                
+                // 新規ウィンドウに通知を表示
+                if (qrWindowRef && !qrWindowRef.closed) {
+                  try {
+                    const contractMeta = getJpycContractMeta(chainId, contractAddress);
+                    const notification = qrWindowRef.document.createElement('div');
+                    notification.style.cssText = `
+                      position: fixed;
+                      top: 20px;
+                      left: 50%;
+                      transform: translateX(-50%);
+                      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                      color: white;
+                      padding: 20px 30px;
+                      border-radius: 12px;
+                      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                      font-size: 20px;
+                      font-weight: bold;
+                      z-index: 9999;
+                      animation: slideDown 0.5s ease-out;
+                    `;
+                    notification.innerHTML = `🎉 決済完了！<br/><span style="font-size: 24px;">${session.amount} ${contractMeta.symbol}</span>`;
+                    qrWindowRef.document.body.appendChild(notification);
+                    
+                    // 5秒後に自動的に削除
+                    setTimeout(() => {
+                      if (notification.parentNode) {
+                        notification.remove();
+                      }
+                    }, 5000);
+                  } catch (error) {
+                    console.log('新規ウィンドウへの通知表示に失敗:', error);
+                  }
                 }
                 
                 console.log(`🎉 決済完了通知: ${session.amount} ${(() => {
@@ -1023,7 +1076,7 @@ const QRPayment: React.FC = () => {
                             const top = window.screenY + (window.outerHeight - height) / 2;
                             const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
                             
-                            // QRコード表示用HTMLを生成
+                            // QRコード表示用HTMLを生成（JPYCロゴ入りQRコード）
                             const qrWindow = window.open('', 'QRCodeWindow', features);
                             if (qrWindow) {
                               qrWindow.document.write(`
@@ -1033,6 +1086,7 @@ const QRPayment: React.FC = () => {
                                   <meta charset="UTF-8">
                                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                   <title>QRコード - ${shopInfo.name}</title>
+                                  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
                                   <style>
                                     body {
                                       margin: 0;
@@ -1094,6 +1148,19 @@ const QRPayment: React.FC = () => {
                                     .close-btn:hover {
                                       background: #dc2626;
                                     }
+                                    #qrCanvas {
+                                      border: 1px solid #e5e7eb;
+                                    }
+                                    @keyframes slideDown {
+                                      from {
+                                        transform: translateX(-50%) translateY(-100%);
+                                        opacity: 0;
+                                      }
+                                      to {
+                                        transform: translateX(-50%) translateY(0);
+                                        opacity: 1;
+                                      }
+                                    }
                                   </style>
                                 </head>
                                 <body>
@@ -1101,16 +1168,71 @@ const QRPayment: React.FC = () => {
                                     <h1>💰 QR決済</h1>
                                     <div class="shop-name">${shopInfo.name}</div>
                                     <div class="qr-container">
-                                      <img src="https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(session.qrCodeData)}" alt="QRコード" />
+                                      <canvas id="qrCanvas"></canvas>
                                     </div>
                                     <div class="amount">${session.amount} ${session.currency}</div>
                                     <div class="network">📡 ${session.chainName}</div>
                                     <button class="close-btn" onclick="window.close()">✕ 閉じる</button>
                                   </div>
+                                  <script>
+                                    // QRコードを生成してCanvasに描画
+                                    const qrData = ${JSON.stringify(session.qrCodeData)};
+                                    const canvas = document.getElementById('qrCanvas');
+                                    
+                                    QRCode.toCanvas(canvas, qrData, {
+                                      errorCorrectionLevel: 'H',
+                                      margin: 2,
+                                      width: 350,
+                                      color: {
+                                        dark: '#000000',
+                                        light: '#FFFFFF'
+                                      }
+                                    }, function(error) {
+                                      if (error) {
+                                        console.error('QRコード生成エラー:', error);
+                                        return;
+                                      }
+                                      
+                                      // QRコードの中央にJPYCロゴを追加
+                                      const ctx = canvas.getContext('2d');
+                                      const logo = new Image();
+                                      logo.crossOrigin = 'anonymous';
+                                      logo.onload = function() {
+                                        const logoSize = canvas.width * 0.2;
+                                        const logoX = (canvas.width - logoSize) / 2;
+                                        const logoY = (canvas.height - logoSize) / 2;
+                                        
+                                        // 白い背景を描画（ロゴの視認性向上）
+                                        const padding = logoSize * 0.1;
+                                        ctx.fillStyle = 'white';
+                                        ctx.fillRect(
+                                          logoX - padding,
+                                          logoY - padding,
+                                          logoSize + padding * 2,
+                                          logoSize + padding * 2
+                                        );
+                                        
+                                        // ロゴを描画
+                                        ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+                                      };
+                                      logo.src = '${window.location.origin}/images/jpyc-logo.svg';
+                                    });
+                                  </script>
                                 </body>
                                 </html>
                               `);
                               qrWindow.document.close();
+                              
+                              // ウィンドウの参照を保存（通知表示用）
+                              setQrWindowRef(qrWindow);
+                              
+                              // ウィンドウが閉じられたら参照をクリア
+                              const checkClosed = setInterval(() => {
+                                if (qrWindow.closed) {
+                                  setQrWindowRef(null);
+                                  clearInterval(checkClosed);
+                                }
+                              }, 1000);
                             }
                           }}
                           className="flex items-center justify-center gap-1 px-3 py-2.5 bg-purple-100 hover:bg-purple-200 text-purple-600 text-xs sm:text-sm rounded-lg transition font-semibold min-h-[44px]"
@@ -1461,6 +1583,33 @@ const QRPayment: React.FC = () => {
                       <option value={30}>30分</option>
                       <option value={60}>60分</option>
                     </select>
+                  </div>
+
+                  {/* 決済音の音量調整 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      🔊 決済音の音量
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={notificationVolume}
+                        onChange={(e) => setNotificationVolume(parseFloat(e.target.value))}
+                        className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        style={{
+                          background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${notificationVolume * 100}%, #e5e7eb ${notificationVolume * 100}%, #e5e7eb 100%)`
+                        }}
+                      />
+                      <span className="text-sm font-semibold text-gray-700 min-w-[3rem] text-right">
+                        {Math.round(notificationVolume * 100)}%
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      決済完了時の通知音の音量を調整できます
+                    </p>
                   </div>
 
                   {/* 生成ボタン */}
