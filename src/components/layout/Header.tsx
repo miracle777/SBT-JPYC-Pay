@@ -4,8 +4,7 @@ import { Store, Menu, X, HelpCircle, Settings } from 'lucide-react';
 import { WalletButton } from '../WalletButton';
 import { useWallet } from '../../hooks/useWallet';
 import { Contract } from 'ethers';
-import { getContractForChain } from '../../config/contracts';
-import JPYCStampSBTABI from '../../contracts/JPYCStampSBT.json';
+import { getSBTContractAddress, JPYC_STAMP_SBT_ABI } from '../../config/contracts';
 
 interface HeaderProps {
   onHelpClick?: () => void;
@@ -25,14 +24,14 @@ const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
       }
 
       try {
-        const contractAddress = getContractForChain(chainId);
+        const contractAddress = getSBTContractAddress(chainId);
         if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
           setIsContractOwner(false);
           return;
         }
 
         const signer = await provider.getSigner();
-        const contract = new Contract(contractAddress, JPYCStampSBTABI.abi, signer);
+        const contract = new Contract(contractAddress, JPYC_STAMP_SBT_ABI, signer);
         const owner = await contract.owner();
         setIsContractOwner(owner.toLowerCase() === address.toLowerCase());
       } catch (error) {

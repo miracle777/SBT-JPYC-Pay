@@ -31,6 +31,7 @@ interface SBTTemplate {
   maxStamps: number;
   rewardDescription: string;
   imageUrl: string;
+  tokenURI: string; // IPFS URI for metadata
   status: 'active' | 'inactive';
   periodStartDate?: string; // 期間限定の開始日 (YYYY-MM-DD)
   periodEndDate?: string; // 期間限定の終了日 (YYYY-MM-DD)
@@ -1013,14 +1014,6 @@ const QRPayment: React.FC = () => {
         console.error('ステータス保存エラー:', e);
       }
 
-      // MetaMaskが接続されていることを確認
-      if (!window.ethereum) {
-        throw new Error('MetaMaskがインストールされていません');
-      }
-
-      const provider = new BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-
       // SBT発行パラメータを構築
       const mintParams: MintSBTParams = {
         recipientAddress,
@@ -1037,7 +1030,7 @@ const QRPayment: React.FC = () => {
       });
 
       // SBT発行実行
-      const result = await mintSBT(mintParams, signer);
+      const result = await mintSBT(mintParams);
 
       if (result.success) {
         // 成功ステータスを設定
