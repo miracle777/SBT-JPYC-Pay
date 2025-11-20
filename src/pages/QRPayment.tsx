@@ -314,12 +314,27 @@ const QRPayment: React.FC = () => {
         prev.map((session) => {
           const now = Math.floor(Date.now() / 1000);
           const timeRemaining = session.expiresAtTimestamp - now;
+          const oldStatus = session.status;
           const newStatus =
             session.status === 'completed'
               ? ('completed' as const)
               : timeRemaining <= 0
               ? ('expired' as const)
               : session.status;
+          
+          // タイムアウト検知: pending -> expired への状態変化を検知
+          if (oldStatus === 'pending' && newStatus === 'expired') {
+            // 新規ウィンドウに待機状態を通知
+            if (qrWindowRef && !qrWindowRef.closed) {
+              try {
+                console.log('⏰ セッションがタイムアウトしました - 新規ウィンドウに待機状態を表示');
+                showWaitingStateInWindow(qrWindowRef);
+              } catch (error) {
+                console.log('新規ウィンドウへのタイムアウト通知に失敗:', error);
+              }
+            }
+          }
+          
           return {
             ...session,
             status: newStatus,
@@ -330,7 +345,7 @@ const QRPayment: React.FC = () => {
     }, 1000); // 1秒ごとに更新
 
     return () => clearInterval(interval);
-  }, []);
+  }, [qrWindowRef]);
 
   // 完了したセッション情報を LocalStorage に保存と顧客統計の更新
   useEffect(() => {
@@ -898,21 +913,73 @@ const QRPayment: React.FC = () => {
     }
   };
   
-  // QRコード画像を使って新規ウィンドウを開く
+  // 新規ウィンドウに待機状態を表示する関数
+  const showWaitingStateInWindow = (targetWindow: Window) => {
+    if (!targetWindow || targetWindow.closed) return;
+    
+    const waitingHTML = `
+      <div class="container">
+        <h1>💤 待機中</h1>
+        <div class="shop-name">${shopInfo.name}</div>
+        <div class="qr-container waiting-state">
+          <svg width="350" height="350" viewBox="0 0 350 350" xmlns="http://www.w3.org/2000/svg">
+            <rect width="350" height="350" fill="#F3F4F6" rx="10"/>
+            <g transform="translate(175, 175)">
+              <circle cx="0" cy="0" r="60" fill="#93C5FD" opacity="0.3">
+                <animate attributeName="r" values="60;80;60" dur="2s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="0" cy="0" r="40" fill="#3B82F6" opacity="0.5">
+                <animate attributeName="r" values="40;60;40" dur="2s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.5;0.2;0.5" dur="2s" repeatCount="indefinite"/>
+              </circle>
+              <path d="M -20 -10 L 20 -10 L 20 -30 L -20 -30 Z M -25 0 L 25 0 L 25 -5 L -25 -5 Z M -15 10 L 15 10 L 15 5 L -15 5 Z M -10 20 L 10 20 L 10 15 L -10 15 Z" fill="#1E40AF"/>
+              <text x="0" y="50" font-size="16" fill="#1E40AF" text-anchor="middle" font-weight="bold">待機中</text>
+            </g>
+          </svg>
+        </div>
+        <div class="waiting-message">
+          <p style="font-size: 18px; color: #3B82F6; font-weight: bold; margin: 20px 0 10px 0;">新しいQRコードをお待ちしています</p>
+          <p style="font-size: 14px; color: #6B7280;">QRコードを生成すると、自動的にここに表示されます</p>
+        </div>
+      </div>
+    `;
+    
+    try {
+      const container = targetWindow.document.body.querySelector('.wrapper');
+      if (container) {
+        container.innerHTML = waitingHTML;
+      }
+    } catch (error) {
+      console.error('待機状態の表示に失敗:', error);
+    }
+  };
+  
+  // QRコード画像を使って新規ウィンドウを開く(または既存のウィンドウを更新)
   const openWindowWithQR = (qrImageDataUrl: string, session: PaymentSession) => {
-    // 新しいウィンドウで開く(別タブではなく別ウィンドウ)
-    const width = 500;
-    const height = 700;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-    const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+    // 既存のウィンドウがある場合は再利用
+    let qrWindow = qrWindowRef;
+    
+    if (!qrWindow || qrWindow.closed) {
+      // 新しいウィンドウで開く(別タブではなく別ウィンドウ)
+      const width = 500;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+      
+      qrWindow = window.open('', 'QRCodeWindow', features);
+    }
     
     // QRコード表示用HTMLを生成
-    const qrWindow = window.open('', 'QRCodeWindow', features);
     if (qrWindow) {
-      // HTMLを直接書き込み
-      qrWindow.document.open();
-      qrWindow.document.write(`<!DOCTYPE html>
+      // 既存のウィンドウがある場合は中身を更新、新規の場合は初期化
+      const isNewWindow = !qrWindowRef || qrWindowRef.closed;
+      
+      if (isNewWindow) {
+        // 新規ウィンドウの場合は全体のHTMLを書き込み
+        qrWindow.document.open();
+        qrWindow.document.write(`<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -920,34 +987,62 @@ const QRPayment: React.FC = () => {
   <title>QRコード - ${shopInfo.name}</title>
   <style>
     body{margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}
+    .wrapper{width:100%;display:flex;justify-content:center;align-items:center}
     .container{background:white;border-radius:20px;padding:30px;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;max-width:90%}
     h1{color:#333;margin:0 0 10px 0;font-size:24px}
     .shop-name{color:#667eea;font-size:18px;margin-bottom:20px}
     .qr-container{background:white;padding:20px;border-radius:15px;display:inline-block;margin:20px 0}
+    .qr-container.waiting-state{background:#F3F4F6;border:2px dashed #93C5FD}
     .amount{font-size:32px;font-weight:bold;color:#667eea;margin:15px 0}
     .network{color:#666;font-size:14px;margin-top:10px}
     .close-btn{background:#ef4444;color:white;border:none;padding:12px 30px;border-radius:8px;font-size:16px;cursor:pointer;margin-top:20px}
     .close-btn:hover{background:#dc2626}
     .qr-image{border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+    .waiting-message{margin-top:20px;padding:15px;background:#EFF6FF;border-radius:10px}
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>💰 QR決済</h1>
-    <div class="shop-name">${shopInfo.name}</div>
-    <div class="qr-container">
-      <img src="${qrImageDataUrl}" alt="QR Code" class="qr-image" width="350" height="350">
+  <div class="wrapper">
+    <div class="container">
+      <h1>💰 QR決済</h1>
+      <div class="shop-name">${shopInfo.name}</div>
+      <div class="qr-container">
+        <img src="${qrImageDataUrl}" alt="QR Code" class="qr-image" width="350" height="350">
+      </div>
+      <div class="amount">${session.amount} ${session.currency}</div>
+      <div class="network">📡 ${session.chainName}</div>
+      <button class="close-btn" onclick="window.close()">✕ 閉じる</button>
     </div>
-    <div class="amount">${session.amount} ${session.currency}</div>
-    <div class="network">📡 ${session.chainName}</div>
-    <button class="close-btn" onclick="window.close()">✕ 閉じる</button>
   </div>
   <script>
     console.log('✅ QRコード表示完了');
   </script>
 </body>
 </html>`);
-      qrWindow.document.close();
+        qrWindow.document.close();
+      } else {
+        // 既存のウィンドウの場合は中身だけ更新
+        try {
+          const container = qrWindow.document.body.querySelector('.wrapper');
+          if (container) {
+            container.innerHTML = `
+              <div class="container">
+                <h1>💰 QR決済</h1>
+                <div class="shop-name">${shopInfo.name}</div>
+                <div class="qr-container">
+                  <img src="${qrImageDataUrl}" alt="QR Code" class="qr-image" width="350" height="350">
+                </div>
+                <div class="amount">${session.amount} ${session.currency}</div>
+                <div class="network">📡 ${session.chainName}</div>
+                <button class="close-btn" onclick="window.close()">✕ 閉じる</button>
+              </div>
+            `;
+            console.log('✅ 既存ウィンドウのQRコードを更新しました');
+          }
+        } catch (error) {
+          console.error('ウィンドウ更新エラー:', error);
+        }
+      }
       
       // ウィンドウの参照を保存（通知表示用）
       setQrWindowRef(qrWindow);
