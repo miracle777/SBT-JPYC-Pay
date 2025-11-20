@@ -1252,10 +1252,11 @@ const QRPayment: React.FC = () => {
                                     <button class="close-btn" onclick="window.close()">✕ 閉じる</button>
                                   </div>
                                   
+                                  <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"><\/script>
                                   <script>
-                                    // QRコード生成処理（動的ライブラリ読み込み）
-                                    (function() {
-                                      console.log('🔧 QRウィンドウ: QRコード生成開始');
+                                    // QRコード生成処理
+                                    window.addEventListener('load', function() {
+                                      console.log('🔧 QRウィンドウ: ページ読み込み完了');
                                       
                                       const qrData = ${JSON.stringify(session.qrCodeData)};
                                       const canvas = document.getElementById('qrCanvas');
@@ -1263,6 +1264,7 @@ const QRPayment: React.FC = () => {
                                       
                                       if (!canvas) {
                                         console.error('❌ Canvas要素が見つかりません');
+                                        if (loading) loading.textContent = 'エラー: Canvas要素が見つかりません';
                                         return;
                                       }
                                       
@@ -1284,15 +1286,20 @@ const QRPayment: React.FC = () => {
                                         });
                                       }
                                       
-                                      // QRコード生成ライブラリを動的ロード
-                                      const script = document.createElement('script');
-                                      script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+                                      // QRCodeライブラリの確認
+                                      if (typeof QRCode === 'undefined') {
+                                        console.error('❌ QRCodeライブラリが読み込まれていません');
+                                        if (loading) {
+                                          loading.textContent = 'エラー: QRCodeライブラリが読み込まれていません';
+                                          loading.style.color = 'red';
+                                        }
+                                        return;
+                                      }
                                       
-                                      script.onload = function() {
-                                        console.log('✅ QRCodeライブラリ読み込み完了');
-                                        
-                                        try {
-                                          window.QRCode.toCanvas(canvas, qrData, {
+                                      console.log('✅ QRCodeライブラリ確認完了');
+                                      
+                                      try {
+                                        QRCode.toCanvas(canvas, qrData, {
                                             errorCorrectionLevel: 'H',
                                             margin: 2,
                                             width: 350,
