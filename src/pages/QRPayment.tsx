@@ -84,6 +84,7 @@ const QRPayment: React.FC = () => {
   const [expiryTimeMinutes, setExpiryTimeMinutes] = useState(5); // デフォルト5分
   const [qrCodeFormat, setQrCodeFormat] = useState<'jpyc-payment' | 'metamask' | 'legacy'>('jpyc-payment'); // QRコード形式
   const [notificationVolume, setNotificationVolume] = useState(0.7); // 決済音の音量(0.0-1.0)
+  const [selectedPaymentSound, setSelectedPaymentSound] = useState<'sound1' | 'sound2' | 'sound3'>('sound1'); // 選択された決済音
   const [qrWindowRef, setQrWindowRef] = useState<Window | null>(null); // 新規ウィンドウの参照
   const [dualScreenMode, setDualScreenMode] = useState(false); // 2画面モード(QRコード発行時に自動で新規ウィンドウを開く)
   const [estimatedGasPOL, setEstimatedGasPOL] = useState<string>('0.002275'); // デフォルト値（Polygon 35 Gwei, 65000 gas）
@@ -120,10 +121,33 @@ const QRPayment: React.FC = () => {
         });
         console.log('✅ 店舗情報読み込み完了:', shop);
       }
+      
+      // 決済音設定の復元
+      const savedSound = localStorage.getItem('payment-sound-selection');
+      if (savedSound && ['sound1', 'sound2', 'sound3'].includes(savedSound)) {
+        setSelectedPaymentSound(savedSound as 'sound1' | 'sound2' | 'sound3');
+      }
+      
+      const savedVolume = localStorage.getItem('payment-sound-volume');
+      if (savedVolume) {
+        const volume = parseFloat(savedVolume);
+        if (!isNaN(volume) && volume >= 0 && volume <= 1) {
+          setNotificationVolume(volume);
+        }
+      }
     } catch (error) {
       console.warn('店舗情報読み込みエラー:', error);
     }
   }, []);
+
+  // 決済音設定の保存
+  useEffect(() => {
+    localStorage.setItem('payment-sound-selection', selectedPaymentSound);
+  }, [selectedPaymentSound]);
+
+  useEffect(() => {
+    localStorage.setItem('payment-sound-volume', notificationVolume.toString());
+  }, [notificationVolume]);
 
   // SBTテンプレート一覧を取得
   useEffect(() => {
@@ -527,42 +551,19 @@ const QRPayment: React.FC = () => {
                   )
                 );
                 
-                // 決済完了音を再生（音量調整可能）- より聞き取りやすい2音階の通知音
+                // 決済完了音を再生（選択された効果音ファイルを使用）
                 try {
-                  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                  const soundMap = {
+                    sound1: '/sounds/payment-sound-1.wav',
+                    sound2: '/sounds/payment-sound-2.wav',
+                    sound3: '/sounds/payment-sound-3.wav'
+                  };
                   
-                  // 1音目: 高めの音 (E音 - 659Hz)
-                  const oscillator1 = audioContext.createOscillator();
-                  const gainNode1 = audioContext.createGain();
-                  
-                  oscillator1.connect(gainNode1);
-                  gainNode1.connect(audioContext.destination);
-                  
-                  oscillator1.frequency.value = 659; // E音
-                  oscillator1.type = 'sine';
-                  
-                  gainNode1.gain.setValueAtTime(notificationVolume * 0.8, audioContext.currentTime);
-                  gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-                  
-                  oscillator1.start(audioContext.currentTime);
-                  oscillator1.stop(audioContext.currentTime + 0.15);
-                  
-                  // 2音目: さらに高い音 (A音 - 880Hz)
-                  const oscillator2 = audioContext.createOscillator();
-                  const gainNode2 = audioContext.createGain();
-                  
-                  oscillator2.connect(gainNode2);
-                  gainNode2.connect(audioContext.destination);
-                  
-                  oscillator2.frequency.value = 880; // A音
-                  oscillator2.type = 'sine';
-                  
-                  gainNode2.gain.setValueAtTime(0, audioContext.currentTime + 0.12);
-                  gainNode2.gain.linearRampToValueAtTime(notificationVolume, audioContext.currentTime + 0.15);
-                  gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-                  
-                  oscillator2.start(audioContext.currentTime + 0.12);
-                  oscillator2.stop(audioContext.currentTime + 0.4);
+                  const audio = new Audio(soundMap[selectedPaymentSound]);
+                  audio.volume = notificationVolume;
+                  audio.play().catch(err => {
+                    console.log('決済音の再生に失敗:', err);
+                  });
                 } catch (error) {
                   // サウンド再生エラーは無視
                   console.log('決済音の再生に失敗:', error);
@@ -2000,6 +2001,77 @@ const QRPayment: React.FC = () => {
                       <option value={30}>30分</option>
                       <option value={60}>60分</option>
                     </select>
+                  </div>
+
+                  {/* 決済音の選択 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      🎵 決済音の選択
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* 効果音1 */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPaymentSound('sound1');
+                          const audio = new Audio('/sounds/payment-sound-1.wav');
+                          audio.volume = notificationVolume;
+                          audio.play();
+                        }}
+                        className={`p-3 rounded-lg border-2 transition ${
+                          selectedPaymentSound === 'sound1'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="text-2xl mb-1">🔔</div>
+                        <div className="text-xs font-semibold">サウンド1</div>
+                        <div className="text-xs text-gray-500">クリア</div>
+                      </button>
+
+                      {/* 効果音2 */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPaymentSound('sound2');
+                          const audio = new Audio('/sounds/payment-sound-2.wav');
+                          audio.volume = notificationVolume;
+                          audio.play();
+                        }}
+                        className={`p-3 rounded-lg border-2 transition ${
+                          selectedPaymentSound === 'sound2'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="text-2xl mb-1">✨</div>
+                        <div className="text-xs font-semibold">サウンド2</div>
+                        <div className="text-xs text-gray-500">エレガント</div>
+                      </button>
+
+                      {/* 効果音3 */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPaymentSound('sound3');
+                          const audio = new Audio('/sounds/payment-sound-3.wav');
+                          audio.volume = notificationVolume;
+                          audio.play();
+                        }}
+                        className={`p-3 rounded-lg border-2 transition ${
+                          selectedPaymentSound === 'sound3'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="text-2xl mb-1">🎉</div>
+                        <div className="text-xs font-semibold">サウンド3</div>
+                        <div className="text-xs text-gray-500">ポップ</div>
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      各ボタンをクリックすると音を試聴できます
+                    </p>
                   </div>
 
                   {/* 決済音の音量調整 */}
