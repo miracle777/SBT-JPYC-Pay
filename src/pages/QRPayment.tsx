@@ -1465,6 +1465,31 @@ const QRPayment: React.FC = () => {
                     />
                   </div>
 
+                  {/* 2画面モード切替（目立つ位置に配置） */}
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border-2 border-purple-300 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <Monitor className="w-5 h-5 text-purple-600" />
+                      <div>
+                        <label htmlFor="dualScreenMode" className="text-sm font-semibold text-gray-800 cursor-pointer">
+                          🖥️ 2画面モード
+                        </label>
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          QRコード生成時に自動で新規ウィンドウを表示
+                        </p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="dualScreenMode"
+                        checked={dualScreenMode}
+                        onChange={(e) => setDualScreenMode(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                  </div>
+
                   {/* QRコード形式選択 */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1631,31 +1656,6 @@ const QRPayment: React.FC = () => {
                     <p className="text-xs text-gray-500 mt-1">
                       決済完了時の通知音の音量を調整できます
                     </p>
-                  </div>
-
-                  {/* 2画面モード切替 */}
-                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-200">
-                    <div className="flex items-center gap-2">
-                      <Monitor className="w-5 h-5 text-purple-600" />
-                      <div>
-                        <label htmlFor="dualScreenMode" className="text-sm font-medium text-gray-700 cursor-pointer">
-                          🖥️ 2画面モード
-                        </label>
-                        <p className="text-xs text-gray-500">
-                          QRコード生成時に自動で新規ウィンドウを表示
-                        </p>
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        id="dualScreenMode"
-                        checked={dualScreenMode}
-                        onChange={(e) => setDualScreenMode(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                    </label>
                   </div>
 
                   {/* 生成ボタン */}
