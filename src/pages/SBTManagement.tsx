@@ -2128,109 +2128,81 @@ const SBTManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* SBT発行 */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">SBT発行</h2>
-          {completedPayments.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-              <p className="text-gray-500">完了した支払いセッションはありません</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {completedPayments.map((payment) => (
-                <div key={payment.id} className="bg-white rounded-xl shadow-lg p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 mb-2">{payment.amount} {payment.currency} - {payment.chainName}</h3>
-                      <p className="text-sm text-gray-600 mb-2">決済日: {payment.detectedAt}</p>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-xs text-gray-600">支払者アドレス</p>
-                        <p className="text-xs font-mono text-gray-700 mt-1" title={payment.payerAddress}>
-                          {shortenAddress(payment.payerAddress)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={paymentTemplateSelection[payment.id] || ''}
-                            onChange={(e) => setPaymentTemplateSelection(prev => ({ ...prev, [payment.id]: e.target.value }))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
-                            disabled={paymentSBTStatus[payment.id]?.status === 'issuing'}
-                          >
-                            <option value="">テンプレートを選択</option>
-                            {templates.map((t) => (
-                              <option key={t.id} value={t.id}>
-                                {t.name}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            onClick={async (e) => {
-                              const selectedTemplateId = paymentTemplateSelection[payment.id];
-                              if (!selectedTemplateId) {
-                                toast.error('発行するテンプレートを選択してください');
-                                return;
-                              }
-                              
-                              // 選択を先にリセット(重複呼び出し防止)
-                              setPaymentTemplateSelection(prev => ({ ...prev, [payment.id]: '' }));
-                              
-                              // issueSBT は form submit ハンドラを期待するため、Event を渡す
-                              const fakeEvent = new Event('submit') as any;
-                              await issueSBT(fakeEvent, payment.id, selectedTemplateId);
-                            }}
-                            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            disabled={!walletAddress || paymentSBTStatus[payment.id]?.status === 'issuing'}
-                          >
-                            {paymentSBTStatus[payment.id]?.status === 'issuing' ? '発行中...' : '発行'}
-                          </button>
-                        </div>
-                        {/* SBT発行状態の表示 */}
-                        {paymentSBTStatus[payment.id] && paymentSBTStatus[payment.id].status !== 'idle' && (
-                          <div className={`px-3 py-2 rounded-lg text-sm font-medium ${
-                            paymentSBTStatus[payment.id].status === 'issuing' ? 'bg-blue-50 text-blue-700' :
-                            paymentSBTStatus[payment.id].status === 'success' ? 'bg-green-50 text-green-700' :
-                            'bg-red-50 text-red-700'
-                          }`}>
-                            <div className="flex items-center gap-2">
-                              {paymentSBTStatus[payment.id].status === 'issuing' && (
-                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-                              )}
-                              {paymentSBTStatus[payment.id].status === 'success' && (
-                                <CheckCircle className="w-4 h-4" />
-                              )}
-                              {paymentSBTStatus[payment.id].status === 'failed' && (
-                                <AlertCircle className="w-4 h-4" />
-                              )}
-                              <span>{paymentSBTStatus[payment.id].message}</span>
-                            </div>
-                            {paymentSBTStatus[payment.id].txHash && (
-                              <a
-                                href={getBlockExplorerUrl(paymentSBTStatus[payment.id].txHash!, selectedChainForSBT)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs underline mt-1 block hover:text-green-900"
-                              >
-                                トランザクションを確認 ↗
-                              </a>
-                            )}
+        {/* ✅ コントラクト認可成功 - ページ上部に配置 */}
+        {(isContractOwner || isShopOwner) && (
+          <div className="mb-6 bg-green-50 border-2 border-green-300 rounded-lg p-4">
+            <div className="flex gap-3">
+              <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-bold text-green-900">✅ SBT発行権限OK</h3>
+                <p className="text-sm text-green-800 mt-1 mb-3">
+                  {isContractOwner 
+                    ? 'コントラクトオーナーとしてSBTをミントできます' 
+                    : 'ショップオーナーとしてSBTをミントできます'}
+                </p>
+                
+                {/* コントラクトオーナー専用: ショップ管理リンク */}
+                {isContractOwner && (
+                  <div className="bg-white border border-green-200 rounded-lg p-3">
+                    <h4 className="font-semibold text-gray-900 mb-2">🏪 ショップ管理機能</h4>
+                    <p className="text-xs text-gray-600 mb-3">
+                      新しいショップをシステムに登録したり、既存ショップの管理ができます。
+                    </p>
+                    
+                    {/* ⭐ ショップアクティブ状態の表示とトグル */}
+                    {shopInfo && (
+                      <div className={`border rounded-lg p-3 mb-3 ${shopInfo.active ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${shopInfo.active ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                            <span className="font-semibold text-sm">
+                              ショップID 1: {shopInfo.active ? 'アクティブ' : '非アクティブ'}
+                            </span>
                           </div>
-                        )}
+                        </div>
+                        <p className="text-xs text-gray-700 mb-2">
+                          {shopInfo.active 
+                            ? '✅ SBTを発行できます' 
+                            : '⚠️ 非アクティブのためSBTを発行できません'}
+                        </p>
+                        <button
+                          onClick={handleToggleShopActive}
+                          disabled={isTogglingShopActive}
+                          className={`w-full px-3 py-2 rounded font-semibold text-sm transition ${
+                            shopInfo.active
+                              ? 'bg-red-600 hover:bg-red-700 text-white'
+                              : 'bg-green-600 hover:bg-green-700 text-white'
+                          } disabled:bg-gray-400 disabled:cursor-not-allowed`}
+                        >
+                          {isTogglingShopActive ? (
+                            <span className="flex items-center justify-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                              処理中...
+                            </span>
+                          ) : (
+                            shopInfo.active ? '🔴 ショップを非アクティブ化' : '🟢 ショップを再アクティブ化'
+                          )}
+                        </button>
                       </div>
-                    </div>
+                    )}
+                    
+                    <button
+                      onClick={() => navigate('/shop-admin')}
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition font-semibold"
+                    >
+                      🔧 ショップ管理画面を開く
+                    </button>
                   </div>
-                </div>
-              ))}
+                )}
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* 完了した支払いセッション一覧 */}
+        {/* SBT発行 */}
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">支払い完了一覧</h2>
+            <h2 className="text-2xl font-bold text-gray-900">SBT発行</h2>
           </div>
 
           {/* 📡 ネットワーク情報表示 */}

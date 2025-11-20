@@ -834,10 +834,11 @@ const QRPayment: React.FC = () => {
       const QRCode = (await import('qrcode')).default;
       
       // QRコードをData URLとして生成
+      // エラーコレクションレベルをMに変更してスキャン精度を向上
       const qrDataUrl = await QRCode.toDataURL(session.qrCodeData, {
-        errorCorrectionLevel: 'H',
-        margin: 2,
-        width: 350,
+        errorCorrectionLevel: 'M',  // HからMに変更 - ロゴありのHはスキャンが困難
+        margin: 4,                  // 2から4に増やし - 周囲の余白を増やす
+        width: 400,                 // 350から400に増やし - 高解像度化
         color: {
           dark: '#000000',
           light: '#FFFFFF'
@@ -848,8 +849,8 @@ const QRPayment: React.FC = () => {
       
       // JPYCロゴを追加したQRコードを生成
       const canvas = document.createElement('canvas');
-      canvas.width = 350;
-      canvas.height = 350;
+      canvas.width = 400;  // 350から400に変更
+      canvas.height = 400;
       const ctx = canvas.getContext('2d');
       
       if (ctx) {
@@ -862,10 +863,10 @@ const QRPayment: React.FC = () => {
           const logo = new Image();
           logo.crossOrigin = 'anonymous';
           logo.onload = () => {
-            const logoSize = canvas.width * 0.2;
+            const logoSize = canvas.width * 0.15;  // 0.2から0.15に縮小 - Mレベルに合わせて調整
             const logoX = (canvas.width - logoSize) / 2;
             const logoY = (canvas.height - logoSize) / 2;
-            const padding = logoSize * 0.1;
+            const padding = logoSize * 0.15;  // 0.1から0.15に変更
             
             // 白い背景
             ctx.fillStyle = 'white';
