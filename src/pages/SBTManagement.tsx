@@ -2425,6 +2425,16 @@ const SBTManagement: React.FC = () => {
                         </div>
                       )}
                       
+                      {/* ⭐ ショップ登録されていない場合は登録ボタンを表示 */}
+                      {!isShopOwner && (
+                        <button
+                          onClick={() => setShowRegisterShopModal(true)}
+                          className="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition font-semibold mb-3"
+                        >
+                          ➕ 新規ショップを登録
+                        </button>
+                      )}
+                      
                       <button
                         onClick={() => navigate('/shop-admin')}
                         className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition font-semibold"
