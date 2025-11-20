@@ -6,6 +6,12 @@
 
 This is a Progressive Web App (PWA) for shop owners to issue and manage SBT (Soulbound Token) stamp cards with cryptocurrency payment integration.
 
+## 🌐 ライブデモ
+
+**[https://shop.jpyc-pay.app/](https://shop.jpyc-pay.app/)**
+
+実際の動作をお試しいただけます。テストネット（Polygon Amoy）での利用を推奨します。
+
 ## 🌟 主要機能
 
 - **SBT発行管理**: お店独自のデザインでSBTスタンプを発行
