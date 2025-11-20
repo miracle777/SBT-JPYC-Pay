@@ -302,6 +302,19 @@ export const JPYC_STAMP_SBT_ABI = [
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "shopId",
+        "type": "uint256"
+      }
+    ],
+    "name": "activateShop",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "",
         "type": "uint256"
       }

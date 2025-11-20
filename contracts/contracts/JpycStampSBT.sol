@@ -137,6 +137,14 @@ contract JpycStampSBT is ERC721URIStorage, Ownable {
         _shopInfos[shopId].active = false;
     }
     
+    /// @notice ショップをアクティブ化する
+    /// @param shopId ショップID
+    function activateShop(uint256 shopId) external onlyOwner {
+        require(_shopInfos[shopId].owner != address(0), "Shop not registered");
+        _activeShops[shopId] = true;
+        _shopInfos[shopId].active = true;
+    }
+    
     // ------------------------------------------------------------
     // SBT 発行 (mint)
     // ------------------------------------------------------------

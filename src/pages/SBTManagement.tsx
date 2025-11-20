@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { useWallet } from '../context/WalletContext';
 import { useAccount, useSwitchChain } from 'wagmi'; // RainbowKitのフックを追加
 import { sbtStorage } from '../utils/storage';
-import { mintSBT, getBlockExplorerUrl, getContractOwner, getShopInfo, registerShop, getNFTDisplayUrls } from '../utils/sbtMinting';
+import { mintSBT, getBlockExplorerUrl, getContractOwner, getShopInfo, registerShop, getNFTDisplayUrls, activateShop, deactivateShop } from '../utils/sbtMinting';
 import { NETWORKS, getNetworkByChainId } from '../config/networks';
 import { getSBTContractAddress } from '../config/contracts';
 import { BrowserProvider } from 'ethers';
@@ -174,6 +174,7 @@ const SBTManagement: React.FC = () => {
   const [isShopOwner, setIsShopOwner] = useState(false);
   const [showRegisterShopModal, setShowRegisterShopModal] = useState(false);
   const [isRegisteringShop, setIsRegisteringShop] = useState(false);
+  const [isTogglingShopActive, setIsTogglingShopActive] = useState(false);
   
   // 📥📤 エクスポート・インポート関連
   const [showExportModal, setShowExportModal] = useState(false);
@@ -754,6 +755,40 @@ const SBTManagement: React.FC = () => {
     }
 
     handleTemplateFormSubmit(e);
+  };
+
+  // 🔄 ショップアクティブ状態のトグル
+  const handleToggleShopActive = async () => {
+    if (!walletAddress || !currentChainId) {
+      toast.error('ウォレットを接続してください');
+      return;
+    }
+
+    const isCurrentlyActive = shopInfo?.active || false;
+    const action = isCurrentlyActive ? '非アクティブ化' : 'アクティブ化';
+
+    try {
+      setIsTogglingShopActive(true);
+      
+      const result = isCurrentlyActive 
+        ? await deactivateShop({ shopId: 1, chainId: currentChainId })
+        : await activateShop({ shopId: 1, chainId: currentChainId });
+
+      if (result.success) {
+        toast.success(`✅ ショップを${action}しました！`);
+        
+        // ショップ情報を再取得
+        const updatedShopInfo = await getShopInfo(1, currentChainId);
+        setShopInfo(updatedShopInfo);
+      } else {
+        toast.error(result.error || `ショップ${action}に失敗しました`);
+      }
+    } catch (error: any) {
+      console.error(`❌ ショップ${action}エラー:`, error);
+      toast.error(error.message || `ショップ${action}に失敗しました`);
+    } finally {
+      setIsTogglingShopActive(false);
+    }
   };
 
   // 📥 エクスポート機能（ネットワーク情報付き）
@@ -2413,6 +2448,40 @@ const SBTManagement: React.FC = () => {
                       <p className="text-xs text-gray-600 mb-3">
                         新しいショップをシステムに登録したり、既存ショップの管理ができます。
                       </p>
+                      
+                      {/* ⭐ ショップアクティブ状態の表示とトグル */}
+                      {shopInfo && (
+                        <div className={`border rounded-lg p-3 mb-3 ${shopInfo.active ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full ${shopInfo.active ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                              <span className="font-semibold text-sm">
+                                ショップID 1: {shopInfo.active ? 'アクティブ' : '非アクティブ'}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-700 mb-2">
+                            {shopInfo.active 
+                              ? '✅ SBTを発行できます' 
+                              : '⚠️ 非アクティブのためSBTを発行できません'}
+                          </p>
+                          <button
+                            onClick={handleToggleShopActive}
+                            disabled={isTogglingShopActive}
+                            className={`w-full px-3 py-2 rounded font-semibold text-sm transition ${
+                              shopInfo.active
+                                ? 'bg-red-600 hover:bg-red-700 text-white'
+                                : 'bg-green-600 hover:bg-green-700 text-white'
+                            } disabled:bg-gray-400`}
+                          >
+                            {isTogglingShopActive 
+                              ? '処理中...' 
+                              : shopInfo.active 
+                                ? '⛔ ショップを非アクティブ化' 
+                                : '✅ ショップをアクティブ化'}
+                          </button>
+                        </div>
+                      )}
                       
                       {/* 自分自身をショップオーナー登録した場合の説明 */}
                       {isShopOwner && (

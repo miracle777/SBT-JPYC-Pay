@@ -773,4 +773,244 @@ export async function registerShop(params: {
   }
 }
 
+/**
+ * ショップをアクティブ化する
+ * @param shopId ショップID
+ * @param chainId チェーンID
+ * @returns 成功/失敗とトランザクションハッシュ
+ */
+export async function activateShop(params: {
+  shopId: number;
+  chainId: number;
+}): Promise<{
+  success: boolean;
+  transactionHash?: string;
+  error?: string;
+}> {
+  try {
+    const { shopId, chainId } = params;
+
+    // MetaMaskの確認
+    if (!window.ethereum) {
+      return {
+        success: false,
+        error: 'MetaMaskがインストールされていません。ウォレットを接続してください。',
+      };
+    }
+
+    // プロバイダーと署名者を取得
+    const provider = new BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const signerAddress = await signer.getAddress();
+
+    // コントラクトアドレスを取得
+    const contractAddress = getSBTContractAddress(chainId);
+    if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
+      return {
+        success: false,
+        error: `チェーンID ${chainId} のコントラクトが見つかりません`,
+      };
+    }
+
+    // コントラクトインスタンスを作成
+    const contract = new Contract(
+      contractAddress,
+      JPYC_STAMP_SBT_ABI,
+      signer
+    );
+
+    // オーナーであるか確認
+    const owner = await contract.owner();
+    if (owner.toLowerCase() !== signerAddress.toLowerCase()) {
+      return {
+        success: false,
+        error: `ショップアクティブ化権限がありません。\n現在のアカウント: ${signerAddress}\nコントラクトオーナー: ${owner}\n\nコントラクトオーナーのアカウントでMetaMaskに接続してください。`,
+      };
+    }
+
+    console.log('✅ ショップアクティブ化開始:', { shopId, signerAddress });
+
+    // ユーザーに確認メッセージを表示
+    toast.loading(`ショップをアクティブ化中... (Shop ${shopId})`, { id: 'shop-activate' });
+
+    // ショップをアクティブ化（MetaMaskで署名）
+    const tx = await contract.activateShop(shopId);
+
+    console.log('⏳ トランザクション送信:', tx.hash);
+    toast.loading(`トランザクション処理中... ${tx.hash.substring(0, 10)}...`, { id: 'shop-activate' });
+
+    // トランザクション完了を待機
+    const receipt = await tx.wait();
+
+    if (receipt?.status === 0) {
+      toast.error('ショップアクティブ化トランザクションが失敗しました', { id: 'shop-activate' });
+      return {
+        success: false,
+        error: 'ショップアクティブ化トランザクションが失敗しました',
+      };
+    }
+
+    console.log('✅ ショップアクティブ化完了:', receipt?.transactionHash);
+    toast.success(`ショップ ${shopId} をアクティブ化しました`, { id: 'shop-activate' });
+
+    return {
+      success: true,
+      transactionHash: receipt?.transactionHash || tx.hash,
+    };
+  } catch (error: any) {
+    console.error('❌ ショップアクティブ化エラー:', error);
+    toast.dismiss('shop-activate');
+
+    let errorMessage = 'ショップアクティブ化に失敗しました';
+
+    if (error.code === 'ACTION_REJECTED') {
+      errorMessage = 'ユーザーがトランザクションを拒否しました';
+      toast.error('トランザクションが拒否されました', { duration: 3000 });
+    } else if (error.message?.includes('execution reverted')) {
+      if (error.message.includes('Shop not registered')) {
+        errorMessage = `ショップID ${params.shopId} は登録されていません`;
+      } else if (error.message.includes('Ownable: caller is not the owner')) {
+        errorMessage = 'コントラクトオーナー権限が必要です';
+      } else {
+        errorMessage = `スマートコントラクトエラー: ${error.reason || error.message}`;
+      }
+      toast.error(errorMessage, { duration: 5000 });
+    } else if (error.reason) {
+      errorMessage = error.reason;
+      toast.error(errorMessage, { duration: 4000 });
+    } else if (error.message) {
+      errorMessage = error.message;
+      toast.error(errorMessage, { duration: 4000 });
+    } else {
+      toast.error(errorMessage, { duration: 4000 });
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+
+/**
+ * ショップを非アクティブ化する
+ * @param shopId ショップID
+ * @param chainId チェーンID
+ * @returns 成功/失敗とトランザクションハッシュ
+ */
+export async function deactivateShop(params: {
+  shopId: number;
+  chainId: number;
+}): Promise<{
+  success: boolean;
+  transactionHash?: string;
+  error?: string;
+}> {
+  try {
+    const { shopId, chainId } = params;
+
+    // MetaMaskの確認
+    if (!window.ethereum) {
+      return {
+        success: false,
+        error: 'MetaMaskがインストールされていません。ウォレットを接続してください。',
+      };
+    }
+
+    // プロバイダーと署名者を取得
+    const provider = new BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const signerAddress = await signer.getAddress();
+
+    // コントラクトアドレスを取得
+    const contractAddress = getSBTContractAddress(chainId);
+    if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
+      return {
+        success: false,
+        error: `チェーンID ${chainId} のコントラクトが見つかりません`,
+      };
+    }
+
+    // コントラクトインスタンスを作成
+    const contract = new Contract(
+      contractAddress,
+      JPYC_STAMP_SBT_ABI,
+      signer
+    );
+
+    // オーナーであるか確認
+    const owner = await contract.owner();
+    if (owner.toLowerCase() !== signerAddress.toLowerCase()) {
+      return {
+        success: false,
+        error: `ショップ非アクティブ化権限がありません。\n現在のアカウント: ${signerAddress}\nコントラクトオーナー: ${owner}\n\nコントラクトオーナーのアカウントでMetaMaskに接続してください。`,
+      };
+    }
+
+    console.log('⛔ ショップ非アクティブ化開始:', { shopId, signerAddress });
+
+    // ユーザーに確認メッセージを表示
+    toast.loading(`ショップを非アクティブ化中... (Shop ${shopId})`, { id: 'shop-deactivate' });
+
+    // ショップを非アクティブ化（MetaMaskで署名）
+    const tx = await contract.deactivateShop(shopId);
+
+    console.log('⏳ トランザクション送信:', tx.hash);
+    toast.loading(`トランザクション処理中... ${tx.hash.substring(0, 10)}...`, { id: 'shop-deactivate' });
+
+    // トランザクション完了を待機
+    const receipt = await tx.wait();
+
+    if (receipt?.status === 0) {
+      toast.error('ショップ非アクティブ化トランザクションが失敗しました', { id: 'shop-deactivate' });
+      return {
+        success: false,
+        error: 'ショップ非アクティブ化トランザクションが失敗しました',
+      };
+    }
+
+    console.log('✅ ショップ非アクティブ化完了:', receipt?.transactionHash);
+    toast.success(`ショップ ${shopId} を非アクティブ化しました`, { id: 'shop-deactivate' });
+
+    return {
+      success: true,
+      transactionHash: receipt?.transactionHash || tx.hash,
+    };
+  } catch (error: any) {
+    console.error('❌ ショップ非アクティブ化エラー:', error);
+    toast.dismiss('shop-deactivate');
+
+    let errorMessage = 'ショップ非アクティブ化に失敗しました';
+
+    if (error.code === 'ACTION_REJECTED') {
+      errorMessage = 'ユーザーがトランザクションを拒否しました';
+      toast.error('トランザクションが拒否されました', { duration: 3000 });
+    } else if (error.message?.includes('execution reverted')) {
+      if (error.message.includes('Shop not found')) {
+        errorMessage = `ショップID ${params.shopId} が見つかりません`;
+      } else if (error.message.includes('Ownable: caller is not the owner')) {
+        errorMessage = 'コントラクトオーナー権限が必要です';
+      } else {
+        errorMessage = `スマートコントラクトエラー: ${error.reason || error.message}`;
+      }
+      toast.error(errorMessage, { duration: 5000 });
+    } else if (error.reason) {
+      errorMessage = error.reason;
+      toast.error(errorMessage, { duration: 4000 });
+    } else if (error.message) {
+      errorMessage = error.message;
+      toast.error(errorMessage, { duration: 4000 });
+    } else {
+      toast.error(errorMessage, { duration: 4000 });
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+
+
+
 
