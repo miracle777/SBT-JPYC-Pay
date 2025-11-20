@@ -11,12 +11,14 @@ import {
   Shield,
   AlertCircle,
   Key,
-  Users
+  Users,
+  Settings
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAccount } from 'wagmi';
 import { registerShop, getShopInfo, getContractOwner } from '../utils/sbtMinting';
 import { getSBTContractAddress } from '../config/contracts';
+import { getShopSettings } from '../utils/shopSettings';
 
 /**
  * ショップ管理画面（コントラクトオーナー専用）
@@ -116,6 +118,19 @@ const ShopAdmin: React.FC = () => {
 
     loadShops();
   }, [isAuthenticated, chainId]);
+
+  // 設定画面の情報から自動入力
+  const loadFromSettings = () => {
+    const settings = getShopSettings();
+    setNewShop({
+      shopId: '1', // デフォルトでショップID 1
+      name: settings.name || '',
+      description: settings.description || '',
+      ownerAddress: walletAddress || '', // 自分のウォレットアドレス
+      requiredVisits: 10
+    });
+    toast.success('✅ 設定画面の情報を読み込みました');
+  };
 
   // ショップ登録
   const handleRegisterShop = async () => {
@@ -259,6 +274,29 @@ const ShopAdmin: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-6xl mx-auto">
+        {/* ⚠️ 重要な注意事項バナー */}
+        <div className="mb-6 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg shadow-lg p-6">
+          <div className="flex items-start gap-4">
+            <Shield className="w-8 h-8 flex-shrink-0 mt-1" />
+            <div>
+              <h2 className="text-xl font-bold mb-2">🔐 コントラクトオーナー専用管理画面</h2>
+              <p className="text-sm opacity-90 mb-3">
+                この画面はスマートコントラクトのオーナーのみがアクセス可能な総合管理画面です。
+              </p>
+              <div className="bg-white/10 backdrop-blur rounded p-3 text-sm">
+                <p className="font-semibold mb-2">⚠️ 本番運用での重要な注意:</p>
+                <ul className="space-y-1 text-xs opacity-90">
+                  <li>• この画面は<strong className="text-yellow-300">非公開ページ</strong>として運用してください</li>
+                  <li>• URL直接アクセス、外部リンク掲載は厳禁</li>
+                  <li>• 総合管理者のみが使用可能</li>
+                  <li>• 他の店舗をショップオーナーとして登録する機能を提供</li>
+                  <li>• <strong className="text-yellow-300">※現在はデモ版のため、開発・検証目的で公開中</strong></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* ヘッダー */}
         <div className="mb-6">
           <button
@@ -275,13 +313,13 @@ const ShopAdmin: React.FC = () => {
                 <Store className="w-8 h-8 text-blue-600" />
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">ショップ管理</h1>
-                  <p className="text-sm text-gray-600">コントラクトオーナー専用</p>
+                  <p className="text-sm text-gray-600">コントラクトオーナー専用 - 総合管理</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
                   <Shield className="w-3 h-3 inline mr-1" />
-                  認証済み
+                  オーナー認証済み
                 </span>
                 <button
                   onClick={() => {
@@ -295,10 +333,19 @@ const ShopAdmin: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded p-3">
-              <p className="text-sm text-blue-800">
-                <strong>💡 重要:</strong> この画面では、他の店舗をショップオーナーとして登録できます。
-                登録されたショップオーナーは、自分のショップIDでSBTを発行できるようになります。
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-lg p-4">
+              <p className="text-sm text-gray-800 mb-2">
+                <strong>💡 この画面でできること:</strong>
+              </p>
+              <ul className="text-sm text-gray-700 space-y-1">
+                <li>• 他の店舗をショップオーナーとして登録</li>
+                <li>• 登録されたショップオーナーは、自分のショップIDでSBTを発行可能</li>
+                <li>• 各ショップの利用状況と統計の確認</li>
+                <li>• ショップの有効化/無効化の管理</li>
+              </ul>
+              <p className="text-xs text-gray-600 mt-3 pt-3 border-t border-gray-300">
+                <strong>ℹ️ ヒント:</strong> 自分自身をショップオーナーとして登録する場合は、
+                「設定画面から読み込み」ボタンで店舗情報を自動入力できます。
               </p>
             </div>
           </div>
@@ -349,17 +396,34 @@ const ShopAdmin: React.FC = () => {
 
         {/* 新規ショップ登録 */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <button
-            onClick={() => setShowAddShop(!showAddShop)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition mb-4"
-          >
-            <Plus className="w-5 h-5" />
-            新しいショップを登録
-          </button>
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => setShowAddShop(!showAddShop)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+            >
+              <Plus className="w-5 h-5" />
+              新しいショップを登録
+            </button>
+
+            {/* 設定画面から読み込みボタン */}
+            <button
+              onClick={loadFromSettings}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
+            >
+              <Settings className="w-5 h-5" />
+              設定画面から読み込み
+            </button>
+          </div>
 
           {showAddShop && (
             <div className="border border-gray-200 rounded-lg p-4">
               <h3 className="font-semibold text-gray-900 mb-4">新規ショップ登録</h3>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
+                <p className="text-sm text-blue-800">
+                  💡 <strong>ヒント:</strong> 「設定画面から読み込み」ボタンで、/settings で登録した店舗情報を自動入力できます。
+                </p>
+              </div>
               
               <div className="space-y-4">
                 <div>
