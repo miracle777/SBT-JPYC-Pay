@@ -1065,13 +1065,14 @@ const QRPayment: React.FC = () => {
         setPaymentSBTStatus(newStatus);
 
         // 動的メタデータでPinataにアップロード
+        // ⭐ QR決済では常にショップID 1を使用（デフォルトショップ）
         const result = await pinataService.createDynamicSBTWithImage(
           file,
           template.name,
           template.description,
           { name: shopInfo.name, id: shopInfo.id, category: '', description: '' },
           {
-            shopId: template.shopId,
+            shopId: 1, // QR決済では常にショップID 1（デフォルトショップ）を使用
             maxStamps: template.maxStamps,
             rewardDescription: template.rewardDescription,
             issuePattern: template.issuePattern,
@@ -1092,7 +1093,7 @@ const QRPayment: React.FC = () => {
       
       const mintParams: MintSBTParams = {
         recipientAddress,
-        shopId: shopIdNumber,
+        shopId: 1, // QR決済では常にショップID 1（デフォルトショップ）を使用
         tokenURI,
         chainId,
       };
@@ -1100,7 +1101,7 @@ const QRPayment: React.FC = () => {
       console.log('🎯 SBT発行開始:', {
         template: template.name,
         recipient: recipientAddress,
-        shopId: shopIdNumber,
+        shopId: 1, // 固定値
         tokenURI,
         chainId,
       });
