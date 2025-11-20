@@ -43,7 +43,7 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
   const isConnected = rainbowConnected || contextConnected;
   const isConnecting = contextConnecting; // 接続中状態はWalletContextから取得
 
-  const [isExpanded, setIsExpanded] = useState(true); // デフォルトで展開
+  const [isExpanded, setIsExpanded] = useState(false); // デフォルトで閉じる
   const [isSwitchingChain, setIsSwitchingChain] = useState(false);
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
 
@@ -114,16 +114,16 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+    <div className="bg-white border-2 border-gray-300 rounded-lg shadow-md hover:shadow-lg transition-shadow">
       <div 
-        className="p-4 cursor-pointer" 
+        className="p-5 cursor-pointer hover:bg-gray-50 transition-colors" 
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2">
-              <Wallet className="w-5 h-5 text-indigo-600" />
-              <h3 className="font-medium text-gray-900">{title}</h3>
+              <Wallet className="w-6 h-6 text-indigo-600" />
+              <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
             </div>
             {isConnected && (
               <div className="flex items-center space-x-2">

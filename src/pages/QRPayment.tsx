@@ -95,6 +95,7 @@ const QRPayment: React.FC = () => {
   const [shopInfo, setShopInfo] = useState({ name: DEFAULT_SHOP_INFO.name, id: DEFAULT_SHOP_INFO.id });
   const [sbtTemplates, setSbtTemplates] = useState<SBTTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('all'); // 'all' = 全テンプレート, それ以外 = 特定テンプレートID
+  const [expandedSessionIds, setExpandedSessionIds] = useState<Set<string>>(new Set()); // アコーディオン展開状態管理
   
   // 支払いセッションごとのSBT発行ステータス管理
   // Map<sessionId, Map<templateId, { status: 'issuing' | 'completed' | 'error', message: string, transactionHash?: string }>>
@@ -2345,53 +2346,107 @@ const QRPayment: React.FC = () => {
                   </div>
                 </div>
                 
-                {/* セッション履歴（全ステータス） */}
-                <details className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                  <summary className="bg-gray-50 px-4 py-3 font-semibold text-gray-900 cursor-pointer hover:bg-gray-100">
+                {/* セッション履歴（全ステータス） - アコーディオン形式 */}
+                <div className="bg-white rounded-lg shadow border border-gray-200">
+                  <div className="bg-gray-100 px-4 py-3 font-semibold text-gray-900 border-b border-gray-300">
                     全セッション履歴 ({paymentSessions.length}件)
-                  </summary>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="border-b border-gray-200">
-                        <tr>
-                          <th className="text-left py-2 px-2 font-semibold text-gray-700">ID</th>
-                          <th className="text-left py-2 px-2 font-semibold text-gray-700">金額</th>
-                          <th className="text-left py-2 px-2 font-semibold text-gray-700">ネットワーク</th>
-                          <th className="text-left py-2 px-2 font-semibold text-gray-700">作成時刻</th>
-                          <th className="text-left py-2 px-2 font-semibold text-gray-700">状態</th>
-                          <th className="text-left py-2 px-2 font-semibold text-gray-700">トランザクション</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paymentSessions.map((session) => (
-                          <tr key={session.id} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-2 px-2 font-mono text-xs text-gray-600">{session.id.slice(-8)}</td>
-                            <td className="py-2 px-2 font-semibold text-gray-900">{session.amount}</td>
-                            <td className="py-2 px-2 text-gray-600">{session.chainName}</td>
-                            <td className="py-2 px-2 text-xs text-gray-600">{session.createdAt.split(' ')[1]}</td>
-                            <td className="py-2 px-2">{getStatusBadge(session.status)}</td>
-                            <td className="py-2 px-2">
-                              {session.status === 'completed' && session.transactionHash ? (
-                                <div className="flex items-center gap-1">
-                                  <CheckCircle className="w-4 h-4 text-green-600" />
-                                  <span className="text-xs font-mono text-green-600">
-                                    {session.transactionHash.slice(0, 8)}...
-                                  </span>
-                                </div>
-                              ) : session.status === 'pending' ? (
-                                <span className="text-xs text-blue-600 font-semibold">監視中...</span>
-                              ) : session.status === 'expired' ? (
-                                <span className="text-xs text-red-600">期限切れ</span>
-                              ) : (
-                                <span className="text-xs text-gray-500">-</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
                   </div>
-                </details>
+                  <div className="divide-y divide-gray-200">
+                    {paymentSessions.map((session) => {
+                      const isExpanded = expandedSessionIds.has(session.id);
+                      return (
+                        <div key={session.id} className="border-b border-gray-100">
+                          {/* アコーディオンヘッダー */}
+                          <div
+                            onClick={() => {
+                              const newExpanded = new Set(expandedSessionIds);
+                              if (isExpanded) {
+                                newExpanded.delete(session.id);
+                              } else {
+                                newExpanded.add(session.id);
+                              }
+                              setExpandedSessionIds(newExpanded);
+                            }}
+                            className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3 flex-1">
+                                <ChevronDown
+                                  className={`w-4 h-4 text-gray-500 transition-transform ${
+                                    isExpanded ? 'rotate-180' : ''
+                                  }`}
+                                />
+                                <div className="flex items-center gap-3">
+                                  <span className="font-mono text-xs text-gray-600">
+                                    ID: {session.id.slice(-8)}
+                                  </span>
+                                  <span className="font-semibold text-gray-900">
+                                    {session.amount} {session.currency}
+                                  </span>
+                                  {getStatusBadge(session.status)}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500">
+                                  {session.createdAt.split(' ')[1]}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* アコーディオン詳細 */}
+                          {isExpanded && (
+                            <div className="px-4 py-3 bg-gray-50 space-y-2 text-sm">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <span className="text-gray-600">ネットワーク:</span>
+                                  <span className="ml-2 font-medium">{session.chainName}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">作成時刻:</span>
+                                  <span className="ml-2 font-medium">{session.createdAt}</span>
+                                </div>
+                                {session.status === 'completed' && session.detectedAt && (
+                                  <div>
+                                    <span className="text-gray-600">完了時刻:</span>
+                                    <span className="ml-2 font-medium text-green-600">{session.detectedAt}</span>
+                                  </div>
+                                )}
+                                {session.status === 'completed' && session.customerAddress && (
+                                  <div>
+                                    <span className="text-gray-600">顧客:</span>
+                                    <span className="ml-2 font-mono text-xs">
+                                      {formatCustomerAddress(session.customerAddress)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              {session.status === 'completed' && session.transactionHash && (
+                                <div className="pt-2 border-t border-gray-200">
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle className="w-4 h-4 text-green-600" />
+                                    <span className="text-gray-600">トランザクション:</span>
+                                    <a
+                                      href={`${(() => {
+                                        const network = Object.values(NETWORKS).find(n => n.chainId === session.chainId);
+                                        return network?.blockExplorerUrl || '';
+                                      })()}/tx/${session.transactionHash}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="font-mono text-xs text-green-600 hover:text-green-800 underline"
+                                    >
+                                      {session.transactionHash.slice(0, 10)}...{session.transactionHash.slice(-8)}
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
         </div>
