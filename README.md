@@ -425,6 +425,7 @@ Avalanche テストネットでテストを行う際は、テストネットAVAX
 
 ### 🛠️ SBT技術ドキュメント
 
+- **[🔴 コントラクト要件チェックリスト](./CONTRACT_REQUIREMENTS.md)** - **デプロイ前必読**
 - **[🆕 動的SBTメタデータ実装ガイド](./DYNAMIC_SBT_METADATA.md)** - 動的メタデータ機能の詳細
 - **[📖 SBT発行完全ガイド](./docs/SBT_ISSUANCE_GUIDE.md)** - SBT発行プロセスの完全解説  
 - **[📋 SBTメタデータ仕様書](./docs/SBT_METADATA_SPECIFICATION.md)** - メタデータ構造と技術仕様
