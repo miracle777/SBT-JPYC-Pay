@@ -2335,7 +2335,8 @@ const SBTManagement: React.FC = () => {
                       <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2">
                         <p className="text-xs text-yellow-800">
                           <strong>💡 ショップオーナーになりたい方へ:</strong><br/>
-                          コントラクトオーナーに連絡して、あなたのウォレットアドレスをショップオーナーとして登録してもらう必要があります。
+                          SBTを発行したい、ショップオーナー登録を希望される方は、コントラクトオーナーまでお問い合わせください。<br/>
+                          あなたのウォレットアドレスをショップオーナーとして登録いたします。
                         </p>
                       </div>
                       <button
@@ -2412,6 +2413,18 @@ const SBTManagement: React.FC = () => {
                       <p className="text-xs text-gray-600 mb-3">
                         新しいショップをシステムに登録したり、既存ショップの管理ができます。
                       </p>
+                      
+                      {/* 自分自身をショップオーナー登録した場合の説明 */}
+                      {isShopOwner && (
+                        <div className="bg-blue-50 border border-blue-200 rounded p-2 mb-3">
+                          <p className="text-xs text-blue-800">
+                            <strong>✅ あなたは既にショップオーナーとしても登録されています</strong><br/>
+                            この画面（SBT管理画面）で直接SBTを発行できます。<br/>
+                            他のショップを追加する場合は、下のボタンから管理画面を開いてください。
+                          </p>
+                        </div>
+                      )}
+                      
                       <button
                         onClick={() => navigate('/shop-admin')}
                         className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition font-semibold"

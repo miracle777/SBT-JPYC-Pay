@@ -39,6 +39,17 @@ const AppContent: React.FC = () => {
         onClose={closeBrowserRedirect}
         onForceConnect={forceConnect}
       />
+
+      {/* JPYC免責事項 - ウォレット接続前でも表示 */}
+      <footer className="bg-white border-t border-gray-200 mt-8">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="text-xs text-gray-500 text-center space-y-1">
+            <p>※ 本プログラムは、JPYC株式会社による公式コンテンツではありません。</p>
+            <p>※ 「JPYC」は、JPYC株式会社の提供するステーブルコインです。</p>
+            <p>※ JPYC及びJPYCロゴは、JPYC株式会社の登録商標です。</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

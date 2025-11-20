@@ -491,6 +491,15 @@ const ShopAdmin: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* JPYC免責事項 */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="bg-gray-50 rounded-lg p-4 text-xs text-gray-600">
+            <p className="mb-2">※ 本プログラムは、JPYC株式会社による公式コンテンツではありません。</p>
+            <p className="mb-2">※ 「JPYC」は、JPYC株式会社の提供するステーブルコインです。</p>
+            <p>※ JPYC及びJPYCロゴは、JPYC株式会社の登録商標です。</p>
+          </div>
+        </div>
       </div>
     </div>
   );
