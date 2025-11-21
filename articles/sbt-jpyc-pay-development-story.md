@@ -3,7 +3,7 @@ title: "【失敗から学ぶ】SBTスタンプカード×暗号資産決済ア�
 emoji: "🎫"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: ["blockchain", "web3", "solidity", "polygon", "react"]
-published: false
+published: true
 ---
 
 # はじめに
