@@ -476,6 +476,104 @@ if (currentChainId !== qrData.chainId) {
 - ユーザーが手動でネットワーク切り替え不要
 - 誤送金リスクの削減
 
+### 🦊 EIP-681対応とマルチウォレット互換性
+
+本プロジェクトでは、**独自規格（masaru21QR）**と**EIP-681標準**の2種類のQRコード形式に対応しています。
+
+#### 独自規格: masaru21QR_PAYMENT
+
+店舗情報やメタデータを含む拡張形式:
+
+```json
+{
+  "type": "masaru21QR_PAYMENT",
+  "to": "0x1234...7890",
+  "amount": "100",
+  "network": "polygon",
+  "chainId": 137,
+  "contractAddress": "0x6AE7...108c",
+  "merchant": {
+    "name": "カフェJPYC",
+    "id": "shop_12345",
+    "description": "商品購入"
+  },
+  "timestamp": 1732012800,
+  "expires": 1732099200
+}
+```
+
+**特徴**:
+- 店舗情報（名前・ID・説明）を含む
+- 有効期限管理
+- ネットワーク自動判別
+- JPYC専用アプリに最適化
+
+#### EIP-681標準: MetaMask互換形式
+
+[EIP-681](https://eips.ethereum.org/EIPS/eip-681)準拠のURI形式:
+
+```text
+ethereum:0x6AE7Dfc73E0dDE2aa99ac063DcF7e8A63265108c@137/transfer?address=0x1234...7890&uint256=100000000000000000000
+```
+
+**実装例**:
+
+```typescript
+// EIP-681形式QRコード生成
+const generateEIP681QR = (payload: PaymentPayload): string => {
+  const { contractAddress, chainId, shopWallet, amount } = payload;
+  
+  // ethereum:<contract>@<chainId>/transfer?address=<to>&uint256=<amount>
+  return `ethereum:${contractAddress}@${chainId}/transfer?address=${shopWallet}&uint256=${amount}`;
+};
+```
+
+**対応ウォレット**:
+- ✅ **MetaMask**: QRスキャンで自動的にトランザクション構築
+- ✅ **Trust Wallet**: EIP-681ネイティブ対応
+- ✅ **Rainbow Wallet**: Ethereum標準URI対応
+- ✅ **Coinbase Wallet**: 標準形式サポート
+
+**メリット**:
+- **広範な互換性**: JPYC専用アプリがなくても利用可能
+- **自動入力**: 金額・受取アドレス・トークンが自動設定
+- **ユーザー体験向上**: 手入力の手間とミスを削減
+- **エコシステム拡大**: 既存のWeb3ウォレットユーザーを取り込み可能
+
+#### 2形式同時生成の実装
+
+アプリ内ではUIで切り替え可能:
+
+```tsx
+// QRコード形式選択
+const [qrCodeFormat, setQrCodeFormat] = useState<'jpyc-payment' | 'metamask'>('jpyc-payment');
+
+// 形式に応じたQRコード生成
+const qrCodeData = qrCodeFormat === 'metamask' 
+  ? encodePaymentPayloadForMetaMask(payload)  // EIP-681形式
+  : encodePaymentPayload(payload);            // masaru21QR形式
+```
+
+**UI表示例**:
+```
+┌─────────────────────────────┐
+│ QRコード形式選択            │
+├─────────────────────────────┤
+│ ○ 💰 masaru21QR (推奨)      │
+│   - 店舗情報含む            │
+│   - JPYC専用アプリ向け      │
+│                             │
+│ ○ 🦊 MetaMask (EIP-681)     │
+│   - MetaMask等で読取可能    │
+│   - 標準ウォレット対応      │
+└─────────────────────────────┘
+```
+
+:::message
+**開発のポイント**:  
+独自規格とEIP-681標準の**両方に対応**することで、JPYC専用アプリでの高度な機能と、既存ウォレットとの互換性を両立できました。これにより、**幅広いユーザー層**にアプローチ可能になっています。
+:::
+
 ### 📊 統計ダッシュボード
 
 SBT発行状況を可視化:
