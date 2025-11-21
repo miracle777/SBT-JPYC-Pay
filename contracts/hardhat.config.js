@@ -12,6 +12,13 @@ module.exports = {
         runs: 200,
       },
       viaIR: true,
+      // Added metadata variations hint: we will try different bytecodeHash values manually
+      // to reproduce on-chain bytecode prefix 608034...283f38 (deployed) vs local 608034...28f6...
+      // Default (ipfs) first; we will temporarily switch to 'none' and 'bzzr1' during analysis.
+      // Revert to original metadata setting (ipfs) after analysis
+      metadata: {
+        bytecodeHash: "ipfs",
+      },
     },
   },
   networks: {
@@ -58,13 +65,12 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      polygon: process.env.POLYGONSCAN_API_KEY || "",
-      polygonAmoy: process.env.POLYGONSCAN_API_KEY || "",
-      avalanche: process.env.SNOWTRACE_API_KEY || "",
+      // Polygon - Use Etherscan API (integrated with PolygonScan)
+      polygon: process.env.ETHERSCAN_API_KEY || "",
+      polygonAmoy: process.env.ETHERSCAN_API_KEY || "",
+      // Ethereum
       mainnet: process.env.ETHERSCAN_API_KEY || "",
       sepolia: process.env.ETHERSCAN_API_KEY || "",
-      polygonMumbai: process.env.POLYGONSCAN_API_KEY || "",
-      avalancheFujiTestnet: process.env.SNOWTRACE_API_KEY || "",
     },
   },
   namedAccounts: {
