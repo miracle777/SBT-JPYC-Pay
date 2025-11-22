@@ -160,11 +160,22 @@
     }
     </script>
     
-    <!-- Google Analytics 4 - 環境変数で設定される場合は動的に読み込まれます -->
-    <!-- GA4の測定IDは .env ファイルの VITE_GA_MEASUREMENT_ID で設定してください -->
+    <!-- Google Analytics 4 (GA4) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MPX9TKVZLZ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-MPX9TKVZLZ', {
+        send_page_view: false, // SPAなので手動でページビューを送信
+        app_name: 'SBT masaru21 Pay(仮)',
+        app_version: '1.0.0',
+        debug_mode: true
+      });
+    </script>
     
-    <!-- Google Search Console Verification (要変更) -->
-    <!-- <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE_HERE" /> -->
+    <!-- Google Search Console Verification -->
+    <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE_HERE" />
     
     <!-- PWA Installation Prompt -->
     <script>

@@ -13,47 +13,57 @@
     <mobile:mobile/>
   </url>
 
-  <!-- SBT Management Page -->
+  <!-- SBT Management Pages -->
+  <url>
+    <loc>https://shop.jpyc-pay.app/sbt-management</loc>
+    <lastmod>2025-11-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <mobile:mobile/>
+  </url>
+
   <url>
     <loc>https://shop.jpyc-pay.app/sbt</loc>
-    <lastmod>2025-01-19</lastmod>
+    <lastmod>2025-11-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
     <mobile:mobile/>
   </url>
 
-  <!-- Payment Page -->
+  <!-- QR Payment Page -->
   <url>
-    <loc>https://shop.jpyc-pay.app/payment</loc>
-    <lastmod>2025-01-19</lastmod>
+    <loc>https://shop.jpyc-pay.app/qr-payment</loc>
+    <lastmod>2025-11-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
     <mobile:mobile/>
   </url>
 
-  <!-- User Guide -->
+  <!-- Settings Page -->
   <url>
-    <loc>https://shop.jpyc-pay.app/guide</loc>
-    <lastmod>2025-01-19</lastmod>
+    <loc>https://shop.jpyc-pay.app/settings</loc>
+    <lastmod>2025-11-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+    <mobile:mobile/>
+  </url>
+
+  <!-- Setup Guide -->
+  <url>
+    <loc>https://shop.jpyc-pay.app/setup-guide</loc>
+    <lastmod>2025-11-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
     <mobile:mobile/>
   </url>
 
-  <!-- Privacy Policy -->
+  <!-- Shop Admin -->
   <url>
-    <loc>https://shop.jpyc-pay.app/privacy</loc>
-    <lastmod>2025-01-19</lastmod>
+    <loc>https://shop.jpyc-pay.app/shop-admin</loc>
+    <lastmod>2025-11-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
-  </url>
-
-  <!-- Terms of Service -->
-  <url>
-    <loc>https://shop.jpyc-pay.app/terms</loc>
-    <lastmod>2025-01-19</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.4</priority>
+    <mobile:mobile/>
   </url>
 
 </urlset>
