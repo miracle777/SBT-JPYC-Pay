@@ -19,26 +19,34 @@ const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || '';
 export const initializeAnalytics = (): void => {
   if (!GA_MEASUREMENT_ID) {
     console.warn('⚠️ Google Analytics Measurement ID が設定されていません');
+    console.log('💡 .envファイルにVITE_GA_MEASUREMENT_ID=G-XXXXXXXXXXを設定してください');
     return;
-  }
-
-  // デバッグ用: ブラウザコンソールから確認できるようにグローバルに公開
-  try {
-    (window as any).__GA_MEASUREMENT_ID = GA_MEASUREMENT_ID;
-  } catch (e) {
-    // ignore
   }
 
   // GAスクリプトが既に読み込まれている場合はスキップ
   if (window.gtag) {
-    console.log('✅ Google Analytics already initialized');
+    console.log('✅ Google Analytics already initialized with ID:', GA_MEASUREMENT_ID);
     return;
+  }
+
+  console.log('🚀 Initializing Google Analytics with ID:', GA_MEASUREMENT_ID);
+
+  // デバッグ用: ブラウザコンソールから確認できるようにグローバルに公開
+  try {
+    (window as any).__GA_MEASUREMENT_ID = GA_MEASUREMENT_ID;
+    (window as any).__GA_DEBUG = true;
+  } catch (e) {
+    // ignore
   }
 
   // dataLayerの初期化
   window.dataLayer = window.dataLayer || [];
   window.gtag = function gtag(...args: any[]) {
     window.dataLayer?.push(args);
+    // デバッグ用: GA呼び出しをログ出力
+    if ((window as any).__GA_DEBUG) {
+      console.log('📊 GA call:', args);
+    }
   };
 
   // 初期化フラグ（デバッグ用）と簡易テスト送信関数を公開
@@ -46,7 +54,11 @@ export const initializeAnalytics = (): void => {
     (window as any).__GA_INITIALIZED = true;
     (window as any).__GA_send_test_event = () => {
       if (window.gtag) {
-        window.gtag('event', 'debug_test_event', { debug_mode: true, source: 'manual_console' });
+        window.gtag('event', 'debug_test_event', { 
+          debug_mode: true, 
+          source: 'manual_console',
+          timestamp: Date.now() 
+        });
         console.log('📨 GA debug test event sent');
       } else {
         console.warn('⚠️ window.gtag is not available');
@@ -62,12 +74,29 @@ export const initializeAnalytics = (): void => {
     send_page_view: true,
     app_name: 'SBT masaru21 Pay(仮)',
     app_version: '1.0.0',
+    debug_mode: import.meta.env.DEV, // 開発環境でデバッグモード有効
   });
 
   // GAスクリプトの動的読み込み
   const script = document.createElement('script');
   script.async = true;
   script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+  
+  // スクリプト読み込み完了時の処理
+  script.onload = () => {
+    console.log('✅ Google Analytics script loaded successfully');
+    // 初期ページビューを明示的に送信
+    window.gtag?.('event', 'page_view', {
+      page_title: document.title,
+      page_location: window.location.href,
+      page_path: window.location.pathname,
+    });
+  };
+  
+  script.onerror = (error) => {
+    console.error('❌ Failed to load Google Analytics script:', error);
+  };
+  
   document.head.appendChild(script);
 
   console.log('✅ Google Analytics initialized:', GA_MEASUREMENT_ID);
