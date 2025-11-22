@@ -11,6 +11,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { mainnet, polygon, sepolia } from 'wagmi/chains';
 import { initializeAnalytics, setupPWATracking, trackSWUpdate, trackError } from './utils/analytics';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Wagmi / RainbowKit - Using getDefaultConfig for better compatibility
 
@@ -363,6 +365,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             },
           }}
         />
+        <Analytics />
+        <SpeedInsights />
       </RainbowKitProvider>
     </WagmiProvider>
     </QueryClientProvider>
