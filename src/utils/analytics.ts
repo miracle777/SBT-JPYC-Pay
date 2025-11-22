@@ -22,6 +22,13 @@ export const initializeAnalytics = (): void => {
     return;
   }
 
+  // デバッグ用: ブラウザコンソールから確認できるようにグローバルに公開
+  try {
+    (window as any).__GA_MEASUREMENT_ID = GA_MEASUREMENT_ID;
+  } catch (e) {
+    // ignore
+  }
+
   // GAスクリプトが既に読み込まれている場合はスキップ
   if (window.gtag) {
     console.log('✅ Google Analytics already initialized');
@@ -33,6 +40,21 @@ export const initializeAnalytics = (): void => {
   window.gtag = function gtag(...args: any[]) {
     window.dataLayer?.push(args);
   };
+
+  // 初期化フラグ（デバッグ用）と簡易テスト送信関数を公開
+  try {
+    (window as any).__GA_INITIALIZED = true;
+    (window as any).__GA_send_test_event = () => {
+      if (window.gtag) {
+        window.gtag('event', 'debug_test_event', { debug_mode: true, source: 'manual_console' });
+        console.log('📨 GA debug test event sent');
+      } else {
+        console.warn('⚠️ window.gtag is not available');
+      }
+    };
+  } catch (e) {
+    // ignore
+  }
 
   // GA初期化
   window.gtag('js', new Date());
