@@ -1,12 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Store, QrCode, Wifi, Server, AlertTriangle, CheckCircle2, ExternalLink, MessageCircle, Globe, Twitter, ArrowRight } from 'lucide-react';
-import { useWallet } from '../hooks/useWallet';
-import { WalletButton } from '../components/WalletButton';
 
 const Dashboard: React.FC = () => {
-  const { isConnected } = useWallet();
-
   return (
     <div className="min-h-screen bg-gray-50 p-2 xs:p-3 sm:p-6 landscape:p-2">
       <div className="max-w-7xl mx-auto space-y-4 xs:space-y-6 landscape:space-y-3">
@@ -20,15 +16,6 @@ const Dashboard: React.FC = () => {
           <p className="text-gray-600 text-sm xs:text-base sm:text-lg mb-4 xs:mb-6 landscape:text-sm landscape:mb-3">
             JPYC QR決済 & SBTスタンプカード発行・管理システム（デモ版）
           </p>
-          
-          {!isConnected && (
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-3 xs:p-4 mb-4 xs:mb-6 landscape:p-3 landscape:mb-3">
-              <p className="text-xs xs:text-sm text-purple-800 mb-2 xs:mb-3 landscape:text-xs landscape:mb-2">
-                <strong>ウォレット接続前に、下記の重要事項を必ずご確認ください</strong>
-              </p>
-              <WalletButton />
-            </div>
-          )}
           
           <div className="grid grid-cols-1 landscape:grid-cols-2 xs:grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
             <Link
