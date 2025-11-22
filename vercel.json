@@ -1,7 +1,4 @@
 {
-  "analytics": {
-    "enable": true
-  },
   "rewrites": [
     {
       "source": "/robots.txt",
