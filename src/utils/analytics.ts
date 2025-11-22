@@ -95,9 +95,19 @@ export const initializeAnalytics = (): void => {
         event_category: 'System',
         event_label: 'GA Script Loaded',
         custom_parameter_1: 'initialization_test',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        debug_mode: true
       });
       console.log('📊 GA: Initialization test event sent');
+      
+      // 追加の確認用イベント
+      window.gtag?.('event', 'debug_test_manual', {
+        event_category: 'Debug',
+        event_label: 'Manual Debug Test',
+        test_value: 'verification_123',
+        timestamp: Date.now()
+      });
+      console.log('🔍 GA: Manual debug event sent');
     }, 1000);
     
     // 初期ページビューを明示的に送信（遅延実行で確実に送信）
