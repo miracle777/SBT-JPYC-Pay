@@ -71,10 +71,13 @@ export const initializeAnalytics = (): void => {
   // GA初期化
   window.gtag('js', new Date());
   window.gtag('config', GA_MEASUREMENT_ID, {
-    send_page_view: true,
+    send_page_view: false, // 手動でページビューを送信
     app_name: 'SBT masaru21 Pay(仮)',
     app_version: '1.0.0',
-    debug_mode: import.meta.env.DEV, // 開発環境でデバッグモード有効
+    debug_mode: true, // 常にデバッグモード有効
+    allow_google_signals: true,
+    allow_ad_personalization_signals: false,
+    cookie_flags: 'SameSite=None;Secure',
   });
 
   // GAスクリプトの動的読み込み
@@ -85,12 +88,28 @@ export const initializeAnalytics = (): void => {
   // スクリプト読み込み完了時の処理
   script.onload = () => {
     console.log('✅ Google Analytics script loaded successfully');
-    // 初期ページビューを明示的に送信
-    window.gtag?.('event', 'page_view', {
-      page_title: document.title,
-      page_location: window.location.href,
-      page_path: window.location.pathname,
-    });
+    
+    // データ送信確認のためのテストイベント
+    setTimeout(() => {
+      window.gtag?.('event', 'ga_initialization', {
+        event_category: 'System',
+        event_label: 'GA Script Loaded',
+        custom_parameter_1: 'initialization_test',
+        timestamp: Date.now()
+      });
+      console.log('📊 GA: Initialization test event sent');
+    }, 1000);
+    
+    // 初期ページビューを明示的に送信（遅延実行で確実に送信）
+    setTimeout(() => {
+      window.gtag?.('event', 'page_view', {
+        page_title: document.title,
+        page_location: window.location.href,
+        page_path: window.location.pathname,
+        custom_parameter_2: 'manual_page_view'
+      });
+      console.log('📊 GA: Manual page_view event sent');
+    }, 1500);
   };
   
   script.onerror = (error) => {
@@ -270,7 +289,7 @@ export const setupPWATracking = (): void => {
   // PWAインストールイベントの監視
   window.addEventListener('appinstalled', () => trackPWAInstall());
 
-  // ページ遷移の追跡
+  // ページ遷移の追跡（SPA用）
   let lastPath = location.pathname;
   const observer = new MutationObserver(() => {
     if (location.pathname !== lastPath) {
@@ -282,6 +301,33 @@ export const setupPWATracking = (): void => {
   observer.observe(document.querySelector('#root') || document.body, {
     childList: true,
     subtree: true,
+  });
+
+  // 定期的なハートビートイベント（GA接続確認）
+  let heartbeatCount = 0;
+  setInterval(() => {
+    heartbeatCount++;
+    if (heartbeatCount <= 5) { // 最初の5回のみ
+      trackEvent('heartbeat', {
+        event_category: 'System',
+        event_label: 'Connection Test',
+        count: heartbeatCount,
+        timestamp: Date.now()
+      });
+      console.log(`💓 GA Heartbeat ${heartbeatCount} sent`);
+    }
+  }, 30000); // 30秒間隔
+
+  // ユーザーエンゲージメント追跡
+  let engagementStartTime = Date.now();
+  window.addEventListener('beforeunload', () => {
+    const sessionDuration = Date.now() - engagementStartTime;
+    trackEvent('session_end', {
+      event_category: 'Engagement',
+      event_label: 'Session Duration',
+      value: Math.round(sessionDuration / 1000), // 秒単位
+      session_duration: sessionDuration
+    });
   });
 
   console.log('✅ PWA Tracking setup complete');

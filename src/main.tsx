@@ -17,6 +17,21 @@ import { initializeAnalytics, setupPWATracking, trackSWUpdate, trackError } from
 // Google Analytics 初期化
 initializeAnalytics();
 
+// GA初期化完了後にテストイベントを送信
+setTimeout(() => {
+  // アプリ起動イベント
+  if (window.gtag) {
+    window.gtag('event', 'app_start', {
+      event_category: 'Application',
+      event_label: 'App Started',
+      timestamp: Date.now(),
+      user_agent: navigator.userAgent,
+      screen_resolution: `${screen.width}x${screen.height}`
+    });
+    console.log('📱 GA: App start event sent');
+  }
+}, 2000);
+
 // ページコンポーネントのimport
 import Dashboard from './pages/Dashboard';
 import QRPayment from './pages/QRPayment';
