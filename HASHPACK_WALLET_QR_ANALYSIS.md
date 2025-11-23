@@ -112,7 +112,7 @@ wc:...@1?bridge=...&key=...（Hedera専用）
 
 **実装スクリーンショット**:
 
-![Hash Port Wallet対応UI実装完了](image.png)
+![Hash Port Wallet対応UI実装完了](./docs/images/hashport-wallet-implementation.png)
 *▲ Hash Port Wallet専用QRコード生成モードの実装画面*
 
 **UI実装確認ポイント**:
