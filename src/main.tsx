@@ -343,7 +343,7 @@ const connectors = connectorsForWallets(wallets, {
   appIcon: appIcon,
 });
 
-// Wagmi Config - デスクトップとモバイルで異なる設定
+// Wagmi Config - ウォレット接続の安定性を優先
 const config = createConfig({
   connectors,
   chains,
@@ -353,15 +353,15 @@ const config = createConfig({
     [sepolia.id]: http(),
   },
   ssr: false,
-  // デスクトップでは拡張機能を優先、モバイルでは複数プロバイダーを許可
-  multiInjectedProviderDiscovery: isMobile,
+  // 全デバイスで複数プロバイダー検出を有効化（接続安定性向上）
+  multiInjectedProviderDiscovery: true,
 });
 
 console.log('🔧 RainbowKit Config Created:', config ? '✅' : '❌');
 console.log('🔑 WalletConnect ProjectID:', projectId ? `✅ Set (${projectId.substring(0, 10)}...)` : '❌ Not set');
 console.log('📱 Configured Wallets:', wallets[0].wallets.length);
 console.log('🖥️ Device Type:', isMobile ? 'Mobile (WalletConnect優先)' : 'Desktop (MetaMask拡張機能優先)');
-console.log('🔌 Multi Injected Provider Discovery:', isMobile ? 'Enabled (Mobile)' : 'Disabled (Desktop)');
+console.log('🔌 Multi Injected Provider Discovery: Enabled (全デバイス)');
 
 // WalletConnect詳細デバッグ
 debugWalletConnect();
@@ -376,9 +376,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           modalSize="compact"
           initialChain={polygon}
           showRecentTransactions={false}
-          theme={null}
           locale="ja"
-          coolMode={!isMobile}
         >
           <RouterProvider router={router} />
           <Toaster
