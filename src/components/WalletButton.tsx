@@ -1,8 +1,8 @@
 import React from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useDisconnect } from "wagmi";
-import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, AlertCircle, CheckCircle2, X, LogOut } from "lucide-react";
+import { motion } from "framer-motion";
+import { Wallet, AlertCircle, CheckCircle2, LogOut } from "lucide-react";
 
 export const WalletButton: React.FC = () => {
   const { isConnected, address } = useAccount();
@@ -10,6 +10,15 @@ export const WalletButton: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
 
   const clearError = () => setError(null);
+
+  // デバッグ: ウォレット状態をログ出力
+  React.useEffect(() => {
+    console.log('🔍 WalletButton状態変更:', {
+      isConnected,
+      address: address ? `${address.slice(0, 6)}...${address.slice(-4)}` : null,
+      timestamp: new Date().toISOString()
+    });
+  }, [isConnected, address]);
 
   // 接続済み時のアドレス表示コンポーネント
   if (isConnected && address) {

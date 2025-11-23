@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Store, Menu, X, HelpCircle, Settings } from 'lucide-react';
 import { WalletButton } from '../WalletButton';
-import { useWallet } from '../../hooks/useWallet';
+import { useAccount } from 'wagmi';
 import { Contract } from 'ethers';
 import { getSBTContractAddress, JPYC_STAMP_SBT_ABI } from '../../config/contracts';
 
@@ -12,36 +12,13 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onHelpClick }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { address, provider, chainId } = useWallet();
+  const { address } = useAccount();
   const [isContractOwner, setIsContractOwner] = useState(false);
 
-  // コントラクトオーナー判定
+  // コントラクトオーナー判定は一時的に無効化
   useEffect(() => {
-    const checkOwner = async () => {
-      if (!address || !provider || !chainId) {
-        setIsContractOwner(false);
-        return;
-      }
-
-      try {
-        const contractAddress = getSBTContractAddress(chainId);
-        if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
-          setIsContractOwner(false);
-          return;
-        }
-
-        const signer = await provider.getSigner();
-        const contract = new Contract(contractAddress, JPYC_STAMP_SBT_ABI, signer);
-        const owner = await contract.owner();
-        setIsContractOwner(owner.toLowerCase() === address.toLowerCase());
-      } catch (error) {
-        console.error('Error checking contract owner:', error);
-        setIsContractOwner(false);
-      }
-    };
-
-    checkOwner();
-  }, [address, provider, chainId]);
+    setIsContractOwner(false);
+  }, [address]);
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">

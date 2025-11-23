@@ -1,6 +1,5 @@
 import { Outlet } from 'react-router-dom';
 import { useState } from 'react';
-import { WalletProvider, useWallet } from './context/WalletContext';
 import Header from './components/layout/Header';
 import HelpModal from './components/HelpModal';
 import { DisclaimerBanner } from './components/DisclaimerBanner';
@@ -9,11 +8,9 @@ import PWAStatus from './components/PWAStatus';
 import PWAInstallButton from './components/PWAInstallButton';
 import { PWAWalletBanner } from './components/PWAWalletInfo';
 import MetaMaskBrowserInfo from './components/MetaMaskBrowserInfo';
-import { BrowserRedirectGuide } from './components/BrowserRedirectGuide';
 
-const AppContent: React.FC = () => {
+const App: React.FC = () => {
   const [showHelp, setShowHelp] = useState(false);
-  const { showBrowserRedirect, closeBrowserRedirect, forceConnect } = useWallet();
 
   return (
     <div className="App min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">
@@ -33,12 +30,6 @@ const AppContent: React.FC = () => {
       </div>
       
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
-      
-      <BrowserRedirectGuide
-        isVisible={showBrowserRedirect}
-        onClose={closeBrowserRedirect}
-        onForceConnect={forceConnect}
-      />
 
       {/* JPYC免責事項 - ウォレット接続前でも表示 */}
       <footer className="bg-white border-t border-gray-200 mt-8">
@@ -54,12 +45,8 @@ const AppContent: React.FC = () => {
   );
 };
 
-function App() {
-  return (
-    <WalletProvider>
-      <AppContent />
-    </WalletProvider>
-  );
+function AppWrapper() {
+  return <App />;
 }
 
-export default App;
+export default AppWrapper;

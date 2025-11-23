@@ -1,10 +1,18 @@
 import React from 'react';
-import { useWallet } from '../context/WalletContext';
 
 export const PWAWalletInfo: React.FC = () => {
-  const { isPWA, isMetaMaskAvailable, pwaWalletInfo, lastConnectionStrategy } = useWallet();
+  const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true;
   
   if (!isPWA) return null;
+  
+  // 簡略化されたPWA情報
+  const pwaWalletInfo = {
+    title: 'PWA環境でのウォレット接続',
+    message: 'PWAアプリ内からウォレット接続が可能です',
+    isCompatible: true,
+    solutions: ['ヘッダーのウォレット接続ボタンを使用してください']
+  };
   
   return (
     <div className={`p-4 rounded-lg border ${pwaWalletInfo.isCompatible 
@@ -45,14 +53,6 @@ export const PWAWalletInfo: React.FC = () => {
               </ul>
             </div>
           )}
-          
-          {lastConnectionStrategy && (
-            <div className="mt-2 pt-2 border-t border-current/20">
-              <p className="text-xs">
-                接続方式: <span className="font-medium">{lastConnectionStrategy}</span>
-              </p>
-            </div>
-          )}
         </div>
       </div>
       
@@ -62,7 +62,7 @@ export const PWAWalletInfo: React.FC = () => {
           <summary className="cursor-pointer font-medium">技術詳細</summary>
           <div className="mt-2 space-y-1">
             <p>PWA環境: {isPWA ? 'Yes' : 'No'}</p>
-            <p>MetaMask検出: {isMetaMaskAvailable ? 'Yes' : 'No'}</p>
+            <p>MetaMask検出: {typeof window.ethereum !== 'undefined' ? 'Yes' : 'No'}</p>
             <p>window.ethereum: {typeof window.ethereum !== 'undefined' ? 'Available' : 'Not available'}</p>
             <p>表示モード: {window.matchMedia('(display-mode: standalone)').matches ? 'Standalone' : 'Browser'}</p>
             <p>UserAgent: {navigator.userAgent.substring(0, 50)}...</p>
@@ -74,7 +74,8 @@ export const PWAWalletInfo: React.FC = () => {
 };
 
 export const PWAWalletBanner: React.FC = () => {
-  const { isPWA, pwaWalletInfo } = useWallet();
+  const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true;
   
   // MetaMaskアプリ内ブラウザの場合は警告バナーを表示しない（UserAgentのみで厳密判定）
   const userAgent = navigator.userAgent.toLowerCase();
@@ -84,7 +85,9 @@ export const PWAWalletBanner: React.FC = () => {
   const isActuallyPWA = window.matchMedia('(display-mode: standalone)').matches ||
     (window.navigator as any).standalone === true;
   
-  if (!isActuallyPWA || pwaWalletInfo.isCompatible || isMetaMaskBrowser) return null;
+  const isCompatible = typeof window.ethereum !== 'undefined';
+  
+  if (!isActuallyPWA || isCompatible || isMetaMaskBrowser) return null;
   
   const handleOpenInBrowser = () => {
     const currentUrl = window.location.href;
