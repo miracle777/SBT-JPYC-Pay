@@ -429,12 +429,26 @@ Avalanche テストネットでテストを行う際は、テストネットAVAX
 
 ## 📚 ドキュメント
 
+### 📋 **完全ドキュメント一覧**: **[DOCUMENTATION_INDEX.md](./DOCUMENTATION_INDEX.md)** - 全ドキュメントの詳細インデックス
+
 ### 🛠️ SBT技術ドキュメント
 
 - **[🔴 コントラクト要件チェックリスト](./CONTRACT_REQUIREMENTS.md)** - **デプロイ前必読**
 - **[🆕 動的SBTメタデータ実装ガイド](./DYNAMIC_SBT_METADATA.md)** - 動的メタデータ機能の詳細
 - **[📖 SBT発行完全ガイド](./docs/SBT_ISSUANCE_GUIDE.md)** - SBT発行プロセスの完全解説  
 - **[📋 SBTメタデータ仕様書](./docs/SBT_METADATA_SPECIFICATION.md)** - メタデータ構造と技術仕様
+
+### 💳 ウォレット対応ドキュメント
+
+- **[🌐 Hash Port Wallet対応分析レポート](./HASHPACK_WALLET_QR_ANALYSIS.md)** - Hash Port Wallet QR対応状況と技術実装
+- **[📱 店舗スタッフ向けHash Port Walletサポートガイド](./SHOP_HASHPACK_SUPPORT_GUIDE.md)** - 接客・案内マニュアル
+- **[📱 モバイルウォレット対応ガイド](./MOBILE_WALLET_GUIDE.md)** - 各種ウォレット対応状況
+
+### 📖 運用・管理ガイド
+
+- **[🏪 ショップ管理者ガイド](./SHOP_ADMIN_GUIDE.md)** - 店舗運営者向け完全マニュアル
+- **[👤 ユーザーガイド](./USER_GUIDE.md)** - エンドユーザー向け操作ガイド
+- **[🔍 トランザクション検証ガイド](./TRANSACTION_VERIFICATION_GUIDE.md)** - ブロックチェーン決済の検証方法
 
 ### 📱 スマホアプリ向けドキュメント
 

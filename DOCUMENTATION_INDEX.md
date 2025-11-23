@@ -142,7 +142,61 @@ QRコード内に含まれるネットワーク情報:
 
 ---
 
-### 6. ✨ DEVELOPMENT_COMPLETE.md
+### ⭐ 6. 💳 HASHPACK_WALLET_QR_ANALYSIS.md （★NEW★ 2025年11月23日）
+
+**内容**: Hash Port Wallet QRコード対応状況の詳細分析レポート  
+**対象**: Hash Port Walletユーザー対応が必要な店舗スタッフ・開発者  
+**読むべき人**:
+- Hash Port Walletユーザーから「QRコードが読めない」と相談された人
+- EIP-681非対応ウォレットの技術的解決策を知りたい人
+- ウォレット別QR対応状況を調べたい人
+
+**★ 特に重要な内容**:
+
+#### **1️⃣ 実機検証結果**
+- Hash Port WalletはEIP-681形式QRコード非対応を確認
+- 「送金先ウォレットアドレスが間違っています」エラーの原因特定
+- Ethereum、Base、Polygon対応のマルチチェーンウォレットであることを確認
+
+#### **2️⃣ 技術的解決策実装完了**
+- Hash Port Wallet専用QRモード `hashport-wallet` 実装済み
+- シンプルなウォレットアドレスQRコード生成機能
+- 紫色テーマの専用UI実装
+- 4ステップ操作ガイド実装
+
+#### **3️⃣ 対応策提案から実装完了**
+- ❌ 旧対応: 代替ウォレット推奨のみ
+- ✅ 新対応: Hash Port Wallet完全対応実装済み
+
+**主要セクション**:
+- 問題の詳細分析
+- Hash Port Walletの基本情報
+- EIP-681非対応の技術的詳細
+- **実装完了した対応策**（2025年11月23日）
+- 店舗向け推奨対応フロー
+- 参考資料・関連リンク
+
+---
+
+### ⭐ 7. 🏪 SHOP_HASHPACK_SUPPORT_GUIDE.md （★NEW★ 2025年11月23日）
+
+**内容**: 店舗スタッフ向けHash Port Walletサポートマニュアル  
+**対象**: 店舗の接客スタッフ・レジ担当者  
+**読むべき人**:
+- Hash Port Walletユーザーに接客する可能性がある人
+- QRコード決済で困っているお客様をサポートしたい人
+- ウォレット別の案内方法を覚えたい人
+
+**主要セクション**:
+- Hash Port Walletの見分け方
+- お客様への案内話法例
+- QRモード選択の説明方法
+- トラブル時の対応フロー
+- よくある質問と回答例
+
+---
+
+### 8. ✨ DEVELOPMENT_COMPLETE.md
 **内容**: 完了した開発内容の詳細レポート  
 **対象**: 開発内容を確認・引き継ぐ人  
 **読むべき人**:
@@ -325,7 +379,7 @@ SBT-JPYC-Pay
 ## 🔍 キーワード検索ガイド
 
 | キーワード | 参照ドキュメント |
-|-----------|-----------------|
+|-----------|----------------|
 | QRコード | MOBILE_APP_INTEGRATION.md |
 | ネットワーク切り替え | MOBILE_APP_INTEGRATION.md |
 | JPYC送金 | MOBILE_APP_INTEGRATION.md |
@@ -335,6 +389,12 @@ SBT-JPYC-Pay
 | FAQ | DEVELOPMENT_COMPLETE.md |
 | 期間テンプレート | DEVELOPMENT_COMPLETE.md |
 | スマホアプリ | MOBILE_APP_INTEGRATION.md, user仕様.md |
+| ⭐ Hash Port Wallet | HASHPACK_WALLET_QR_ANALYSIS.md |
+| ⭐ EIP-681非対応 | HASHPACK_WALLET_QR_ANALYSIS.md |
+| ⭐ ウォレット対応 | HASHPACK_WALLET_QR_ANALYSIS.md |
+| ⭐ QRコード読み取りエラー | HASHPACK_WALLET_QR_ANALYSIS.md |
+| ⭐ 店舗スタッフ向け案内 | SHOP_HASHPACK_SUPPORT_GUIDE.md |
+| ⭐ 接客マニュアル | SHOP_HASHPACK_SUPPORT_GUIDE.md |
 | ⭐ トランザクション検証 | TRANSACTION_VERIFICATION_GUIDE.md |
 | ⭐ JPYC決済トランザクション | TRANSACTION_VERIFICATION_GUIDE.md |
 | ⭐ SBT mint トランザクション | TRANSACTION_VERIFICATION_GUIDE.md |
@@ -347,11 +407,14 @@ SBT-JPYC-Pay
 ## 📞 ドキュメント更新情報
 
 | ドキュメント | 最終更新 | 更新内容 |
-|-----------|---------|---------|
-| README.md | 2025-11-14 | 基本設定 |
+|-----------|---------|----------|
+| README.md | 2025-11-23 | ウォレット対応ドキュメント追加 |
 | PWA_GUIDE.md | 2025-11-14 | PWA詳細 |
 | MOBILE_APP_INTEGRATION.md | 2025-11-14 | スマホ統合ガイド新規 |
 | DEVELOPMENT_COMPLETE.md | 2025-11-14 | 完了レポート新規 |
+| **HASHPACK_WALLET_QR_ANALYSIS.md** | **2025-11-23** | **Hash Port Wallet対応分析・実装完了** |
+| **SHOP_HASHPACK_SUPPORT_GUIDE.md** | **2025-11-23** | **店舗スタッフ向けHash Port Walletサポートガイド** |
+| **DOCUMENTATION_INDEX.md** | **2025-11-23** | **Hash Port Wallet関連ドキュメント追加** |
 | Shop仕様.md | - | 別途管理 |
 | user仕様.md | - | 別途管理 |
 
