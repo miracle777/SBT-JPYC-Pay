@@ -13,6 +13,7 @@ import { mainnet, polygon, sepolia } from 'wagmi/chains';
 import { initializeAnalytics, setupPWATracking, trackSWUpdate, trackError } from './utils/analytics';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import { debugWalletConnect } from './config/walletconnect';
 
 // Wagmi / RainbowKit - Using getDefaultConfig for better compatibility
 
@@ -313,6 +314,12 @@ const wallets = [
   },
 ];
 
+// WalletConnect設定のデバッグ情報
+console.log('🔧 WalletConnect Debug Info:');
+console.log('  Project ID:', projectId);
+console.log('  App URL:', appUrl);
+console.log('  App Icon:', appIcon);
+
 const connectors = connectorsForWallets(wallets, {
   appName: 'SBT masaru21 Pay(仮)',
   projectId,
@@ -331,11 +338,15 @@ const config = createConfig({
     [sepolia.id]: http(),
   },
   ssr: false,
+  multiInjectedProviderDiscovery: false,
 });
 
 console.log('🔧 RainbowKit Config Created:', config ? '✅' : '❌');
 console.log('🔑 WalletConnect ProjectID:', projectId ? `✅ Set (${projectId.substring(0, 10)}...)` : '❌ Not set');
 console.log('📱 Configured Wallets:', wallets[0].wallets.length);
+
+// WalletConnect詳細デバッグ
+debugWalletConnect();
 
 const queryClient = new QueryClient();
 
@@ -347,6 +358,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           modalSize="compact"
           initialChain={polygon}
           showRecentTransactions={false}
+          theme={null}
+          locale="ja"
         >
           <RouterProvider router={router} />
           <Toaster
