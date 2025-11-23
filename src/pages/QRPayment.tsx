@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor, Zap, User, Award, Hash, Network, Sparkles, ChevronDown } from 'lucide-react';
+import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor, Zap, User, Award, Hash, Network, Sparkles, ChevronDown, FolderOpen, Settings, Calendar, Smartphone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { BrowserProvider, ethers } from 'ethers';
 import { NETWORKS, JPYC, getContractAddress, getJpycContracts, getJpycContractMeta } from '../config/networks';
@@ -61,7 +61,178 @@ interface PaymentSession {
   transactionHash?: string;
   detectedAt?: string;
   payerAddress?: string; // 支払者のウォレットアドレス（SBT送付先）
+  shopName?: string; // 店舗名（エクスポート用）
 }
+
+// デバイス判定関数
+const isDesktop = () => {
+  return window.navigator.userAgent.includes('Windows') || 
+         window.navigator.userAgent.includes('Mac') || 
+         window.navigator.userAgent.includes('Linux');
+};
+
+const isMobile = () => {
+  return /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(window.navigator.userAgent);
+};
+
+// CSV形式での保存機能
+const savePaymentHistoryToCSV = (sessions: PaymentSession[], filename?: string, shopInfo?: { name: string; id: string }) => {
+  const completedSessions = sessions.filter(s => s.status === 'completed');
+  
+  if (completedSessions.length === 0) {
+    toast.error('保存する決済履歴がありません');
+    return;
+  }
+
+  // CSVヘッダー
+  const headers = [
+    '決済ID',
+    '金額',
+    '通貨',
+    'チェーン名',
+    '支払者アドレス',
+    'トランザクションハッシュ',
+    '作成日時',
+    '検知日時',
+    '店舗名'
+  ];
+
+  // CSVデータ行
+  const rows = completedSessions.map(session => [
+    session.id,
+    session.amount,
+    session.currency,
+    session.chainName,
+    session.payerAddress || 'Unknown',
+    session.transactionHash || 'Unknown',
+    session.createdAt,
+    session.detectedAt || '',
+    session.shopName || shopInfo?.name || '不明な店舗'
+  ]);
+
+  // CSVファイル内容を構築
+  const csvContent = [
+    // BOM追加（Excel日本語対応）
+    '\uFEFF',
+    headers.join(','),
+    ...rows.map(row => row.map(cell => {
+      // カンマやクォートが含まれる場合のエスケープ処理
+      const stringCell = String(cell);
+      if (stringCell.includes(',') || stringCell.includes('"') || stringCell.includes('\n')) {
+        return `"${stringCell.replace(/"/g, '""')}"`;
+      }
+      return stringCell;
+    }).join(','))
+  ].join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || `payment-history-${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  toast.success(`✅ 決済履歴をCSVファイルで保存しました: ${completedSessions.length}件`);
+};
+
+// Excel形式での保存機能
+const savePaymentHistoryToExcel = (sessions: PaymentSession[], filename?: string, shopInfo?: { name: string; id: string }) => {
+  const completedSessions = sessions.filter(s => s.status === 'completed');
+  
+  if (completedSessions.length === 0) {
+    toast.error('保存する決済履歴がありません');
+    return;
+  }
+
+  // XMLベースの簡易Excelファイル生成
+  const headers = [
+    '決済ID', '金額', '通貨', 'チェーン名', '支払者アドレス', 'トランザクションハッシュ', '作成日時', '検知日時', '店舗名'
+  ];
+
+  const xmlContent = `<?xml version="1.0"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Worksheet ss:Name="決済履歴">
+<Table>
+<Row>
+${headers.map(header => `<Cell><Data ss:Type="String">${header}</Data></Cell>`).join('')}
+</Row>
+${completedSessions.map(session => `<Row>
+<Cell><Data ss:Type="String">${session.id}</Data></Cell>
+<Cell><Data ss:Type="Number">${session.amount}</Data></Cell>
+<Cell><Data ss:Type="String">${session.currency}</Data></Cell>
+<Cell><Data ss:Type="String">${session.chainName}</Data></Cell>
+<Cell><Data ss:Type="String">${session.payerAddress || 'Unknown'}</Data></Cell>
+<Cell><Data ss:Type="String">${session.transactionHash || 'Unknown'}</Data></Cell>
+<Cell><Data ss:Type="String">${session.createdAt}</Data></Cell>
+<Cell><Data ss:Type="String">${session.detectedAt || ''}</Data></Cell>
+<Cell><Data ss:Type="String">${session.shopName || shopInfo?.name || '不明な店舗'}</Data></Cell>
+</Row>`).join('')}
+</Table>
+</Worksheet>
+</Workbook>`;
+
+  const blob = new Blob([xmlContent], { type: 'application/vnd.ms-excel' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || `payment-history-${new Date().toISOString().split('T')[0]}.xls`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  toast.success(`✅ 決済履歴をExcelファイルで保存しました: ${completedSessions.length}件`);
+};
+
+// JSON形式での保存機能（従来）
+const savePaymentHistoryToFile = (sessions: PaymentSession[], filename?: string, shopInfo?: { name: string; id: string }) => {
+  const completedSessions = sessions.filter(s => s.status === 'completed');
+  
+  if (completedSessions.length === 0) {
+    toast.error('保存する決済履歴がありません');
+    return;
+  }
+
+  const data = {
+    exportedAt: new Date().toISOString(),
+    shopInfo: shopInfo || {
+      name: '店舗名', 
+      id: '店舗ID'
+    },
+    totalSessions: completedSessions.length,
+    sessions: completedSessions.map(session => ({
+      id: session.id,
+      amount: session.amount,
+      currency: session.currency,
+      chainName: session.chainName,
+      chainId: session.chainId,
+      payerAddress: session.payerAddress || 'Unknown',
+      transactionHash: session.transactionHash || 'Unknown',
+      createdAt: session.createdAt,
+      detectedAt: session.detectedAt,
+      shopName: session.shopName || shopInfo?.name || '不明な店舗'
+    }))
+  };
+
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || `payment-history-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  toast.success(`✅ 決済履歴をファイル保存しました: ${completedSessions.length}件`);
+};
 
 const QRPayment: React.FC = () => {
   // RainbowKitのウォレット情報を使用
@@ -94,6 +265,12 @@ const QRPayment: React.FC = () => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('all'); // 'all' = 全テンプレート, それ以外 = 特定テンプレートID
   const [expandedSessionIds, setExpandedSessionIds] = useState<Set<string>>(new Set()); // アコーディオン展開状態管理
   
+  // 決済履歴管理設定
+  const [historyRetentionDays, setHistoryRetentionDays] = useState(90); // 90日間保存
+  const [autoLocalSaveEnabled, setAutoLocalSaveEnabled] = useState(false); // 自動ローカル保存
+  const [localSaveDirectory, setLocalSaveDirectory] = useState(''); // 保存ディレクトリ
+  const [exportFormat, setExportFormat] = useState<'json' | 'csv' | 'excel'>('csv'); // エクスポート形式
+  
   // 支払いセッションごとのSBT発行ステータス管理
   // Map<sessionId, Map<templateId, { status: 'issuing' | 'completed' | 'error', message: string, transactionHash?: string }>>
   const [paymentSBTStatus, setPaymentSBTStatus] = useState<Map<string, Map<string, { 
@@ -121,6 +298,27 @@ const QRPayment: React.FC = () => {
         setSelectedPaymentSound(savedSound as 'sound1' | 'sound2' | 'sound3');
       }
       
+      // 履歴保存設定の復元
+      const savedRetentionDays = localStorage.getItem('payment-history-retention-days');
+      if (savedRetentionDays) {
+        setHistoryRetentionDays(parseInt(savedRetentionDays) || 90);
+      }
+      
+      const savedAutoSave = localStorage.getItem('payment-auto-local-save');
+      if (savedAutoSave) {
+        setAutoLocalSaveEnabled(savedAutoSave === 'true');
+      }
+      
+      const savedDirectory = localStorage.getItem('payment-save-directory');
+      if (savedDirectory) {
+        setLocalSaveDirectory(savedDirectory);
+      }
+      
+      const savedExportFormat = localStorage.getItem('payment-export-format');
+      if (savedExportFormat && ['json', 'csv', 'excel'].includes(savedExportFormat)) {
+        setExportFormat(savedExportFormat as 'json' | 'csv' | 'excel');
+      }
+      
       const savedVolume = localStorage.getItem('payment-sound-volume');
       if (savedVolume) {
         const volume = parseFloat(savedVolume);
@@ -141,6 +339,25 @@ const QRPayment: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('payment-sound-volume', notificationVolume.toString());
   }, [notificationVolume]);
+
+  // 履歴管理設定の保存
+  useEffect(() => {
+    localStorage.setItem('payment-history-retention-days', historyRetentionDays.toString());
+  }, [historyRetentionDays]);
+
+  useEffect(() => {
+    localStorage.setItem('payment-auto-local-save', autoLocalSaveEnabled.toString());
+  }, [autoLocalSaveEnabled]);
+
+  useEffect(() => {
+    if (localSaveDirectory) {
+      localStorage.setItem('payment-save-directory', localSaveDirectory);
+    }
+  }, [localSaveDirectory]);
+
+  useEffect(() => {
+    localStorage.setItem('payment-export-format', exportFormat);
+  }, [exportFormat]);
 
   // SBTテンプレート一覧を取得
   useEffect(() => {
@@ -393,7 +610,57 @@ const QRPayment: React.FC = () => {
         }
       }
       
+      // 保存期間に基づいて古いデータを削除
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - historyRetentionDays);
+      const cutoffTimestamp = cutoffDate.getTime();
+      
+      allCompletedSessions = allCompletedSessions.filter(session => {
+        const sessionDate = new Date(session.createdAt || session.detectedAt || '');
+        return sessionDate.getTime() > cutoffTimestamp;
+      });
+      
       localStorage.setItem('completedPaymentSessions', JSON.stringify(allCompletedSessions));
+      
+      // PC環境かつ自動ローカル保存が有効な場合、ファイル保存を実行
+      if (isDesktop() && autoLocalSaveEnabled && completedSessions.length > 0) {
+        try {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          // 現在のshopInfoを取得して渡す
+          const currentShopInfo = (() => {
+            try {
+              const savedShopInfo = localStorage.getItem('shop-info');
+              if (savedShopInfo) {
+                const shop = JSON.parse(savedShopInfo);
+                return { name: shop.name, id: shop.id };
+              }
+            } catch (e) {
+              console.warn('店舗情報の取得に失敗:', e);
+            }
+            return { name: '不明な店舗', id: 'unknown' };
+          })();
+          
+          // エクスポート形式に応じてファイル保存
+          const savedFormat = localStorage.getItem('payment-export-format') || 'csv';
+          switch (savedFormat) {
+            case 'csv':
+              const csvFilename = `payment-history-${timestamp}.csv`;
+              savePaymentHistoryToCSV(allCompletedSessions, csvFilename, currentShopInfo);
+              break;
+            case 'excel':
+              const excelFilename = `payment-history-${timestamp}.xls`;
+              savePaymentHistoryToExcel(allCompletedSessions, excelFilename, currentShopInfo);
+              break;
+            case 'json':
+            default:
+              const jsonFilename = `payment-history-${timestamp}.json`;
+              savePaymentHistoryToFile(allCompletedSessions, jsonFilename, currentShopInfo);
+              break;
+          }
+        } catch (error) {
+          console.error('自動ローカル保存に失敗:', error);
+        }
+      }
       
       // 顧客別支払い回数を計算（全ての完了セッションを含む）
       const stats = new Map<string, number>();
@@ -2349,9 +2616,200 @@ const QRPayment: React.FC = () => {
 
         {/* セッション履歴 */}
         <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 mt-4">
+          {/* 履歴管理設定 */}
+          <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-md font-semibold text-gray-900 flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                決済履歴設定
+              </h3>
+              <div className="flex items-center gap-2">
+                {isDesktop() ? (
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">PC環境</span>
+                ) : (
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">モバイル環境</span>
+                )}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 保存期間設定 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Calendar className="w-4 h-4 inline mr-1" />
+                  履歴保存期間
+                </label>
+                <select
+                  value={historyRetentionDays}
+                  onChange={(e) => {
+                    const days = parseInt(e.target.value);
+                    setHistoryRetentionDays(days);
+                    localStorage.setItem('payment-history-retention-days', days.toString());
+                    toast.success(`保存期間を${days}日に設定しました`);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                >
+                  <option value="30">30日間</option>
+                  <option value="60">60日間</option>
+                  <option value="90">90日間（推奨）</option>
+                  <option value="180">6ヶ月間</option>
+                  <option value="365">1年間</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {historyRetentionDays}日を過ぎた決済履歴は自動削除されます
+                </p>
+              </div>
+
+              {/* PC用自動保存設定 */}
+              {isDesktop() && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <FolderOpen className="w-4 h-4 inline mr-1" />
+                      自動ローカル保存
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={autoLocalSaveEnabled}
+                        onChange={(e) => {
+                          setAutoLocalSaveEnabled(e.target.checked);
+                          localStorage.setItem('payment-auto-local-save', e.target.checked.toString());
+                          toast.success(e.target.checked ? '自動保存を有効にしました' : '自動保存を無効にしました');
+                        }}
+                        className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                      />
+                      <span className="text-sm text-gray-700">決済完了時に自動でファイル保存</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      有効にすると決済完了時に選択した形式でダウンロードフォルダに保存されます
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      出力形式
+                    </label>
+                    <select
+                      value={exportFormat}
+                      onChange={(e) => {
+                        const format = e.target.value as 'json' | 'csv' | 'excel';
+                        setExportFormat(format);
+                        localStorage.setItem('payment-export-format', format);
+                        toast.success(`出力形式を${format.toUpperCase()}に設定しました`);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                    >
+                      <option value="csv">CSV形式（Excel・スプレッドシート対応）</option>
+                      <option value="excel">Excel形式（.xls）</option>
+                      <option value="json">JSON形式（プログラム用）</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      CSV: Excel、Googleスプレッドシートで開けます / Excel: Excelで直接開けます / JSON: プログラム処理用
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* スマホ用案内 */}
+              {isMobile() && (
+                <div className="md:col-span-2">
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Smartphone className="w-4 h-4 text-amber-600" />
+                      <span className="text-sm font-semibold text-amber-900">スマホ環境での履歴管理</span>
+                    </div>
+                    <p className="text-xs text-amber-800 mb-3">
+                      スマホでは定期的に決済履歴をエクスポートすることをお勧めします。
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-semibold text-amber-900">出力形式:</span>
+                        <select
+                          value={exportFormat}
+                          onChange={(e) => setExportFormat(e.target.value as 'json' | 'csv' | 'excel')}
+                          className="text-xs px-2 py-1 border border-amber-300 rounded bg-amber-50"
+                        >
+                          <option value="csv">CSV</option>
+                          <option value="excel">Excel</option>
+                          <option value="json">JSON</option>
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            const allSessions = paymentSessions.filter(s => s.status === 'completed');
+                            if (allSessions.length > 0) {
+                              switch (exportFormat) {
+                                case 'csv':
+                                  savePaymentHistoryToCSV(allSessions, undefined, shopInfo);
+                                  break;
+                                case 'excel':
+                                  savePaymentHistoryToExcel(allSessions, undefined, shopInfo);
+                                  break;
+                                case 'json':
+                                default:
+                                  savePaymentHistoryToFile(allSessions, undefined, shopInfo);
+                                  break;
+                              }
+                            } else {
+                              toast.error('エクスポートする履歴がありません');
+                            }
+                          }}
+                          className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-semibold transition"
+                        >
+                          📊 {exportFormat.toUpperCase()}でエクスポート
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">💳 支払い完了一覧</h2>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">{/* 手動エクスポートボタンを追加 */}
+                <div className="relative inline-block">
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={exportFormat}
+                      onChange={(e) => setExportFormat(e.target.value as 'json' | 'csv' | 'excel')}
+                      className="text-xs px-2 py-2 border border-gray-300 rounded-l-lg bg-gray-50 text-gray-700"
+                    >
+                      <option value="csv">📊 CSV</option>
+                      <option value="excel">📈 Excel</option>
+                      <option value="json">📄 JSON</option>
+                    </select>
+                    <button
+                      onClick={() => {
+                        const completedSessions = paymentSessions.filter(s => s.status === 'completed');
+                        if (completedSessions.length > 0) {
+                          switch (exportFormat) {
+                            case 'csv':
+                              savePaymentHistoryToCSV(completedSessions, undefined, shopInfo);
+                              break;
+                            case 'excel':
+                              savePaymentHistoryToExcel(completedSessions, undefined, shopInfo);
+                              break;
+                            case 'json':
+                            default:
+                              savePaymentHistoryToFile(completedSessions, undefined, shopInfo);
+                              break;
+                          }
+                        } else {
+                          toast.error('エクスポートする決済履歴がありません');
+                        }
+                      }}
+                      className="flex items-center gap-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-r-lg transition"
+                    >
+                      <Download className="w-4 h-4" />
+                      エクスポート
+                    </button>
+                  </div>
+                </div>
+                
                 {paymentSessions.filter(s => s.status === 'completed').length > 0 && (
                   <div className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-semibold">
                     {paymentSessions.filter(s => s.status === 'completed').length} 件完了

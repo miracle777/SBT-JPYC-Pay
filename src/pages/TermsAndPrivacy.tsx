@@ -152,7 +152,20 @@ const TermsAndPrivacy: React.FC = () => {
                     <li>• 店舗設定情報</li>
                     <li>• 発行済みSBTリスト</li>
                     <li>• アプリケーション設定</li>
+                    <li>• <strong>決済履歴</strong>（設定可能な保存期間：30日〜1年）</li>
                     <li>• ※これらは全て利用者のデバイスにのみ保存され、外部送信されません</li>
+                  </ul>
+                </div>
+                
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
+                  <h4 className="font-semibold text-amber-900 mb-2">決済履歴の管理</h4>
+                  <ul className="text-sm text-amber-800 space-y-1">
+                    <li>• <strong>PC環境：</strong>自動ローカルファイル保存機能（オプション）</li>
+                    <li>• <strong>スマホ環境：</strong>定期的な手動エクスポートを推奨</li>
+                    <li>• <strong>保存期間：</strong>設定により30日〜1年間（デフォルト90日）</li>
+                    <li>• <strong>自動削除：</strong>設定期間経過後は自動的に削除</li>
+                    <li>• <strong>エクスポート形式：</strong>CSV・Excel・JSON形式での出力可能</li>
+                    <li>• <strong>CSV形式推奨：</strong>Excel、Googleスプレッドシートで直接開けます</li>
                   </ul>
                 </div>
               </div>
@@ -167,6 +180,9 @@ const TermsAndPrivacy: React.FC = () => {
                   <li>• <strong>サーバーレス設計</strong> - 開発者のサーバーにデータは保存されません</li>
                   <li>• <strong>ブロックチェーン記録</strong> - SBT発行データは分散台帳に記録（公開情報）</li>
                   <li>• <strong>IPFS保存</strong> - SBTメタデータ・画像は Pinata (IPFS) に分散保存</li>
+                  <li>• <strong>決済履歴保存</strong> - 設定に基づき30日〜1年間ローカル保存（デフォルト90日）</li>
+                  <li>• <strong>複数形式対応</strong> - CSV（Excel・スプレッドシート対応）・Excel・JSON形式で出力</li>
+                  <li>• <strong>PC環境自動保存</strong> - 決済完了時のローカルファイル保存（オプション機能）</li>
                   <li>• <strong>自動削除</strong> - アプリ削除時にローカルデータも削除されます</li>
                 </ul>
               </div>

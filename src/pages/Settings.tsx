@@ -955,6 +955,186 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
+        {/* 決済履歴管理設定 */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-6">📊 決済履歴管理</h2>
+          <p className="text-gray-600 mb-6">決済履歴の保存期間とローカル保存設定を管理します</p>
+          
+          <div className="space-y-6">
+            {/* デバイス環境の表示 */}
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="font-semibold text-blue-900 mb-2">💻 現在の環境</h3>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-blue-800">デバイス:</span>
+                  {navigator.userAgent.includes('Windows') ? (
+                    <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">Windows PC</span>
+                  ) : navigator.userAgent.includes('Mac') ? (
+                    <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">Mac</span>
+                  ) : navigator.userAgent.includes('Linux') ? (
+                    <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">Linux PC</span>
+                  ) : (
+                    <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">モバイル</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-blue-800">推奨機能:</span>
+                  {navigator.userAgent.includes('Windows') || 
+                   navigator.userAgent.includes('Mac') || 
+                   navigator.userAgent.includes('Linux') ? (
+                    <span className="text-sm text-blue-700">自動ローカル保存</span>
+                  ) : (
+                    <span className="text-sm text-green-700">定期的なエクスポート</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* PC環境用設定 */}
+            {(navigator.userAgent.includes('Windows') || 
+              navigator.userAgent.includes('Mac') || 
+              navigator.userAgent.includes('Linux')) && (
+              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-4">🖥️ PC環境専用設定</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      自動ローカル保存
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        defaultChecked={localStorage.getItem('payment-auto-local-save') === 'true'}
+                        onChange={(e) => {
+                          localStorage.setItem('payment-auto-local-save', e.target.checked.toString());
+                          toast.success(e.target.checked ? '自動保存を有効にしました' : '自動保存を無効にしました');
+                        }}
+                        className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                      />
+                      <span className="text-sm text-gray-700">決済完了時に自動でファイルをダウンロード</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      有効にすると、決済が完了するたびに選択した形式でブラウザのダウンロードフォルダに履歴ファイルが保存されます。
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      エクスポート形式
+                    </label>
+                    <select
+                      defaultValue={localStorage.getItem('payment-export-format') || 'csv'}
+                      onChange={(e) => {
+                        localStorage.setItem('payment-export-format', e.target.value);
+                        toast.success(`エクスポート形式を${e.target.value.toUpperCase()}に設定しました`);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    >
+                      <option value="csv">📊 CSV形式（推奨: Excel・Googleスプレッドシート対応）</option>
+                      <option value="excel">📈 Excel形式（.xls: Excel直接対応）</option>
+                      <option value="json">📄 JSON形式（プログラム処理用）</option>
+                    </select>
+                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+                      <p className="text-xs text-blue-800 mb-1">
+                        <strong>CSV:</strong> Excel、Googleスプレッドシート、Numbersで開けます（推奨）
+                      </p>
+                      <p className="text-xs text-blue-800 mb-1">
+                        <strong>Excel:</strong> Microsoft Excelで直接開けます
+                      </p>
+                      <p className="text-xs text-blue-800">
+                        <strong>JSON:</strong> プログラム処理やデータ分析ツール用
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      保存ディレクトリの案内
+                    </label>
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded">
+                      <p className="text-xs text-amber-800 mb-1">
+                        <strong>Windows:</strong> C:\Users\[ユーザー名]\Downloads\
+                      </p>
+                      <p className="text-xs text-amber-800 mb-1">
+                        <strong>Mac:</strong> /Users/[ユーザー名]/Downloads/
+                      </p>
+                      <p className="text-xs text-amber-800">
+                        <strong>Linux:</strong> /home/[ユーザー名]/Downloads/
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* スマホ環境用案内 */}
+            {!/Windows|Mac|Linux/.test(navigator.userAgent) && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <h3 className="font-semibold text-amber-900 mb-3">📱 スマホ環境での履歴管理</h3>
+                <ul className="text-sm text-amber-800 space-y-2">
+                  <li>• 定期的に決済履歴をエクスポートすることをお勧めします</li>
+                  <li>• <strong>CSV形式推奨：</strong>Excel・Googleスプレッドシートで開けます</li>
+                  <li>• エクスポートしたファイルはクラウドストレージに保存してください</li>
+                  <li>• アプリ削除時にローカル履歴も消失するためバックアップが重要です</li>
+                </ul>
+                <div className="mt-3">
+                  <a 
+                    href="/qr-payment"
+                    className="inline-flex items-center gap-1 text-amber-600 hover:text-amber-800 font-semibold text-sm"
+                  >
+                    → QR決済ページで複数形式でエクスポート実行
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* 保存期間設定 */}
+            <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <h3 className="font-semibold text-gray-900 mb-3">📅 履歴保存期間設定</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    保存期間
+                  </label>
+                  <select
+                    defaultValue={localStorage.getItem('payment-history-retention-days') || '90'}
+                    onChange={(e) => {
+                      localStorage.setItem('payment-history-retention-days', e.target.value);
+                      toast.success(`履歴保存期間を${e.target.value}日に設定しました`);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="30">30日間</option>
+                    <option value="60">60日間</option>
+                    <option value="90">90日間（推奨）</option>
+                    <option value="180">6ヶ月間</option>
+                    <option value="365">1年間</option>
+                  </select>
+                </div>
+                <div className="flex items-center">
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                    <p className="text-xs text-blue-800">
+                      設定した期間を過ぎた決済履歴は自動的に削除されます。
+                      重要な履歴は定期的にエクスポートしてください。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* セキュリティとプライバシー */}
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <h3 className="font-semibold text-green-900 mb-3">🔐 セキュリティとプライバシー</h3>
+              <ul className="text-sm text-green-800 space-y-1">
+                <li>• すべての決済履歴はローカルデバイスにのみ保存されます</li>
+                <li>• 外部サーバーには送信されません</li>
+                <li>• ブラウザのローカルストレージを使用</li>
+                <li>• PWA環境でも同様のプライバシー保護</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* データ管理（バックアップ・復元） */}
         <div className="bg-white rounded-xl shadow-lg p-8">
           <h2 className="text-lg font-bold text-gray-900 mb-6">📦 データ管理</h2>
