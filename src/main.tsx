@@ -300,14 +300,29 @@ if (typeof window !== 'undefined' && (window as any).ethereum) {
 // チェーン設定
 const chains = [mainnet, polygon, sepolia] as const;
 
-// RainbowKit - 推奨ウォレットを明示的に指定
+// デバイス判定
+const isMobile = typeof window !== 'undefined' && 
+  (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+   window.innerWidth <= 768);
+
+console.log('📱 Device Detection:', isMobile ? 'Mobile' : 'Desktop');
+
+// RainbowKit - デスクトップとモバイルで異なるウォレット構成
 const wallets = [
   {
-    groupName: '推奨',
-    wallets: [
-      metaMaskWallet,
+    groupName: isMobile ? 'モバイル推奨' : 'デスクトップ推奨',
+    wallets: isMobile ? [
+      // モバイル: WalletConnect優先
       walletConnectWallet,
+      metaMaskWallet,
+      trustWallet,
       coinbaseWallet,
+      rainbowWallet,
+    ] : [
+      // デスクトップ: MetaMask拡張機能優先
+      metaMaskWallet,
+      coinbaseWallet,
+      walletConnectWallet,
       trustWallet,
       rainbowWallet,
     ],
@@ -328,7 +343,7 @@ const connectors = connectorsForWallets(wallets, {
   appIcon: appIcon,
 });
 
-// Wagmi Config
+// Wagmi Config - デスクトップとモバイルで異なる設定
 const config = createConfig({
   connectors,
   chains,
@@ -338,12 +353,15 @@ const config = createConfig({
     [sepolia.id]: http(),
   },
   ssr: false,
-  multiInjectedProviderDiscovery: false,
+  // デスクトップでは拡張機能を優先、モバイルでは複数プロバイダーを許可
+  multiInjectedProviderDiscovery: isMobile,
 });
 
 console.log('🔧 RainbowKit Config Created:', config ? '✅' : '❌');
 console.log('🔑 WalletConnect ProjectID:', projectId ? `✅ Set (${projectId.substring(0, 10)}...)` : '❌ Not set');
 console.log('📱 Configured Wallets:', wallets[0].wallets.length);
+console.log('🖥️ Device Type:', isMobile ? 'Mobile (WalletConnect優先)' : 'Desktop (MetaMask拡張機能優先)');
+console.log('🔌 Multi Injected Provider Discovery:', isMobile ? 'Enabled (Mobile)' : 'Disabled (Desktop)');
 
 // WalletConnect詳細デバッグ
 debugWalletConnect();
@@ -360,6 +378,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           showRecentTransactions={false}
           theme={null}
           locale="ja"
+          coolMode={!isMobile}
         >
           <RouterProvider router={router} />
           <Toaster
