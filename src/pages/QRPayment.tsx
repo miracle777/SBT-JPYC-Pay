@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { QrCode, Download, Copy, Trash2, AlertCircle, Clock, CheckCircle, Monitor, Zap, User, Award, Hash, Network, Sparkles, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { BrowserProvider, ethers } from 'ethers';
@@ -365,8 +365,18 @@ const QRPayment: React.FC = () => {
   }, [qrWindowRef]);
 
   // 完了したセッション情報を LocalStorage に保存と顧客統計の更新
+  const saveCompletedSessionsRef = useRef<string>('');
+  
   useEffect(() => {
     const completedSessions = paymentSessions.filter(s => s.status === 'completed' && s.payerAddress);
+    const completedSessionIds = completedSessions.map(s => s.id).sort().join(',');
+    
+    // 無限ループ防止：同じセッションIDの組み合わせの場合はスキップ
+    if (completedSessionIds === saveCompletedSessionsRef.current) {
+      return;
+    }
+    saveCompletedSessionsRef.current = completedSessionIds;
+    
     if (completedSessions.length > 0) {
       // 既存の保存データを読み込んで、重複を避けながらマージ
       const savedSessions = localStorage.getItem('completedPaymentSessions');
@@ -393,14 +403,32 @@ const QRPayment: React.FC = () => {
           stats.set(session.payerAddress, currentCount + 1);
         }
       });
-      setCustomerPaymentStats(stats);
+      
+      // 統計更新は一度だけ実行
+      setCustomerPaymentStats(prev => {
+        const newStats = new Map(stats);
+        const prevStats = prev ? Array.from(prev.entries()) : [];
+        const currentStats = Array.from(newStats.entries());
+        
+        // 統計に変化がない場合は更新しない
+        if (prevStats.length === currentStats.length && 
+            prevStats.every(([key, value]) => newStats.get(key) === value)) {
+          return prev;
+        }
+        
+        return newStats;
+      });
       
       console.log(`💾 決済履歴を保存: ${allCompletedSessions.length}件`);
     }
   }, [paymentSessions]);
   
-  // ページロード時に保存された完了セッションと統計を復元
+  // ページロード時に保存された完了セッションと統計を復元（一回のみ）
+  const isRestoredRef = useRef(false);
+  
   useEffect(() => {
+    if (isRestoredRef.current) return; // 一度だけ実行
+    
     const savedSessions = localStorage.getItem('completedPaymentSessions');
     if (savedSessions) {
       try {
@@ -410,6 +438,7 @@ const QRPayment: React.FC = () => {
         setPaymentSessions(prev => {
           const existingIds = new Set(prev.map(s => s.id));
           const newSessions = sessions.filter(s => !existingIds.has(s.id));
+          if (newSessions.length === 0) return prev; // 新しいセッションがない場合は更新しない
           return [...prev, ...newSessions];
         });
         
@@ -428,6 +457,8 @@ const QRPayment: React.FC = () => {
         console.error('決済履歴の復元に失敗:', error);
       }
     }
+    
+    isRestoredRef.current = true; // 復元完了フラグ
     
     // SBT発行ステータスを復元
     const savedSBTStatus = localStorage.getItem('payment-sbt-status');
