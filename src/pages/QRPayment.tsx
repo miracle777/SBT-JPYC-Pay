@@ -212,7 +212,7 @@ const QRPayment: React.FC = () => {
       
       // 整数部分と小数部分を分けて表示（小数点以下2桁まで）
       setJpycBalance(balanceNumber.toLocaleString('ja-JP', {
-        minimumFractionDigits: 0,
+        minimumFractionDigits: 2,
         maximumFractionDigits: 2
       }));
       
