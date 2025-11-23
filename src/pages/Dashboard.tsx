@@ -85,10 +85,22 @@ const Dashboard: React.FC = () => {
               </h2>
             </div>
             <div className="p-6 space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h3 className="font-bold text-green-900 mb-2">🆓 QRコード決済機能は無料でご利用可能</h3>
+                <p className="text-sm text-green-800 mb-3">
+                  店舗・個人事業主様のQRコード決済導入を支援します：
+                </p>
+                <ul className="text-sm text-green-700 space-y-1">
+                  <li>• <strong>無料</strong>でJPYC QR決済システムをご利用可能</li>
+                  <li>• カスタマイズ・ブランディング対応</li>
+                  <li>• 導入支援・設定サポート</li>
+                  <li>• PWAアプリとしてスマートフォンに導入可能</li>
+                </ul>
+              </div>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <h3 className="font-bold text-amber-900 mb-2">商用利用には専用サーバーが必要</h3>
+                <h3 className="font-bold text-amber-900 mb-2">🎫 SBT機能の本格利用には相談が必要</h3>
                 <p className="text-sm text-amber-800 mb-3">
-                  このデモ版は機能確認用です。実際の運用には：
+                  SBT発行・管理機能の商用利用には：
                 </p>
                 <ul className="text-sm text-amber-700 space-y-1">
                   <li>• 独自ドメイン・HTTPS証明書</li>
@@ -96,6 +108,7 @@ const Dashboard: React.FC = () => {
                   <li>• スマートコントラクトデプロイ</li>
                   <li>• セキュリティ・バックアップ体制</li>
                   <li>• 運用監視・メンテナンス</li>
+                  <li>• <strong>@masaru21への事前相談</strong></li>
                 </ul>
               </div>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -174,7 +187,10 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="p-6 space-y-4">
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <h3 className="font-bold text-purple-900 mb-2">デジタルスタンプカード発行</h3>
+                <h3 className="font-bold text-purple-900 mb-2 flex items-center gap-2">
+                  デジタルスタンプカード発行
+                  <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">要相談</span>
+                </h3>
                 <p className="text-sm text-purple-800 mb-3">
                   Soul Bound Token（SBT）技術で実現する次世代スタンプカード：
                 </p>
@@ -185,6 +201,7 @@ const Dashboard: React.FC = () => {
                   <li>• 来店履歴の永続記録</li>
                   <li>• 偽造防止・不正利用防止</li>
                   <li>• <strong>JPYCペイアプリ</strong>での店舗情報連携</li>
+                  <li>• <strong className="text-amber-700">商用利用は@masaru21への事前相談が必要</strong></li>
                 </ul>
               </div>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -299,6 +316,16 @@ const Dashboard: React.FC = () => {
                     >
                       <Twitter className="w-4 h-4" />
                       X でお問い合わせ
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <a
+                      href="https://github.com/miracle777"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 transition text-sm"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      GitHub
                       <ExternalLink className="w-3 h-3" />
                     </a>
                     <a

@@ -1433,8 +1433,14 @@ const QRPayment: React.FC = () => {
           <div className="flex items-center space-x-3 sm:space-x-4 mb-3 sm:mb-4">
             <QrCode className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">QR決済</h1>
+            <span className="bg-green-500 text-white text-xs sm:text-sm px-2 py-1 rounded-full font-medium">無料</span>
           </div>
-          <p className="text-xs sm:text-sm md:text-base text-gray-600">JPYC/tJPYC対応のQRコード決済を生成・管理します</p>
+          <p className="text-xs sm:text-sm md:text-base text-gray-600 mb-2">JPYC/tJPYC対応のQRコード決済を生成・管理します</p>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <p className="text-xs sm:text-sm text-green-800">
+              <strong>🎉 QRコード決済機能は無料でご利用いただけます！</strong> 店舗・個人事業主様でも自由にご活用ください。
+            </p>
+          </div>
         </div>
 
         {/* ウォレット & ネットワーク管理 */}

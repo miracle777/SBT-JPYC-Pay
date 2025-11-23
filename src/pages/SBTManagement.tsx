@@ -1650,6 +1650,7 @@ const SBTManagement: React.FC = () => {
             <div className="flex items-center space-x-3 sm:space-x-4">
               <Award className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">SBT管理</h1>
+              <span className="bg-amber-500 text-white text-xs sm:text-sm px-2 py-1 rounded-full font-medium">要相談</span>
             </div>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <button
@@ -1677,6 +1678,14 @@ const SBTManagement: React.FC = () => {
                 <span className="hidden sm:inline">使い方ガイド</span><span className="sm:hidden">ガイド</span>
               </button>
             </div>
+          </div>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-xs sm:text-sm text-amber-800">
+              <strong>💼 SBT機能の商用利用には相談が必要です。</strong> ご利用前に 
+              <a href="https://x.com/masaru21" target="_blank" rel="noopener noreferrer" className="text-amber-900 font-semibold underline hover:text-amber-700">@masaru21</a> (X) または
+              <a href="https://github.com/miracle777" target="_blank" rel="noopener noreferrer" className="text-amber-900 font-semibold underline hover:text-amber-700 ml-1">miracle777</a> (GitHub)
+              までお問い合わせください。
+            </p>
           </div>
           <p className="text-xs sm:text-sm md:text-base text-gray-600">スタンプカードテンプレートの作成・管理と発行（PWA対応、画像ローカル保存、データエクスポート可能）</p>
         </div>
