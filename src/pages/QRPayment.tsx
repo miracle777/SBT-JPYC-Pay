@@ -75,7 +75,7 @@ const QRPayment: React.FC = () => {
   const [selectedJpycContract, setSelectedJpycContract] = useState<string>(''); // 選択されたJPYCコントラクトアドレス
   const [paymentSessions, setPaymentSessions] = useState<PaymentSession[]>([]);
   const [expiryTimeMinutes, setExpiryTimeMinutes] = useState(5); // デフォルト5分
-  const [qrCodeFormat, setQrCodeFormat] = useState<'jpyc-payment' | 'metamask' | 'legacy'>('jpyc-payment'); // QRコード形式
+  const [qrCodeFormat, setQrCodeFormat] = useState<'jpyc-payment' | 'metamask' | 'legacy' | 'hashport-wallet'>('jpyc-payment'); // QRコード形式
   const [notificationVolume, setNotificationVolume] = useState(0.7); // 決済音の音量(0.0-1.0)
   const [selectedPaymentSound, setSelectedPaymentSound] = useState<'sound1' | 'sound2' | 'sound3'>('sound1'); // 選択された決済音
   const [qrWindowRef, setQrWindowRef] = useState<Window | null>(null); // 新規ウィンドウの参照
@@ -762,6 +762,10 @@ const QRPayment: React.FC = () => {
           break;
         case 'metamask':
           encodedPayload = encodePaymentPayloadForMetaMask(payload);
+          break;
+        case 'hashport-wallet':
+          // Hash Port Wallet用：ウォレットアドレスのみ
+          encodedPayload = shopWalletAddress;
           break;
         case 'legacy':
         default:
@@ -1543,9 +1547,17 @@ const QRPayment: React.FC = () => {
                                   ? 'bg-green-100 text-green-700 border border-green-300'
                                   : qrCodeFormat === 'metamask'
                                   ? 'bg-orange-100 text-orange-700 border border-orange-300'
+                                  : qrCodeFormat === 'hashport-wallet'
+                                  ? 'bg-purple-100 text-purple-700 border border-purple-300'
                                   : 'bg-gray-100 text-gray-700 border border-gray-300'
                               }`}>
-                                {qrCodeFormat === 'jpyc-payment' ? '💰 masaru21QR_PAYMENT' : qrCodeFormat === 'metamask' ? '🦊 MetaMask' : '💻 Legacy'}
+                                {qrCodeFormat === 'jpyc-payment' 
+                                  ? '💰 masaru21QR_PAYMENT' 
+                                  : qrCodeFormat === 'metamask' 
+                                  ? '🦊 MetaMask' 
+                                  : qrCodeFormat === 'hashport-wallet'
+                                  ? '🌐 Hash Port Wallet'
+                                  : '💻 Legacy'}
                               </div>
                             </div>
                           );
@@ -1588,6 +1600,18 @@ const QRPayment: React.FC = () => {
                               📋 <strong>MetaMaskアプリ</strong>でスキャン → <strong className="text-red-600">金額を手入力</strong>してください<br />
                               <span className="text-gray-600">アドレス: {shopWalletAddress.slice(0, 8)}...{shopWalletAddress.slice(-6)}</span><br />
                               <span className="text-red-600 text-xs font-semibold">⚠️ 金額 {session.amount} JPYC とトークン選択を忘れずに！</span>
+                            </>
+                          ) : qrCodeFormat === 'hashport-wallet' ? (
+                            <>
+                              <div className="flex items-center justify-center gap-2 mb-1">
+                                <span className="text-purple-600">🌐</span>
+                                <span><strong>Hash Port Wallet</strong> 対応QRコード</span>
+                              </div>
+                              <span className="text-gray-600">ウォレットアドレス: {shopWalletAddress.slice(0, 8)}...{shopWalletAddress.slice(-6)}</span><br />
+                              <div className="mt-1 p-2 bg-purple-50 border border-purple-200 rounded text-purple-800 text-xs">
+                                <p className="font-semibold">📱 Hash Port Walletでの手順:</p>
+                                <p>1. QRスキャン → 2. ネットワーク選択 → 3. JPYC選択 → 4. 金額入力 ({session.amount} JPYC)</p>
+                              </div>
                             </>
                           ) : (
                             <>
@@ -1875,11 +1899,12 @@ const QRPayment: React.FC = () => {
                     </label>
                     <select
                       value={qrCodeFormat}
-                      onChange={(e) => setQrCodeFormat(e.target.value as 'jpyc-payment' | 'metamask' | 'legacy')}
+                      onChange={(e) => setQrCodeFormat(e.target.value as 'jpyc-payment' | 'metamask' | 'legacy' | 'hashport-wallet')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     >
                       <option value="jpyc-payment">💰 JPYC_PAYMENT (統一標準形式) 【推奨】</option>
                       <option value="metamask">🦊 MetaMask (EIP-681形式)</option>
+                      <option value="hashport-wallet">🌐 Hash Port Wallet (アドレスのみ)</option>
                       <option value="legacy">💻 レガシー形式 (payment)</option>
                     </select>
                     <div className="mt-2">
@@ -1905,6 +1930,23 @@ const QRPayment: React.FC = () => {
                           </div>
                           <p className="text-blue-900">💡 <strong>EIP-681標準準拠</strong></p>
                           <p className="mt-1 font-mono text-blue-700 text-[10px]">ChainID: {selectedChainForPayment} (0x{selectedChainForPayment.toString(16)})</p>
+                        </div>
+                      ) : qrCodeFormat === 'hashport-wallet' ? (
+                        <div className="p-2 bg-purple-50 border border-purple-300 rounded-lg text-xs text-purple-800">
+                          <p className="font-semibold mb-1">🌐 Hash Port Wallet (アドレスのみ)</p>
+                          <p className="mb-2">⚠️ <strong>アドレスのみ取得、金額・トークンは手動入力が必要</strong></p>
+                          <div className="bg-purple-100 border border-purple-400 rounded p-2 mb-2">
+                            <p className="font-semibold text-purple-900">Hash Port Walletでの利用手順:</p>
+                            <ol className="list-decimal list-inside space-y-1 ml-2 mt-1">
+                              <li>QRコードをスキャン（アドレスが自動入力）</li>
+                              <li><strong>ネットワークを手動選択</strong>（Ethereum/Polygon等）</li>
+                              <li><strong>通貨をJPYCトークンに選択</strong></li>
+                              <li><strong>金額を手動入力</strong>（{amount || '0'} JPYC）</li>
+                              <li>送金実行</li>
+                            </ol>
+                          </div>
+                          <p className="text-purple-900">💡 <strong>プロトコル名なしの単純アドレス</strong></p>
+                          <p className="mt-1 text-purple-700 text-[10px]">送金先: {shopWalletAddress.slice(0, 10)}...{shopWalletAddress.slice(-8)}</p>
                         </div>
                       ) : (
                         <div className="p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700">

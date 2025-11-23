@@ -6,55 +6,68 @@
 
 ## 🔍 問題の詳細
 
-### ユーザーが遭遇している問題
-- HashPack WalletでQRコードを読み取ると「アドレスが違う」とエラー表示
-- QRコード内に「ethereum」という文字が見える
-- EIP-681形式に対応していない可能性
+### ユーザーが遭遇している問題（実機確認済み）
+- Hash Port WalletでEIP-681形式のQRコードをスキャン
+- `ethereum:0xE7C3D8C9a439feDe...` が表示される
+- **「送金先ウォレットアドレスが間違っています」** エラー
+- QRコード内に「ethereum:」プロトコル名が見える
 
-### 予想される原因
-1. **HashPack = Hederaネットワーク専用ウォレット**
-2. **EthereumのEIP-681形式は非対応**  
-3. **Hederaネットワーク独自のQRコード形式が必要**
+### 確認された原因
+1. **Hash Port Wallet = 単純なアドレス形式のみ対応**
+   - ✅ 対応: `0x123456789abcdef...`（40桁hexアドレス）
+   - ❌ 非対応: `ethereum:0x123456...@137/transfer?...`（EIP-681 URI）
+   
+2. **EIP-681 URIスキーマを「無効なアドレス」として判定**
+   - プロトコル名（ethereum:）が含まれるとエラー
+   - 実際にはEthereum系ネットワーク（Ethereum, Base, Polygon）には対応
 
-## 🌐 HashPack Walletについて
+3. **Hash Port WalletのQRスキャナーの仕様**
+   - ウォレットアドレス（0x形式）のQRコードのみを想定
+   - EIP-681標準の決済URIには非対応
 
-### 基本情報
-- **正式名称**: HashPack
-- **対応ネットワーク**: Hedera Hashgraph（HBAR）
-- **種類**: Hederaエコシステム専用ウォレット
-- **開発元**: HashPack チーム
-- **公式サイト**: https://www.hashpack.app/
+## 🌐 Hash Port Walletについて
+
+### 基本情報（実機確認済み）
+
+- **正式名称**: Hash Port Wallet  
+- **対応ネットワーク**: Ethereum、Base、Polygon（実際に表示確認）
+- **種類**: マルチチェーン対応ウォレット
+- **QRスキャン機能**: ウォレットアドレス形式のみ対応
+- **公式**: モバイルアプリとして配布
 
 ### 対応している機能
-- ✅ Hedera Native Token (HBAR) 送受信
-- ✅ Hedera Token Service (HTS) トークン
-- ✅ NFT (Non-Fungible Tokens)
-- ✅ WalletConnect (Hedera専用)
-- ✅ DeFi (SaucerSwap等)
-- ❌ **Ethereum/EVM系ネットワーク非対応**
 
-## ❌ EIP-681 非対応の理由
+- ✅ Ethereum、Base、Polygon ネットワーク
+- ✅ ERC-20トークン送受信
+- ✅ ウォレットアドレス（0x形式）のQRコードスキャン
+- ❌ **EIP-681 URIスキーマ非対応**（実機で確認）
+- ❌ 決済プロトコル付きQRコード
 
-### 1. ネットワークの違い
+## ❌ EIP-681 非対応の詳細分析
+
+### 1. Hash Port WalletのQRスキャナー仕様
+
 ```text
-【現在のQRコード】 - EIP-681形式（Ethereum系）
-ethereum:0x6AE7...@137/transfer?address=0x1234...&uint256=100000...
+【対応形式】 - ウォレットアドレス単体
+0x123456789abcdef0123456789abcdef01234567
 
-【HashPack対応】 - Hedera独自形式（推測）
-hbar:0.0.12345?amount=100&memo=決済
+【非対応形式】 - EIP-681 URIスキーマ  
+ethereum:0x123456789abcdef@137/transfer?address=0x...&uint256=100...
 ```
 
-### 2. 異なるアドレス形式
-| ネットワーク | アドレス形式 | 例 |
-|-------------|-------------|-----|
-| Ethereum | 0x... (40桁hex) | 0x1234567890abcdef... |
-| Hedera | 0.0.xxxxx (Account ID) | 0.0.12345 |
+### 2. 実機確認されたエラー動作
 
-### 3. 異なるトークン規格
-| ネットワーク | トークン規格 | 例 |
-|-------------|-------------|-----|
-| Ethereum | ERC-20 | JPYC (0x431D5dfF03120AFA...) |
-| Hedera | HTS (Hedera Token Service) | Token ID: 0.0.456789 |
+| 入力内容 | Hash Port Walletの動作 | 結果 |
+|---------|----------------------|-----|
+| 0x123456... | ✅ 正常認識 | 送金先として受付 |
+| ethereum:0x123456... | ❌ 「アドレスが間違っています」 | 無効として拒否 |
+
+### 3. プロトコル名による問題
+
+Hash Port Walletは：
+- **プロトコル名**（`ethereum:`）を含むQRコードを無効判定
+- **EIP-681の決済情報**（金額、コントラクト等）を解析できない
+- **シンプルなアドレス交換**のみを想定した設計
 
 ## 🔧 対応形式の調査
 
@@ -89,47 +102,55 @@ wc:...@1?bridge=...&key=...（Hedera専用）
 
 ## 📊 対応策の提案
 
-### 方法1: Hedera JPYC トークンの確認
-```bash
-# Hedera上のJPYCトークンID確認が必要
-# 現在、Hedera上にJPYCトークンが存在するか調査要
-```
+### 方法1: Hash Port Wallet向け専用QRコード生成
 
-### 方法2: HashPackサポートに問い合わせ
-- 対応QRコード形式の確認
-- Ethereum系トークン送金の対応可否
-- Hedera⇔Ethereum ブリッジ利用可否
-
-### 方法3: 代替ソリューション
-1. **MetaMask等のEthereumウォレット使用を推奨**
-2. **Hedera⇔Ethereum ブリッジサービス利用**
-3. **HashPack専用のQRコード生成機能追加**
-
-## 🧪 テスト用QRコード生成
-
-### EIP-681形式（現在の実装）
 ```typescript
-// 現在のEIP-681形式（HashPackでは動かない）
-const eip681Uri = `ethereum:${contractAddress}@${chainId}/transfer?address=${recipient}&uint256=${amount}`;
-```
-
-### Hedera形式（推測）
-```typescript
-// Hedera形式（要検証）
-function generateHederaQR(params: {
-  recipient: string; // 0.0.xxxxx形式  
-  amount: string;
-  tokenId?: string; // HTS Token ID
-  memo?: string;
-}): string {
-  if (params.tokenId) {
-    // HTS Token送金
-    return `hts:${params.tokenId}?to=${params.recipient}&amount=${params.amount}&memo=${params.memo}`;
-  } else {
-    // HBAR送金
-    return `hbar:${params.recipient}?amount=${params.amount}&memo=${params.memo}`;
-  }
+// Hash Port Wallet用：ウォレットアドレス単体のQRコード
+function generateSimpleAddressQR(shopWallet: string): string {
+  // プロトコル名なしの単純なアドレス
+  return shopWallet; // 例: 0x1234567890123456789012345678901234567890
 }
+```
+
+### 方法2: 店舗側でのユーザー案内強化
+
+- Hash Port Walletユーザーには「手動入力」を案内
+- 金額・トークン・ネットワークの手動選択をサポート
+- QRコードでアドレスのみ取得、金額は別途入力
+
+### 方法3: 代替ウォレット推奨
+
+1. **MetaMask** - EIP-681完全対応、自動決済情報入力
+2. **Trust Wallet** - EIP-681対応、使いやすいUI  
+3. **Coinbase Wallet** - EIP-681対応、初心者向け
+4. **Rainbow Wallet** - EIP-681対応、シンプル
+
+## 🧪 Hash Port Wallet対応の実装例
+
+### 店舗側：アドレス単体QRコード生成
+
+```typescript
+// 現在のEIP-681形式（Hash Port Walletでは非対応）
+const eip681Uri = `ethereum:${contractAddress}@${chainId}/transfer?address=${recipient}&uint256=${amount}`;
+
+// Hash Port Wallet対応形式（アドレスのみ）
+const simpleAddress = recipient; // 0x1234567890123456789012345678901234567890
+
+// 使い分け
+const qrCodeData = isHashPortWallet 
+  ? simpleAddress           // アドレスのみ
+  : eip681Uri;              // 完全なEIP-681
+```
+
+### ユーザー向け手順案内
+
+```text
+【Hash Port Walletでの決済手順】
+1. QRコードをスキャン（アドレスが自動入力される）
+2. ネットワークを「Polygon」に選択
+3. 通貨を「JPYC」トークンに選択  
+4. 金額を「100 JPYC」に手動入力
+5. 送金実行
 ```
 
 ## 🔍 次のアクションアイテム
@@ -191,4 +212,9 @@ if (isHashPackWallet(window.ethereum)) {
 
 ---
 
-**結論**: HashPack WalletはHedera専用のため、Ethereum系のEIP-681形式QRコードには対応していません。ユーザーにはEthereum対応ウォレット（MetaMask等）の使用を推奨してください。
+**結論（実機確認済み）**: Hash Port WalletはEthereum系ネットワークには対応していますが、EIP-681形式のQRコード（プロトコル名付きURI）には対応していません。ウォレットアドレス単体のQRコードのみ認識し、決済情報付きのQRコードは「アドレスが間違っています」エラーとなります。
+
+**推奨対応**: 
+1. EIP-681対応ウォレット（MetaMask等）の使用推奨
+2. Hash Port Walletユーザーには手動入力での決済案内
+3. アドレス単体QRコードの追加生成オプション検討
