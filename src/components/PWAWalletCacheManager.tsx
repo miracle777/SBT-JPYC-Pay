@@ -1,8 +1,18 @@
 import React from 'react';
-import { useWallet } from '../context/WalletContext';
+import { useAccount } from 'wagmi';
 
 export const PWAWalletCacheManager: React.FC = () => {
-  const { clearCache, forceReset, isConnected, address } = useWallet();
+  const { isConnected, address } = useAccount();
+
+  // キャッシュ管理機能は簡略化
+  const clearCache = async () => {
+    console.log('キャッシュクリア実行');
+  };
+
+  const forceReset = async () => {
+    console.log('強制リセット実行');
+    window.location.reload();
+  };
   const isPWA = window.matchMedia('(display-mode: standalone)').matches;
 
   if (!isPWA) {

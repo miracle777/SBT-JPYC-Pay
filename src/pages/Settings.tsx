@@ -3,8 +3,7 @@ import { Settings as SettingsIcon, Save, Copy, ExternalLink, Download, Upload, E
 import toast from 'react-hot-toast';
 import { NETWORKS } from '../config/networks';
 import { DEFAULT_SHOP_INFO, getShopWalletAddress, getShopInfo } from '../config/shop';
-import { useWallet } from '../context/WalletContext';
-import { useAccount, useSwitchChain } from 'wagmi'; // RainbowKitのフックを追加
+import { useAccount, useSwitchChain } from 'wagmi'; // RainbowKitのフックを使用
 import { sbtStorage } from '../utils/storage';
 import { pinataService } from '../utils/pinata';
 import { generateNewShopId, DEFAULT_RANK_THRESHOLDS, type RankThresholds } from '../utils/shopSettings';
@@ -15,16 +14,9 @@ import StorageCompatibilityChecker from '../components/StorageCompatibilityCheck
 import { PWAWalletCacheManager } from '../components/PWAWalletCacheManager';
 
 const Settings: React.FC = () => {
-  // RainbowKitのウォレット情報を優先的に使用
-  const { address: rainbowAddress, chainId: rainbowChainId } = useAccount();
+  // RainbowKitのウォレット情報を使用
+  const { address: walletAddress, chainId: currentChainId } = useAccount();
   const { switchChain } = useSwitchChain();
-  
-  // 独自のWalletContextもフォールバックとして保持
-  const { address: contextAddress, chainId: contextChainId } = useWallet();
-  
-  // RainbowKitの情報を優先、なければWalletContextを使用
-  const walletAddress = rainbowAddress || contextAddress;
-  const currentChainId = rainbowChainId || contextChainId;
   
   const [shopInfo, setShopInfo] = useState({
     name: '',

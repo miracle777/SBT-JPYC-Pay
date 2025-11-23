@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Award, Plus, Edit2, Trash2, Send, ExternalLink, Zap, AlertCircle, HelpCircle, Wallet, CheckCircle, Copy, Server, Shield, Image, Rocket } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useWallet } from '../context/WalletContext';
-import { useAccount, useSwitchChain } from 'wagmi'; // RainbowKitのフックを追加
+import { useAccount, useSwitchChain } from 'wagmi'; // RainbowKitのフックを使用
 import { sbtStorage } from '../utils/storage';
 import { mintSBT, getBlockExplorerUrl, getContractOwner, getShopInfo, registerShop, getNFTDisplayUrls, activateShop, deactivateShop } from '../utils/sbtMinting';
 import { NETWORKS, getNetworkByChainId } from '../config/networks';
@@ -83,18 +82,14 @@ const SBTManagement: React.FC = () => {
   const { address: rainbowAddress, chainId: rainbowChainId, isConnected: rainbowConnected } = useAccount();
   const { switchChain } = useSwitchChain();
   
-  // 独自のWalletContextもフォールバックとして保持
-  const { 
-    address: contextAddress, 
-    chainId: contextChainId,
-    isConnected: contextConnected,
-    isPWA
-  } = useWallet();
+  // RainbowKitのウォレット情報を使用
+  const walletAddress = rainbowAddress;
+  const currentChainId = rainbowChainId;
+  const isConnected = rainbowConnected;
   
-  // RainbowKitの情報を優先、なければWalletContextを使用
-  const walletAddress = rainbowAddress || contextAddress;
-  const currentChainId = rainbowChainId || contextChainId;
-  const isConnected = rainbowConnected || contextConnected;
+  // PWA環境の検出
+  const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true;
   
   // ネットワーク情報を取得
   const currentNetworkInfo = getNetworkDisplayInfo(currentChainId);

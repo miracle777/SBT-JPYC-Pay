@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, Wallet, RefreshCw, Network, Monitor, TestTube, AlertTriangle } from 'lucide-react';
-import { useWallet } from '../context/WalletContext';
-import { useAccount, useSwitchChain, useDisconnect } from 'wagmi'; // RainbowKitのフックを追加
+import { useAccount, useSwitchChain, useDisconnect } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import toast from 'react-hot-toast';
 
@@ -16,36 +15,21 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
   showChainSelector = true,
   onNetworkChange
 }) => {
-  // RainbowKitのウォレット情報を優先的に使用
-  const { address: rainbowAddress, chainId: rainbowChainId, isConnected: rainbowConnected } = useAccount();
+  // RainbowKitのウォレット情報を使用
+  const { address, chainId, isConnected } = useAccount();
   const { switchChain } = useSwitchChain();
-  const { disconnect: rainbowDisconnect } = useDisconnect();
-  
-  // 独自のWalletContextもフォールバックとして保持
-  const { 
-    address: contextAddress, 
-    chainId: contextChainId, 
-    isConnected: contextConnected, 
-    isConnecting: contextConnecting, 
-    hasMultipleAccounts, 
-    supportedChains,
-    lastConnectionStrategy,
-    connect, 
-    disconnect: contextDisconnect, 
-    switchChain: contextSwitchChain, 
-    switchAccount,
-    openWalletModal
-  } = useWallet();
+  const { disconnect } = useDisconnect();
 
-  // RainbowKitの情報を優先、なければWalletContextを使用
-  const address = rainbowAddress || contextAddress;
-  const chainId = rainbowChainId || contextChainId;
-  const isConnected = rainbowConnected || contextConnected;
-  const isConnecting = contextConnecting; // 接続中状態はWalletContextから取得
+  // サポートされるチェーンの簡単な定義
+  const supportedChains = [
+    { chainId: 137, name: 'Polygon Mainnet', isTestnet: false, category: 'Polygon' },
+    { chainId: 80002, name: 'Polygon Amoy Testnet', isTestnet: true, category: 'Polygon' },
+    { chainId: 1, name: 'Ethereum Mainnet', isTestnet: false, category: 'Ethereum' },
+    { chainId: 11155111, name: 'Ethereum Sepolia Testnet', isTestnet: true, category: 'Ethereum' },
+  ];
 
   const [isExpanded, setIsExpanded] = useState(false); // デフォルトで閉じる
   const [isSwitchingChain, setIsSwitchingChain] = useState(false);
-  const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
 
   const currentChain = supportedChains.find(chain => chain.chainId === chainId);
 
@@ -54,14 +38,10 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
     
     setIsSwitchingChain(true);
     try {
-      // RainbowKitのswitchChainを優先的に使用
-      if (switchChain && rainbowConnected) {
+      // RainbowKitのswitchChainを使用
+      if (switchChain && isConnected) {
         await switchChain({ chainId: targetChainId });
         console.log(`✅ RainbowKit経由でネットワーク切り替え成功: ${targetChainId}`);
-      } else {
-        // フォールバック: 独自のswitchChainを使用
-        await contextSwitchChain(targetChainId);
-        console.log(`✅ WalletContext経由でネットワーク切り替え成功: ${targetChainId}`);
       }
       
       toast.success(`✅ ネットワークを ${supportedChains.find(c => c.chainId === targetChainId)?.name} に切り替えました`);
@@ -70,7 +50,7 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
       }
     } catch (error: any) {
       console.error('ネットワーク切り替えエラー:', error);
-      toast.error(`❌ ネットワーク切り替え失敗: ${error.message}`);
+      toast.error(`❌ ネットワーク切り替え失敗: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSwitchingChain(false);
     }

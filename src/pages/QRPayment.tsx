@@ -5,8 +5,7 @@ import { BrowserProvider, ethers } from 'ethers';
 import { NETWORKS, JPYC, getContractAddress, getJpycContracts, getJpycContractMeta } from '../config/networks';
 import { DEFAULT_SHOP_INFO, getShopWalletAddress, getShopInfo } from '../config/shop';
 import { createPaymentPayload, encodePaymentPayload, encodePaymentPayloadForJPYCPay, encodePaymentPayloadForMetaMask } from '../types/payment';
-import { useWallet } from '../context/WalletContext';
-import { useAccount, useSwitchChain } from 'wagmi'; // RainbowKitのフックを追加
+import { useAccount, useSwitchChain } from 'wagmi'; // RainbowKitのフックを使用
 import QRCodeDisplay from '../components/QRCodeDisplay';
 import WalletSelector from '../components/WalletSelector';
 import { getNetworkGasPrice, formatGasCostPOL, formatGasPriceGwei, isLowCostNetwork } from '../utils/gasEstimation';
@@ -64,16 +63,9 @@ interface PaymentSession {
 }
 
 const QRPayment: React.FC = () => {
-  // RainbowKitのウォレット情報を優先的に使用
-  const { address: rainbowAddress, chainId: rainbowChainId, isConnected: rainbowConnected } = useAccount();
+  // RainbowKitのウォレット情報を使用
+  const { address: walletAddress, chainId: currentChainId, isConnected } = useAccount();
   const { switchChain } = useSwitchChain();
-  
-  // 独自のWalletContextもフォールバックとして保持
-  const { address: contextAddress, chainId: contextChainId } = useWallet();
-  
-  // RainbowKitの情報を優先、なければWalletContextを使用
-  const walletAddress = rainbowAddress || contextAddress;
-  const currentChainId = rainbowChainId || contextChainId;
   
   const [amount, setAmount] = useState('');
   const [selectedChainForPayment, setSelectedChainForPayment] = useState(

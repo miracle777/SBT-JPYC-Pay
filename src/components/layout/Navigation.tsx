@@ -10,7 +10,8 @@ import {
   Info,
   Wallet
 } from 'lucide-react';
-import { useWallet } from '../../hooks/useWallet';
+import { useAccount } from 'wagmi';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Button } from '../ui/Button';
 
 interface NavItemProps {
@@ -37,7 +38,7 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isActive }) => (
 
 export const Navigation: React.FC = () => {
   const location = useLocation();
-  const { isConnected, address, connectWallet, disconnectWallet, isConnecting } = useWallet();
+  const { isConnected, address } = useAccount();
   
   const navItems = [
     { to: '/', icon: <Home size={20} />, label: 'ダッシュボード' },
@@ -63,38 +64,50 @@ export const Navigation: React.FC = () => {
 
       {/* Wallet Connection Section */}
       <div className="p-4 border-b border-gray-200">
-        {isConnected ? (
+        {isConnected && address ? (
           <div className="space-y-3">
             <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-200">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-green-800">接続済み</p>
                 <p className="text-xs text-green-600 truncate">
-                  {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ''}
+                  {`${address.slice(0, 6)}...${address.slice(-4)}`}
                 </p>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={disconnectWallet}
-              className="w-full"
-            >
-              <Wallet size={16} className="mr-2" />
-              切断
-            </Button>
+            <div className="w-full">
+              <ConnectButton.Custom>
+                {({ openAccountModal }) => (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={openAccountModal}
+                    className="w-full"
+                  >
+                    <Wallet size={16} className="mr-2" />
+                    アカウント管理
+                  </Button>
+                )}
+              </ConnectButton.Custom>
+            </div>
           </div>
         ) : (
-          <Button 
-            variant="primary" 
-            size="sm" 
-            onClick={connectWallet} 
-            loading={isConnecting}
-            className="w-full"
-          >
-            <Wallet size={16} className="mr-2" />
-            {isConnecting ? '接続中...' : 'ウォレット接続'}
-          </Button>
+          <div className="w-full">
+            <ConnectButton.Custom>
+              {({ openConnectModal, connectModalOpen }) => (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={openConnectModal} 
+                  loading={connectModalOpen}
+                  className="w-full"
+                >
+                  <Wallet size={16} className="mr-2" />
+                  {connectModalOpen ? '接続中...' : 'ウォレット接続'}
+                </Button>
+              )}
+            </ConnectButton.Custom>
+          </div>
         )}
       </div>
 
