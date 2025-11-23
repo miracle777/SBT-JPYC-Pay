@@ -110,6 +110,18 @@ wc:...@1?bridge=...&key=...（Hedera専用）
 - 紫色テーマの専用UI実装
 - 4ステップの操作ガイド表示
 
+**実装スクリーンショット**:
+
+![Hash Port Wallet対応UI実装完了](image.png)
+*▲ Hash Port Wallet専用QRコード生成モードの実装画面*
+
+**UI実装確認ポイント**:
+- ✅ QRコード形式選択に「🌐 Hash Port Wallet（アドレスのみ）」が追加済み
+- ✅ 専用警告メッセージ「⚠️ お客様がHashPack Walletをご利用の場合」が表示
+- ✅ HashPack WalletがHederaネットワーク専用である旨を説明
+- ✅ 代替ウォレット（MetaMask、Trust Wallet等）の推奨リストを表示
+- ✅ JPYCがEthereumネットワークのトークンである旨を明記
+
 **技術仕様**:
 ```typescript
 // 実装済み型定義拡張
