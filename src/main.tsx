@@ -275,6 +275,8 @@ if (!import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID) {
   console.warn('⚠️ VITE_WALLET_CONNECT_PROJECT_ID is not set. Using dummy projectId.');
   console.log('📝 WalletConnect機能を使用する場合は環境変数を設定してください: VITE_WALLET_CONNECT_PROJECT_ID=your_project_id');
   console.log('💡 MetaMaskなど他のウォレットは正常に動作します。');
+} else {
+  console.log('✅ WalletConnect Project ID configured:', projectId.substring(0, 10) + '...');
 }
 
 // Get app URL - use hardcoded production URL, fallback to location.origin for development
@@ -303,10 +305,10 @@ const wallets = [
     groupName: '推奨',
     wallets: [
       metaMaskWallet,
-      rainbowWallet,
       walletConnectWallet,
       coinbaseWallet,
       trustWallet,
+      rainbowWallet,
     ],
   },
 ];
@@ -314,6 +316,9 @@ const wallets = [
 const connectors = connectorsForWallets(wallets, {
   appName: 'SBT masaru21 Pay(仮)',
   projectId,
+  appDescription: 'SBTスタンプカード発行・QR決済管理システム',
+  appUrl: appUrl,
+  appIcon: appIcon,
 });
 
 // Wagmi Config
@@ -338,7 +343,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <WagmiProvider config={config}>
-        <RainbowKitProvider>
+        <RainbowKitProvider 
+          modalSize="compact"
+          initialChain={polygon}
+          showRecentTransactions={false}
+        >
           <RouterProvider router={router} />
           <Toaster
           position="top-center"
