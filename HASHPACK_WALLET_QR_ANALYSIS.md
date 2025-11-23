@@ -102,12 +102,38 @@ wc:...@1?bridge=...&key=...（Hedera専用）
 
 ## 📊 対応策の提案
 
-### 方法1: Hash Port Wallet向け専用QRコード生成
+### ✅ **方法1: Hash Port Wallet向け専用QRコード生成**（**実装完了 - 2025年11月23日**）
 
+**実装詳細**:
+- 新QRフォーマット `hashport-wallet` を追加
+- シンプルなウォレットアドレス出力（EIP-681非使用）
+- 紫色テーマの専用UI実装
+- 4ステップの操作ガイド表示
+
+**技術仕様**:
 ```typescript
-// Hash Port Wallet用：ウォレットアドレス単体のQRコード
+// 実装済み型定義拡張
+type QRCodeFormat = 'jpyc-payment' | 'metamask' | 'legacy' | 'hashport-wallet'
+
+// 実装済みエンコーディング処理
+case 'hashport-wallet':
+  encodedPayload = shopWalletAddress; // プロトコル情報なしの純粋なアドレス
+```
+
+**UI機能（実装済み）**:
+- ✅ 選択オプション: 「🌐 Hash Port Wallet対応」（紫色スタイル）
+- ✅ セッション表示: 紫背景でHash Port Wallet専用表示
+- ✅ 操作ガイド: QRスキャン→ネットワーク選択→JPYC選択→金額入力の手順明示
+
+**更新ファイル**:
+- ✅ `src/types/payment.ts`: QRCodeFormat型定義拡張完了
+- ✅ `src/pages/QRPayment.tsx`: UI選択肢、エンコーディング、表示ロジック追加完了
+
+**Hash Port Wallet用：実装済みウォレットアドレス単体のQRコード**
+```typescript
+// 実装済み - Hash Port Wallet用：ウォレットアドレス単体のQRコード
 function generateSimpleAddressQR(shopWallet: string): string {
-  // プロトコル名なしの単純なアドレス
+  // プロトコル名なしの単純なアドレス（実装済み）
   return shopWallet; // 例: 0x1234567890123456789012345678901234567890
 }
 ```
@@ -215,6 +241,14 @@ if (isHashPackWallet(window.ethereum)) {
 **結論（実機確認済み）**: Hash Port WalletはEthereum系ネットワークには対応していますが、EIP-681形式のQRコード（プロトコル名付きURI）には対応していません。ウォレットアドレス単体のQRコードのみ認識し、決済情報付きのQRコードは「アドレスが間違っています」エラーとなります。
 
 **推奨対応**: 
-1. EIP-681対応ウォレット（MetaMask等）の使用推奨
-2. Hash Port Walletユーザーには手動入力での決済案内
-3. アドレス単体QRコードの追加生成オプション検討
+1. ✅ **完了** - Hash Port Wallet専用QRモード実装済み（2025年11月23日）
+2. EIP-681対応ウォレット（MetaMask等）の使用推奨
+3. Hash Port Walletユーザーには専用QRモードでの決済案内
+
+**技術実装状況（2025年11月23日更新）**:
+- ✅ Hash Port Wallet専用QRフォーマット実装完了
+- ✅ 紫色テーマの専用UI実装完了  
+- ✅ 4ステップ操作ガイド実装完了
+- ✅ シンプルアドレスQRコード生成機能実装完了
+
+**レポート最終更新**: 2025年11月23日（Hash Port Wallet完全対応実装完了）
