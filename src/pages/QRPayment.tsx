@@ -13,6 +13,7 @@ import { sbtStorage } from '../utils/storage';
 import { isGaslessAvailable } from '../utils/gaslessPayment';
 import { mintSBT, type MintSBTParams } from '../utils/sbtMinting';
 import { pinataService } from '../utils/pinata';
+import { detectHashPackWallet, isHederaNetwork } from '../utils/mobileWallet';
 
 // ウォレットアドレスを省略表示する関数 (0x1234...5678 形式)
 const shortenAddress = (address: string, startChars: number = 6, endChars: number = 4): string => {
@@ -1595,6 +1596,19 @@ const QRPayment: React.FC = () => {
                             </>
                           )}
                         </p>
+
+                        {/* HashPack Walletユーザー向けの店舗案内 */}
+                        <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs">
+                          <div className="flex items-center gap-2 mb-1">
+                            <AlertCircle className="w-3 h-3 text-amber-600 flex-shrink-0" />
+                            <span className="font-semibold text-amber-800">HashPack Walletのお客様へ</span>
+                          </div>
+                          <div className="text-amber-700 space-y-1">
+                            <p>⚠️ HashPack WalletではJPYCをお読み取りいただけません</p>
+                            <p className="font-semibold">📱 以下のウォレットアプリをご利用ください：</p>
+                            <p>• MetaMask • Trust Wallet • Coinbase Wallet • Rainbow</p>
+                          </div>
+                        </div>
                       </div>
 
                       {/* 操作ボタン */}
@@ -1898,6 +1912,34 @@ const QRPayment: React.FC = () => {
                           <p>互換性維持用の旧payment形式（新規開発非推奨）</p>
                         </div>
                       )}
+                    </div>
+                  </div>
+
+                  {/* HashPack Walletユーザー向け案内 */}
+                  <div className="p-3 bg-amber-50 border-2 border-amber-200 rounded-lg">
+                    <div className="flex items-start gap-2 mb-2">
+                      <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-semibold text-amber-800 text-sm">
+                          🏪 お客様がHashPack Walletをご利用の場合
+                        </h4>
+                      </div>
+                    </div>
+                    <div className="pl-7 text-xs text-amber-700 space-y-1">
+                      <p>⚠️ <strong>HashPack WalletはHedera専用のため、JPYCの決済に対応しておりません</strong></p>
+                      <p className="mt-2 font-semibold">📱 お客様にお伝えください：</p>
+                      <ul className="list-disc list-inside space-y-1 ml-2">
+                        <li><strong>MetaMask</strong> - 最も推奨</li>
+                        <li><strong>Trust Wallet</strong> - 使いやすい</li>
+                        <li><strong>Coinbase Wallet</strong> - 初心者向け</li>
+                        <li><strong>Rainbow Wallet</strong> - シンプル</li>
+                      </ul>
+                      <div className="mt-2 p-2 bg-amber-100 rounded text-amber-800">
+                        <p className="font-semibold">💡 理由:</p>
+                        <p>• HashPack = Hederaネットワーク専用</p>
+                        <p>• JPYC = Ethereum系ネットワークのトークン</p>
+                        <p>• 異なるブロックチェーンのため互換性なし</p>
+                      </div>
                     </div>
                   </div>
 

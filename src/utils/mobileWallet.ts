@@ -29,6 +29,13 @@ export const MOBILE_WALLETS: MobileWalletInfo[] = [
     installed: false,
     universal: 'https://rainbow.app/',
     deepLink: 'rainbow://dapp/'
+  },
+  {
+    name: 'HashPack',
+    installed: false,
+    universal: 'https://wallet.hashpack.app/',
+    deepLink: 'hashpack://connect/',
+    package: 'app.hashpack.wallet'
   }
 ];
 
@@ -75,6 +82,38 @@ export function detectMetaMaskMobile(): boolean {
   ];
 
   return checks.some(check => check === true);
+}
+
+/**
+ * HashPack Walletの検出
+ */
+export function detectHashPackWallet(): boolean {
+  if (typeof window.ethereum === 'undefined') {
+    return false;
+  }
+
+  // HashPack固有のプロパティをチェック
+  const ethereum = window.ethereum as any;
+  
+  // HashPack検出方法
+  const checks = [
+    ethereum.isHashPack === true,
+    ethereum._hashpack !== undefined,
+    ethereum.providers?.some((p: any) => p.isHashPack),
+    ethereum.providerMap?.has('HashPack'),
+    navigator.userAgent.includes('HashPack'),
+    (window as any).hashpack !== undefined
+  ];
+
+  return checks.some(check => check === true);
+}
+
+/**
+ * Hedera/HashPack専用ネットワークチェック
+ */
+export function isHederaNetwork(chainId?: number): boolean {
+  // Hedera Mainnet: 295, Hedera Testnet: 296
+  return chainId === 295 || chainId === 296;
 }
 
 /**
