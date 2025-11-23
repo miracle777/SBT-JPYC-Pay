@@ -92,10 +92,26 @@ const Dashboard: React.FC = () => {
                 </p>
                 <ul className="text-sm text-green-700 space-y-1">
                   <li>• <strong>無料</strong>でJPYC QR決済システムをご利用可能</li>
+                  <li>• オープンソースでのソフトウェア提供</li>
+                  <li>• 基本的な利用方法のドキュメント提供</li>
+                </ul>
+              </div>
+              
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <h3 className="font-bold text-orange-900 mb-2">💼 有償サービス（別途ご相談ください）</h3>
+                <p className="text-sm text-orange-800 mb-3">
+                  以下のサービスは有償での提供となります：
+                </p>
+                <ul className="text-sm text-orange-700 space-y-1">
                   <li>• カスタマイズ・ブランディング対応</li>
                   <li>• 導入支援・設定サポート</li>
-                  <li>• PWAアプリとしてスマートフォンに導入可能</li>
+                  <li>• PWAアプリとしてスマートフォンに導入サポート</li>
+                  <li>• 独自ドメイン・HTTPS証明書設定</li>
+                  <li>• 運用監視・メンテナンス</li>
                 </ul>
+                <p className="text-xs text-orange-600 mt-2 font-semibold">
+                  ※ 詳細については下記連絡先までお問い合わせください
+                </p>
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <h3 className="font-bold text-amber-900 mb-2">🎫 SBT機能の本格利用には相談が必要</h3>
