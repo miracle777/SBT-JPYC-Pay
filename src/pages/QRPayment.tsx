@@ -1411,7 +1411,7 @@ const QRPayment: React.FC = () => {
               console.log(`🔄 決済ネットワークを変更: Chain ID ${chainId}`);
               
               // RainbowKitのswitchChainを使用してウォレットのネットワークも切り替え
-              if (switchChain && rainbowConnected) {
+              if (switchChain && isConnected) {
                 try {
                   await switchChain({ chainId });
                   console.log(`✅ RainbowKit経由でネットワーク切り替え完了: ${chainId}`);

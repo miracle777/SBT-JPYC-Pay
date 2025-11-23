@@ -92,7 +92,7 @@ const SBTManagement: React.FC = () => {
     (window.navigator as any).standalone === true;
   
   // ネットワーク情報を取得
-  const currentNetworkInfo = getNetworkDisplayInfo(currentChainId);
+  const currentNetworkInfo = getNetworkDisplayInfo(currentChainId ?? null);
   
   // 初期テンプレート用のショップID（固定値）
   // 毎回変わらないように固定値を使用
@@ -829,7 +829,7 @@ const SBTManagement: React.FC = () => {
       // ネットワーク情報の警告表示
       if (result.networkInfo) {
         const importedNetwork = result.networkInfo.displayName;
-        const currentNetwork = getNetworkDisplayInfo(currentChainId).displayName;
+        const currentNetwork = getNetworkDisplayInfo(currentChainId ?? null).displayName;
         
         if (importedNetwork !== currentNetwork) {
           toast(`⚠️ ネットワークの違いにご注意ください\\n📥 インポート元: ${importedNetwork}\\n📡 現在: ${currentNetwork}`, {

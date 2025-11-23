@@ -56,19 +56,6 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
     }
   };
 
-  const handleAccountSwitch = async () => {
-    setIsSwitchingAccount(true);
-    try {
-      await switchAccount();
-      toast.success('✅ アカウントを切り替えました');
-    } catch (error: any) {
-      console.error('アカウント切り替えエラー:', error);
-      toast.error(`❌ アカウント切り替え失敗: ${error.message}`);
-    } finally {
-      setIsSwitchingAccount(false);
-    }
-  };
-
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
@@ -78,19 +65,8 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
   };
 
   const handleWalletConnect = () => {
-    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    console.log('📱 ウォレット接続クリック - モバイル:', isMobile);
-    
-    if (isMobile) {
-      // モバイル環境では必ず標準ウォレットモーダルを表示
-      console.log('📱 モバイル環境 - 標準ウォレットモーダルを強制表示');
-      openWalletModal();
-    } else {
-      // デスクトップ環境でも標準モーダルを使用
-      console.log('🖥️ デスクトップ環境 - 標準ウォレットモーダルを表示');
-      openWalletModal();
-    }
+    // RainbowKitのConnectButtonを使用するため、この関数は簡略化
+    console.log('📱 ウォレット接続が要求されました');
   };
 
   return (
@@ -192,30 +168,10 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
                 </div>
                 
                 <div className="mt-3 flex space-x-2">
-                  {hasMultipleAccounts && (
-                    <button
-                      onClick={handleAccountSwitch}
-                      disabled={isSwitchingAccount}
-                      className="flex-1 bg-blue-100 hover:bg-blue-200 disabled:bg-gray-200 text-blue-700 text-xs font-medium py-2 px-3 rounded transition flex items-center justify-center space-x-1"
-                    >
-                      {isSwitchingAccount ? (
-                        <RefreshCw className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-3 h-3" />
-                      )}
-                      <span>アカウント切替</span>
-                    </button>
-                  )}
                   <button
                     onClick={() => {
-                      // RainbowKitのdisconnectを優先的に使用
-                      if (rainbowConnected) {
-                        rainbowDisconnect();
-                        console.log('✅ RainbowKit経由でウォレット切断');
-                      } else {
-                        contextDisconnect();
-                        console.log('✅ WalletContext経由でウォレット切断');
-                      }
+                      disconnect();
+                      console.log('✅ ウォレット切断');
                     }}
                     className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium py-2 px-3 rounded transition"
                   >
