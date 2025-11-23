@@ -27,16 +27,16 @@ export const WalletButton: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="inline-flex items-center gap-2 bg-green-50 text-green-800 px-3 py-2 rounded-lg border border-green-200 whitespace-nowrap"
+        className="inline-flex items-center gap-2 bg-green-50 text-green-800 px-2 py-2 lg:px-3 rounded-lg border border-green-200 max-w-full"
       >
         <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-        <span className="text-xs xs:text-sm font-medium">{displayAddress}</span>
+        <span className="text-xs lg:text-sm font-medium truncate min-w-0 flex-1">{displayAddress}</span>
         <button
           onClick={() => disconnect()}
           className="p-0.5 hover:bg-green-100 rounded transition-colors flex-shrink-0"
           title="ウォレットを切断"
         >
-          <LogOut className="h-3.5 w-3.5 xs:h-4 xs:w-4 text-green-700" />
+          <LogOut className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-green-700" />
         </button>
       </motion.div>
     );
@@ -60,7 +60,7 @@ export const WalletButton: React.FC = () => {
               <button
                 disabled
                 type="button"
-                className="bg-gray-300 text-white font-semibold py-2 px-4 xs:px-6 rounded-lg opacity-50 cursor-not-allowed flex items-center gap-2 text-sm xs:text-base whitespace-nowrap"
+                className="bg-gray-300 text-white font-semibold py-2 px-4 lg:px-6 rounded-lg opacity-50 cursor-not-allowed flex items-center gap-2 text-sm lg:text-base"
               >
                 <Wallet className="h-4 w-4" />
                 読込中...
@@ -81,7 +81,7 @@ export const WalletButton: React.FC = () => {
                   }
                 }}
                 type="button"
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 xs:px-6 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 mx-auto text-sm xs:text-base whitespace-nowrap"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 lg:px-6 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 mx-auto text-sm lg:text-base"
               >
                 <Wallet className="h-4 w-4" />
                 ウォレット接続

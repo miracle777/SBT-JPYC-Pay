@@ -343,7 +343,12 @@ const connectors = connectorsForWallets(wallets, {
   appIcon: appIcon,
 });
 
-// Wagmi Config - ウォレット接続の安定性を優先
+// 接続デバッグ情報
+console.log('🔧 Connectors Debug:');
+console.log('  Generated connectors:', connectors.length);
+console.log('  Project ID valid:', projectId && projectId !== 'dummy-project-id-for-development');
+
+// Wagmi Config - ウォレット接続の安定性とデバッグを優先
 const config = createConfig({
   connectors,
   chains,
@@ -355,6 +360,9 @@ const config = createConfig({
   ssr: false,
   // 全デバイスで複数プロバイダー検出を有効化（接続安定性向上）
   multiInjectedProviderDiscovery: true,
+  batch: {
+    multicall: true,
+  },
 });
 
 console.log('🔧 RainbowKit Config Created:', config ? '✅' : '❌');
@@ -362,6 +370,9 @@ console.log('🔑 WalletConnect ProjectID:', projectId ? `✅ Set (${projectId.s
 console.log('📱 Configured Wallets:', wallets[0].wallets.length);
 console.log('🖥️ Device Type:', isMobile ? 'Mobile (WalletConnect優先)' : 'Desktop (MetaMask拡張機能優先)');
 console.log('🔌 Multi Injected Provider Discovery: Enabled (全デバイス)');
+console.log('⚡ Wagmi Config Details:');
+console.log('  Chains:', config.chains.map(c => c.name));
+console.log('  Connectors:', config.connectors.length);
 
 // WalletConnect詳細デバッグ
 debugWalletConnect();
@@ -396,11 +407,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               },
             },
             error: {
-              duration: 5000,
+              duration: 6000,
               iconTheme: {
                 primary: '#ef4444',
                 secondary: '#fff',
               },
+            },
+            loading: {
+              duration: 10000,
             },
           }}
         />
