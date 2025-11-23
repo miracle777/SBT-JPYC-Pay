@@ -1656,10 +1656,10 @@ const QRPayment: React.FC = () => {
                         <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs">
                           <div className="flex items-center gap-2 mb-1">
                             <AlertCircle className="w-3 h-3 text-amber-600 flex-shrink-0" />
-                            <span className="font-semibold text-amber-800">HashPack Walletのお客様へ</span>
+                            <span className="font-semibold text-amber-800">Hash Port Walletをご利用の方へ</span>
                           </div>
                           <div className="text-amber-700 space-y-1">
-                            <p>⚠️ HashPack WalletではJPYCをお読み取りいただけません</p>
+                            <p>⚠️ Hash Port Walletでは金額の自動入力ができません</p>
                             <p className="font-semibold">📱 以下のウォレットアプリをご利用ください：</p>
                             <p>• MetaMask • Trust Wallet • Coinbase Wallet • Rainbow</p>
                           </div>
@@ -1994,12 +1994,12 @@ const QRPayment: React.FC = () => {
                       <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                       <div>
                         <h4 className="font-semibold text-amber-800 text-sm">
-                          🏪 お客様がHashPack Walletをご利用の場合
+                          🏪 Hash Port Walletについて
                         </h4>
                       </div>
                     </div>
                     <div className="pl-7 text-xs text-amber-700 space-y-1">
-                      <p>⚠️ <strong>HashPack WalletはHedera専用のため、JPYCの決済に対応しておりません</strong></p>
+                      <p>⚠️ <strong>Hash Port Walletは金額入力が手動になりますので、注意が必要です</strong></p>
                       <p className="mt-2 font-semibold">📱 お客様にお伝えください：</p>
                       <ul className="list-disc list-inside space-y-1 ml-2">
                         <li><strong>MetaMask</strong> - 最も推奨</li>

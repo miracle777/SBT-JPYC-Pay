@@ -117,7 +117,7 @@ wc:...@1?bridge=...&key=...（Hedera専用）
 
 **UI実装確認ポイント**:
 - ✅ QRコード形式選択に「🌐 Hash Port Wallet（アドレスのみ）」が追加済み
-- ✅ 専用警告メッセージ「⚠️ お客様がHashPack Walletをご利用の場合」が表示
+- ✅ 専用警告メッセージ「⚠️ Hash Port Walletは金額入力が手動になります」が表示
 - ✅ HashPack WalletがHederaネットワーク専用である旨を説明
 - ✅ 代替ウォレット（MetaMask、Trust Wallet等）の推奨リストを表示
 - ✅ JPYCがEthereumネットワークのトークンである旨を明記
