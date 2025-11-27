@@ -391,11 +391,114 @@ Avalanche テストネットでテストを行う際は、テストネットAVAX
 3. ガス価格 × ガスユニット = 総ガス代（POL単位）
 4. リアルタイムで表示更新
 
+## 📜 コントラクトアドレス一覧
+
+### 🎖️ SBT (Soulbound Token) コントラクト
+
+#### Polygon Mainnet ✨ (推奨)
+
+- **SBTコントラクト**: `0x26C55F745c5BF80475C2D024F9F07ce56E308039`
+- **チェーンID**: 137
+- **デプロイヤー**: `0x5888578ad9a33Ce8a9FA3A0ca40816665bfaD8Fd`
+- **ブロックエクスプローラ**: [Polygonscan](https://polygonscan.com/address/0x26C55F745c5BF80475C2D024F9F07ce56E308039)
+
+#### Ethereum Sepolia Testnet
+
+- **SBTコントラクト**: `0x96FFdC8495742e1F0b0819dc1cB4548Bf3AD23A4`
+- **チェーンID**: 11155111
+- **ブロックエクスプローラ**: [Sepolia Etherscan](https://sepolia.etherscan.io/address/0x96FFdC8495742e1F0b0819dc1cB4548Bf3AD23A4)
+
+#### Polygon Amoy Testnet
+
+- **SBTコントラクト**: `0x6b39d1F8a9799aB3E1Ea047052e831186106DD8E`
+- **チェーンID**: 80002
+- **ブロックエクスプローラ**: [Polygon Amoy Explorer](https://amoy.polygonscan.com/address/0x6b39d1F8a9799aB3E1Ea047052e831186106DD8E)
+
+### 💴 JPYC (JPY Coin) コントラクト
+
+#### Ethereum Mainnet
+
+- **JPYCコントラクト**: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
+- **チェーンID**: 1
+- **ブロックエクスプローラ**: [Etherscan](https://etherscan.io/address/0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29)
+
+#### Polygon Mainnet
+
+- **JPYCコントラクト**: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
+- **チェーンID**: 137
+- **ブロックエクスプローラ**: [Polygonscan](https://polygonscan.com/address/0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29)
+
+#### Avalanche C-Chain
+
+- **JPYCコントラクト**: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
+- **チェーンID**: 43114
+- **ブロックエクスプローラ**: [Snowtrace](https://snowtrace.io/address/0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29)
+
+#### Ethereum Sepolia Testnet (テスト用)
+
+- **公式SepoliaJPYC**: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
+- **JPYC公式Faucet**: `0x431D5dfF03120AFA4bDf332c61A6e1766eF37BDB` (JPYC公式のFaucetでもらえるトークン)
+- **コミュニティJPYC**: `0xd3eF95d29A198868241FE374A999fc25F6152253` (コミュニティ提供)
+- **チェーンID**: 11155111 (0xaa36a7)
+- **ブロックエクスプローラ**: [Sepolia Etherscan](https://sepolia.etherscan.io/)
+
+> **重要**: 公式テストJPYCの配布が限定的なため、以下の3種類のJPYCトークンが存在します：
+>
+> 1. 公式SepoliaJPYC - 正規の公式アドレス（配布は限定的）
+> 2. JPYC公式Faucet - JPYC公式が提供するFaucetトークン
+> 3. コミュニティJPYC - コミュニティによる提供トークン
+
+#### Polygon Amoy Testnet (テスト用)
+
+- **公式AmoyテストJPYC**: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
+- **tJPYC（デバッグ用）**: `0xcD54D62DF66f54AB3788CA17aD90d402eCD8D34a` ※未配布
+- **チェーンID**: 80002 (0x13882)
+- **ブロックエクスプローラ**: [Polygon Amoy Explorer](https://amoy.polygonscan.com/)
+
+> **重要**: デバッグ用tJPYCは開発者専用で配布されていません。公式のFaucetで正式なJPYCテストトークンが配布されるまでは、各自でトークンのデプロイが必要かもしれません。
+
+#### Avalanche Fuji Testnet (テスト用)
+
+- **公式FujiテストJPYC**: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
+- **デバッグ用tJPYC (Fuji専用)**: `0xeAB2AF47cbc02CDD73d106CA15884cAB541F5345` ※未配布
+- **チェーンID**: 43113 (0xa869)
+- **ブロックエクスプローラ**: [Snowtrace Testnet](https://testnet.snowtrace.io/)
+
+> **重要**: デバッグ用tJPYCは開発者専用で配布されていません。公式のFaucetで正式なJPYCテストトークンが配布されるまでは、各自でトークンのデプロイが必要かもしれません。
+
+## ⚠️ JPYCの偽物トークンにご注意ください
+
+### 🔒 公式JPYCコントラクトアドレス（全ネットワーク共通）
+
+- **正規アドレス**: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
+- **対応ネットワーク**:
+  - Ethereum Mainnet (ChainID: 1 / 0x1)
+  - Polygon Mainnet (ChainID: 137 / 0x89)
+  - Avalanche C-Chain (ChainID: 43114 / 0xa86a)
+- **テストネットワーク**:
+  - Ethereum Sepolia (ChainID: 11155111 / 0xaa36a7)
+  - Polygon Amoy (ChainID: 80002 / 0x13882)
+  - Avalanche Fuji (ChainID: 43113 / 0xa869)
+
+> ⚠️**注意**: 上記以外のコントラクトアドレスは偽物の可能性があります。必ず[JPYC公式FAQ](https://faq.jpyc.co.jp/s/article/fake-jpyc-warning)で最新の正規アドレスを確認してください。
+
+### 🛡️ 偽物トークンの見分け方
+
+- ✅ **正規**: コントラクトアドレスが`0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
+- ❌ **偽物**: 上記以外のアドレス、または類似した名前のトークン
+- 📍 **確認方法**: [JPYC公式サイト](https://jpyc.co.jp/)または[公式FAQ](https://faq.jpyc.co.jp/s/ex)で最新情報を確認
+
+### 📋 このアプリで使用している情報
+
+- **SBTコントラクト**: 独自にデプロイしたSoulbound Token（当プロジェクト専用）
+- **JPYCコントラクト**: JPYC公式の正規コントラクトアドレスのみ使用
+
+> ⚠️**注意**: Sepolia と Polygon Amoy はテストネット用のコントラクトです。本番環境では Polygon Mainnet をご利用ください。
+
 ### トークン情報
 
-- **JPYC** (Japanese Yen Coin)
-  - Polygon Mainnet: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
-  - Polygon Amoy: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
+- **JPYC** (Japanese Yen Coin) - 正規の公式トークン
+- **tJPYC** (Test JPYC) - 開発・デバッグ専用トークン（配布なし）
 
 ## 🆕 最新機能：動的SBTメタデータ
 
@@ -467,9 +570,26 @@ Avalanche テストネットでテストを行う際は、テストネットAVAX
 
 ## 🔗 関連リポジトリ
 
-- [jpycwallet-x402](https://github.com/miracle777/jpycwallet-x402) - QRコード規格参考
-- [jpycwallet.dev](https://github.com/miracle777/jpycwallet.dev) - 関連実装参考
-- [jpyc-payment-scanner](https://github.com/miracle777/jpyc-payment-scanner) - ユーザー側アプリ
+### 🎖️ SBT・ウォレット関連
+
+- **[SBT-JPYC-QR-Scanner](https://github.com/miracle777/SBT-JPYC-QR-Scanner)** - 顧客側QRスキャナー・SBT表示アプリ
+  - SBT表示機能とネットワーク検証
+  - QRコード読み取りとJPYC決済
+  - マルチウォレット対応（MetaMask、Trust Wallet、HashPort等）
+  - ライブデモ: [https://jpyc-pay.app/](https://jpyc-pay.app/)
+
+### 💳 決済・ウォレット関連
+
+- **[jpycwallet-x402](https://github.com/miracle777/jpycwallet-x402)** - QRコード規格参考
+- **[jpycwallet.dev](https://github.com/miracle777/jpycwallet.dev)** - 関連実装参考
+- **[jpyc-payment-scanner](https://github.com/miracle777/jpyc-payment-scanner)** - 基本的なJPYC決済スキャナー
+
+### 🏪 このプロジェクトとの関係
+
+このプロジェクト（SBT-JPYC-Pay）は**店舗側アプリ**で、[SBT-JPYC-QR-Scanner](https://github.com/miracle777/SBT-JPYC-QR-Scanner)は**顧客側アプリ**として連携します：
+
+- **店舗側（このアプリ）**: QRコード生成、SBT発行設定、決済管理
+- **顧客側（SBT-JPYC-QR-Scanner）**: QR読み取り、SBT表示、JPYC決済実行
 
 ## 📁 プロジェクト構造
 
