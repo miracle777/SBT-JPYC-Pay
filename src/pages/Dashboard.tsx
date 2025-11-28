@@ -13,9 +13,22 @@ const Dashboard: React.FC = () => {
           <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold text-gray-900 mb-1 xs:mb-2 landscape:text-lg landscape:mb-1">
             SBT masaru21 Pay(仮)
           </h1>
-          <p className="text-gray-600 text-sm xs:text-base sm:text-lg mb-4 xs:mb-6 landscape:text-sm landscape:mb-3">
+          <p className="text-gray-600 text-sm xs:text-base sm:text-lg mb-2 xs:mb-3 landscape:text-sm landscape:mb-2">
             JPYC QR決済 & SBTスタンプカード発行・管理システム（デモ版）
           </p>
+          
+          {/* スマホ対応バナー */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 xs:mb-6 landscape:mb-3">
+            <div className="flex items-center justify-center gap-2 text-blue-800">
+              <Globe className="w-4 h-4 xs:w-5 xs:h-5" />
+              <span className="text-xs xs:text-sm font-medium">
+                📱 スマートフォン・タブレット・PC対応 | レスポンシブデザイン
+              </span>
+            </div>
+            <p className="text-xs text-blue-700 mt-1">
+              どのデバイスからでも最適な表示でご利用いただけます
+            </p>
+          </div>
           
           <div className="grid grid-cols-1 landscape:grid-cols-2 xs:grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
             <Link
