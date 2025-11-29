@@ -10,6 +10,7 @@ interface QRCodeDisplayProps {
   onDownload?: (type: 'png' | 'svg') => void;
   logoUrl?: string; // 中央に表示するロゴのURL
   logoSize?: number; // ロゴのサイズ（QRコードサイズに対する割合、デフォルト0.2 = 20%）
+  flipVertical?: boolean; // 上下逆転表示（対面用）
 }
 
 const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
@@ -21,6 +22,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
   onDownload,
   logoUrl,
   logoSize = 0.2,
+  flipVertical = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const svgContainerRef = useRef<HTMLDivElement>(null);
@@ -228,6 +230,8 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
             justifyContent: 'center',
             alignItems: 'center',
             background: 'white',
+            transform: flipVertical ? 'rotate(180deg)' : 'none',
+            transition: 'transform 0.3s ease',
           }}
           dangerouslySetInnerHTML={{ __html: svgString }}
         />
@@ -261,6 +265,8 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
           display: logoUrl ? 'none' : (isRendered ? 'block' : 'block'),
           background: '#ffffff',
           border: '1px solid #e5e7eb',
+          transform: flipVertical ? 'rotate(180deg)' : 'none',
+          transition: 'transform 0.3s ease',
         }}
       />
       {logoUrl && (
@@ -273,6 +279,8 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
             display: isRendered ? 'block' : 'none',
             background: '#ffffff',
             border: '1px solid #e5e7eb',
+            transform: flipVertical ? 'rotate(180deg)' : 'none',
+            transition: 'transform 0.3s ease',
           }}
         />
       )}

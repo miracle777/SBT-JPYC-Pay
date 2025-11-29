@@ -251,6 +251,7 @@ const QRPayment: React.FC = () => {
   const [selectedPaymentSound, setSelectedPaymentSound] = useState<'sound1' | 'sound2' | 'sound3'>('sound1'); // 選択された決済音
   const [qrWindowRef, setQrWindowRef] = useState<Window | null>(null); // 新規ウィンドウの参照
   const [dualScreenMode, setDualScreenMode] = useState(false); // 2画面モード(QRコード発行時に自動で新規ウィンドウを開く)
+  const [qrFlipForFaceToFace, setQrFlipForFaceToFace] = useState(false); // 対面表示用にQRコードを上下逆転
   const [estimatedGasPOL, setEstimatedGasPOL] = useState<string>('0.002275'); // デフォルト値（Polygon 35 Gwei, 65000 gas）
   const [gasPrice, setGasPrice] = useState<string>('35.00'); // デフォルト値（Polygon標準）
   const [loadingGasEstimate, setLoadingGasEstimate] = useState(false);
@@ -1736,9 +1737,27 @@ const QRPayment: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           {/* QRコード表示エリア */}
           <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
-            <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 mb-4 sm:mb-6 text-center">
-              現在のQRコード
-            </h2>
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 text-center flex-1">
+                現在のQRコード
+              </h2>
+              
+              {/* 対面表示用上下逆転トグル */}
+              <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                <Smartphone className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-medium text-gray-700">対面</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={qrFlipForFaceToFace}
+                    onChange={(e) => setQrFlipForFaceToFace(e.target.checked)}
+                    className="sr-only peer"
+                    title="対面表示用にQRコードを上下逆転"
+                  />
+                  <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+            </div>
             
             {paymentSessions.length === 0 ? (
               <div className="text-center py-12">
@@ -1870,6 +1889,19 @@ const QRPayment: React.FC = () => {
                       
                       {/* QRコード表示 */}
                       <div className="flex flex-col items-center">
+                        {/* 対面表示の案内 */}
+                        {qrFlipForFaceToFace && (
+                          <div className="bg-blue-100 border border-blue-300 rounded-lg px-4 py-2 mb-3 text-center">
+                            <p className="text-sm font-semibold text-blue-800 flex items-center justify-center gap-2">
+                              <Smartphone className="w-4 h-4" />
+                              対面表示モード: QRコードが上下逆転しています
+                            </p>
+                            <p className="text-xs text-blue-600 mt-1">
+                              タブレット・スマホを相手に向けて表示できます
+                            </p>
+                          </div>
+                        )}
+                        
                         <div style={{
                           display: 'flex',
                           justifyContent: 'center',
@@ -1884,6 +1916,7 @@ const QRPayment: React.FC = () => {
                             errorCorrectionLevel="H"
                             logoUrl="/images/jpyc-logo.svg"
                             logoSize={0.2}
+                            flipVertical={qrFlipForFaceToFace}
                             onDownload={(type) => {
                               toast.success(`QRコードを${type === 'png' ? 'PNG' : 'SVG'}でダウンロードしました`);
                             }}
