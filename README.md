@@ -1,6 +1,13 @@
 # SBT-JPYC-Pay
 
-> お店側のSBTスタンプカード発行・管理システム (SBT masaru21 Pay(仮))
+SBT-JPYC-Pay is an open source PWA that helps small shops experiment with JPYC payments and SBT-based stamp cards.
+
+It provides a practical starting point for QR-based payment flows, wallet integration, and SBT stamp card issuance/management. The goal is to make JPYC payment experiments easier for small businesses, while also providing an open source reference for developers working with Web3-based shop tools.
+
+> お店側のSBTスタンプカード発行・管理システム（SBT masaru21 Pay 仮）
+> 暗号資産決済とSBTスタンプカードの統合管理
+
+
 >
 > 📱 **暗号資産決済とSBTスタンプカードの統合管理**
 
