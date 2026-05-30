@@ -54,7 +54,8 @@ export const encodePaymentPayloadForJPYCPay = (payload: PaymentPayload): string 
     137: 'polygon',
     80002: 'polygon-amoy',
     43114: 'avalanche',
-    43113: 'avalanche-fuji'
+    43113: 'avalanche-fuji',
+    8217: 'kaia'
   };
   
   // WeiからJPYC単位へ変換　

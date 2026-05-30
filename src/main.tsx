@@ -9,7 +9,7 @@ import { RainbowKitProvider, getDefaultWallets, connectorsForWallets } from '@ra
 import { metaMaskWallet, rainbowWallet, walletConnectWallet, coinbaseWallet, trustWallet } from '@rainbow-me/rainbowkit/wallets';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { mainnet, polygon, sepolia } from 'wagmi/chains';
+import { kaia, mainnet, polygon, sepolia } from 'wagmi/chains';
 import { initializeAnalytics, setupPWATracking, trackSWUpdate, trackError } from './utils/analytics';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -298,7 +298,7 @@ if (typeof window !== 'undefined' && (window as any).ethereum) {
 }
 
 // チェーン設定
-const chains = [mainnet, polygon, sepolia] as const;
+const chains = [mainnet, polygon, sepolia, kaia] as const;
 
 // デバイス判定
 const isMobile = typeof window !== 'undefined' && 
@@ -356,6 +356,7 @@ const config = createConfig({
     [mainnet.id]: http(),
     [polygon.id]: http(),
     [sepolia.id]: http(),
+    [kaia.id]: http(),
   },
   ssr: false,
   // 全デバイスで複数プロバイダー検出を有効化（接続安定性向上）

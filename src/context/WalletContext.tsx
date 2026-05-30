@@ -78,6 +78,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Avalanche Networks
     { chainId: 43114, name: 'Avalanche C-Chain Mainnet', isTestnet: false, category: 'Avalanche' },
     { chainId: 43113, name: 'Avalanche Fuji Testnet', isTestnet: true, category: 'Avalanche' },
+
+    // Kaia Networks
+    { chainId: 8217, name: 'Kaia Mainnet', isTestnet: false, category: 'Kaia' },
     
     // Other Popular Networks (optional)
     { chainId: 56, name: 'BNB Smart Chain', isTestnet: false, category: 'BSC' },

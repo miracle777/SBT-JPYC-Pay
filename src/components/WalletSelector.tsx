@@ -26,6 +26,7 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
     { chainId: 80002, name: 'Polygon Amoy Testnet', isTestnet: true, category: 'Polygon' },
     { chainId: 1, name: 'Ethereum Mainnet', isTestnet: false, category: 'Ethereum' },
     { chainId: 11155111, name: 'Ethereum Sepolia Testnet', isTestnet: true, category: 'Ethereum' },
+    { chainId: 8217, name: 'Kaia Mainnet', isTestnet: false, category: 'Kaia' },
   ];
 
   const [isExpanded, setIsExpanded] = useState(false); // デフォルトで閉じる
@@ -284,6 +285,7 @@ const WalletSelector: React.FC<WalletSelectorProps> = ({
                   <li>• <strong>Polygon</strong>: 低手数料でJPYC SBTに最適化</li>
                   <li>• <strong>Ethereum</strong>: 最も普及している主要チェーン</li>
                   <li>• <strong>Avalanche</strong>: 高速で低手数料のネットワーク</li>
+                  <li>• <strong>Kaia</strong>: JPYC対応のEVM互換ネットワーク</li>
                   <li>• <strong>Arbitrum/Optimism</strong>: Ethereumレイヤー2ソリューション</li>
                   <li>• <strong>🧪テストネット</strong>: 開発・テスト用（本番前の確認に使用）</li>
                   <li>• ネットワーク未追加の場合は自動でMetaMaskに追加されます</li>

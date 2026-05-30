@@ -89,6 +89,18 @@ export const NETWORKS: Record<string, Network> = {
     blockExplorerUrl: 'https://subnets-test.avax.network/c-chain',
     isTestnet: true,
   },
+
+  // Kaia
+  KAIA_MAINNET: {
+    id: 8217,
+    name: 'kaia-mainnet',
+    displayName: 'Kaia Mainnet',
+    rpcUrl: 'https://public-en.node.kaia.io',
+    chainId: 8217,
+    currencySymbol: 'KAIA',
+    blockExplorerUrl: 'https://kaiascan.io',
+    isTestnet: false,
+  },
 };
 
 export const JPYC: Currency = {
@@ -100,6 +112,7 @@ export const JPYC: Currency = {
     [NETWORKS.POLYGON_MAINNET.chainId]: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29',
     [NETWORKS.ETHEREUM_MAINNET.chainId]: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29',
     [NETWORKS.AVALANCHE_MAINNET.chainId]: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29',
+    [NETWORKS.KAIA_MAINNET.chainId]: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29',
     // Testnet
     [NETWORKS.POLYGON_AMOY.chainId]: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29',
     [NETWORKS.ETHEREUM_SEPOLIA.chainId]: '0x431D5dfF03120AFA4bDf332c61A6e1766eF37BDB',
@@ -129,6 +142,7 @@ export const JPYC_DEV_CONTRACTS: Record<number, string[]> = {
   [NETWORKS.POLYGON_MAINNET.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
   [NETWORKS.ETHEREUM_MAINNET.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
   [NETWORKS.AVALANCHE_MAINNET.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
+  [NETWORKS.KAIA_MAINNET.chainId]: ['0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29'],
 };
 
 // JPYCアドレスのタイプを定義

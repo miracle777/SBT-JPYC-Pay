@@ -782,6 +782,7 @@ export const JPYC_TOKEN_ADDRESS: Record<number, string> = {
   137: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29',   // Polygon Mainnet
   1: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29',     // Ethereum Mainnet
   43114: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29', // Avalanche C-Chain
+  8217: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29',  // Kaia Mainnet
   // Testnet - テストネットは現在使用中のアドレスを維持
   80002: '0x431D5dfF03120AFA4bDf332c61A6e1766eF37BDB', // Polygon Amoy - 使用中のテスト用アドレス
   11155111: '0x0000000000000000000000000000000000000000', // Ethereum Sepolia

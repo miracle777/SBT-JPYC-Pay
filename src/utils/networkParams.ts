@@ -82,6 +82,19 @@ export const NETWORK_PARAMS: Record<number, {
     blockExplorerUrls: ['https://testnet.snowtrace.io'],
   },
 
+  // Kaia Networks
+  8217: {
+    chainId: '0x2019',
+    chainName: 'Kaia Mainnet',
+    nativeCurrency: {
+      name: 'Kaia',
+      symbol: 'KAIA',
+      decimals: 18,
+    },
+    rpcUrls: ['https://public-en.node.kaia.io', 'https://kaia.blockpi.network/v1/rpc/public'],
+    blockExplorerUrls: ['https://kaiascan.io'],
+  },
+
   // BNB Smart Chain Networks
   56: {
     chainId: '0x38',

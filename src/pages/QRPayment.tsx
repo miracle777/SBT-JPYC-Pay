@@ -409,6 +409,11 @@ const QRPayment: React.FC = () => {
       return;
     }
 
+    if (currentChainId && currentChainId !== selectedChainForPayment) {
+      setJpycBalance(null);
+      return;
+    }
+
     try {
       setLoadingBalance(true);
       const provider = new BrowserProvider(window.ethereum);
@@ -448,6 +453,7 @@ const QRPayment: React.FC = () => {
   const paymentNetwork = Object.values(NETWORKS).find(
     (net) => net.chainId === selectedChainForPayment
   );
+  const paymentGasSymbol = paymentNetwork?.currencySymbol || 'POL';
   
   // 利用可能なJPYCコントラクトアドレス
   const availableJpycContracts = getJpycContracts(selectedChainForPayment);
@@ -461,7 +467,7 @@ const QRPayment: React.FC = () => {
   // 残高取得 - ウォレット、ネットワーク、コントラクトアドレス変更時に実行
   useEffect(() => {
     fetchJpycBalance();
-  }, [walletAddress, selectedChainForPayment, paymentContractAddress]);
+  }, [walletAddress, currentChainId, selectedChainForPayment, paymentContractAddress]);
 
   // ネットワーク変更時にJPYCコントラクトを自動選択
   useEffect(() => {
@@ -508,10 +514,10 @@ const QRPayment: React.FC = () => {
         const totalGasCostPOL = formatGasCostPOL(totalGasCostWei);
         
         setEstimatedGasPOL(totalGasCostPOL);
-        console.log(`ガス代計算完了: ${totalGasCostPOL} POL (${gasPriceGwei} Gwei)`);
+        console.log(`ガス代計算完了: ${totalGasCostPOL} ${paymentGasSymbol} (${gasPriceGwei} Gwei)`);
 
         // ウォレットのPOL残高を取得
-        if (walletAddress) {
+        if (walletAddress && currentChainId === selectedChainForPayment) {
           const balance = await provider.getBalance(walletAddress);
           setWalletPolBalance(balance);
           
@@ -521,8 +527,11 @@ const QRPayment: React.FC = () => {
           
           if (!hasEnoughGas) {
             const shortfall = totalGasCostWei - balance;
-            console.warn(`ガス代不足: ${formatGasCostPOL(shortfall)} POL が必要です`);
+            console.warn(`ガス代不足: ${formatGasCostPOL(shortfall)} ${paymentGasSymbol} が必要です`);
           }
+        } else {
+          setWalletPolBalance(null);
+          setHasInsufficientGas(false);
         }
       } catch (error) {
         console.error('Failed to fetch gas price:', error);
@@ -542,7 +551,7 @@ const QRPayment: React.FC = () => {
     if (selectedChainForPayment) {
       fetchGasPrice();
     }
-  }, [selectedChainForPayment, walletAddress]);
+  }, [selectedChainForPayment, walletAddress, currentChainId, paymentGasSymbol]);
   useEffect(() => {
     const interval = setInterval(() => {
       setPaymentSessions((prev) =>
@@ -2348,7 +2357,7 @@ const QRPayment: React.FC = () => {
                               ? 'text-green-800'
                               : 'text-orange-800'
                           }`}>
-                            {estimatedGasPOL} POL
+                            {estimatedGasPOL} {paymentGasSymbol}
                             {gasPrice && <span className="ml-2 text-gray-600">（{gasPrice} Gwei）</span>}
                           </p>
                           {isLowCostNetwork(selectedChainForPayment) && (
@@ -2367,20 +2376,24 @@ const QRPayment: React.FC = () => {
                         <div className="flex-1 text-xs">
                           <p className="font-semibold text-red-900">⚠️ ガス代が不足しています</p>
                           <p className="text-red-800 mt-1">
-                            必要: {estimatedGasPOL} POL<br />
-                            現在: {(walletPolBalance / BigInt(10 ** 18)).toString()} POL
+                            必要: {estimatedGasPOL} {paymentGasSymbol}<br />
+                            現在: {(walletPolBalance / BigInt(10 ** 18)).toString()} {paymentGasSymbol}
                           </p>
                           <p className="text-red-700 mt-2">
-                            このネットワークでQR決済を実行するにはPOLが足りません。
-                            <a 
-                              href="https://faucet.polygon.technology/" 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="underline font-semibold hover:text-red-900"
-                            >
-                              Polygon Faucet
-                            </a>
-                            からPOLを取得してください。
+                            このネットワークでQR決済を実行するには{paymentGasSymbol}が足りません。
+                            {selectedChainForPayment === NETWORKS.POLYGON_AMOY.chainId && (
+                              <>
+                                <a
+                                  href="https://faucet.polygon.technology/"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="underline font-semibold hover:text-red-900"
+                                >
+                                  Polygon Faucet
+                                </a>
+                                からPOLを取得してください。
+                              </>
+                            )}
                           </p>
                         </div>
                       </div>

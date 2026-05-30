@@ -41,6 +41,18 @@ export const NETWORKS: Record<number, NetworkConfig> = {
     },
     jpycAddress: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29',
   },
+  [SUPPORTED_CHAINS.KAIA]: {
+    chainId: SUPPORTED_CHAINS.KAIA,
+    name: 'Kaia',
+    rpcUrl: 'https://public-en.node.kaia.io',
+    blockExplorerUrl: 'https://kaiascan.io',
+    nativeCurrency: {
+      name: 'Kaia',
+      symbol: 'KAIA',
+      decimals: 18,
+    },
+    jpycAddress: '0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29',
+  },
   // テストネット
   [SUPPORTED_CHAINS.SEPOLIA]: {
     chainId: SUPPORTED_CHAINS.SEPOLIA,
@@ -158,6 +170,7 @@ export const WALLETCONNECT_CONFIG = {
     SUPPORTED_CHAINS.ETHEREUM,
     SUPPORTED_CHAINS.POLYGON,
     SUPPORTED_CHAINS.AVALANCHE,
+    SUPPORTED_CHAINS.KAIA,
   ],
   showQrModal: true,
   qrModalOptions: {
@@ -257,6 +270,11 @@ export const GAS_PRICES = {
     slow: 25,
     standard: 30,
     fast: 35,
+  },
+  [SUPPORTED_CHAINS.KAIA]: {
+    slow: 20,
+    standard: 25,
+    fast: 30,
   },
 } as const;
 
