@@ -28,7 +28,7 @@ This is a Progressive Web App (PWA) for shop owners to issue and manage SBT (Sou
 - **ウォレット接続**: MetaMask、WalletConnect対応
 - **Pinata連携**: 分散ストレージによる画像・メタデータ管理
 - **PWA対応**: スマートフォンアプリのような操作感
-- **マルチチェーン対応**: Polygon、Avalanche、Ethereum
+- **マルチチェーン対応**: Polygon、Avalanche、Ethereum、Kaia
 
 ## 🔗 暗号資産決済との連携
 
@@ -306,8 +306,9 @@ const config = createConfig({
 |-----------|----------|------------|---------|
 | Polygon Mainnet | 137 | **POL** | 本番環境 |
 | Polygon Amoy | 80002 | **POL (テスト用)** | テスト環境 |
+| Kaia Mainnet | 8217 (0x2019) | **KAIA** | 本番JPYC決済対応 |
 
-**このアプリケーション内では POL で統一表記されます。**
+**Polygonネットワークでは、アプリケーション内のガス代表記を POL で統一しています。Kaia Mainnet では KAIA 表記になります。**
 
 ### Amoy テストネット - Faucet 利用方法
 
@@ -384,7 +385,7 @@ Avalanche テストネットでテストを行う際は、テストネットAVAX
 
 - JPYC決済時のガス代を自動計算
 - 現在のネットワークガス価格を反映
-- POL単位とGwei単位で表示
+- 各ネットワークのネイティブトークン単位（POL、KAIAなど）とGwei単位で表示
 
 #### SBT発行画面
 
@@ -395,7 +396,7 @@ Avalanche テストネットでテストを行う際は、テストネットAVAX
 
 1. ネットワークから現在のガス価格を自動取得
 2. トランザクション種別に応じたガス消費量を推定
-3. ガス価格 × ガスユニット = 総ガス代（POL単位）
+3. ガス価格 × ガスユニット = 総ガス代（各ネットワークのネイティブトークン単位）
 4. リアルタイムで表示更新
 
 ## 📜 コントラクトアドレス一覧
@@ -441,6 +442,13 @@ Avalanche テストネットでテストを行う際は、テストネットAVAX
 - **チェーンID**: 43114
 - **ブロックエクスプローラ**: [Snowtrace](https://snowtrace.io/address/0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29)
 
+#### Kaia Mainnet
+
+- **JPYCコントラクト**: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
+- **チェーンID**: 8217 (0x2019)
+- **ガス代トークン**: KAIA
+- **ブロックエクスプローラ**: [KaiaScan](https://kaiascan.io/token/0xe7c3d8c9a439fede00d2600032d5db0be71c3c29)
+
 #### Ethereum Sepolia Testnet (テスト用)
 
 - **公式SepoliaJPYC**: `0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29`
@@ -482,6 +490,7 @@ Avalanche テストネットでテストを行う際は、テストネットAVAX
   - Ethereum Mainnet (ChainID: 1 / 0x1)
   - Polygon Mainnet (ChainID: 137 / 0x89)
   - Avalanche C-Chain (ChainID: 43114 / 0xa86a)
+  - Kaia Mainnet (ChainID: 8217 / 0x2019)
 - **テストネットワーク**:
   - Ethereum Sepolia (ChainID: 11155111 / 0xaa36a7)
   - Polygon Amoy (ChainID: 80002 / 0x13882)
@@ -500,7 +509,7 @@ Avalanche テストネットでテストを行う際は、テストネットAVAX
 - **SBTコントラクト**: 独自にデプロイしたSoulbound Token（当プロジェクト専用）
 - **JPYCコントラクト**: JPYC公式の正規コントラクトアドレスのみ使用
 
-> ⚠️**注意**: Sepolia と Polygon Amoy はテストネット用のコントラクトです。本番環境では Polygon Mainnet をご利用ください。
+> ⚠️**注意**: Sepolia と Polygon Amoy はテストネット用のコントラクトです。本番環境では Ethereum、Polygon、Avalanche、Kaia の Mainnet をご利用ください。
 
 ### トークン情報
 
