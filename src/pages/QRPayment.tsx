@@ -26,6 +26,11 @@ import {
   verifyPaymentReceipt,
   verifyPaymentTransfer,
 } from '../utils/paymentTransferVerification';
+import {
+  KAIA_DEPOSIT_WALLET_NOTICE,
+  ON_CHAIN_BALANCE_NOTICE,
+  readOnChainTokenBalance,
+} from '../utils/tokenBalance';
 
 
 // ウォレットアドレスを省略表示する関数 (0x1234...5678 形式)
@@ -447,7 +452,10 @@ const QRPayment: React.FC = () => {
       ];
       
       const contract = new ethers.Contract(paymentContractAddress, erc20Abi, provider);
-      const balance = await contract.balanceOf(walletAddress);
+      const { amountBaseUnits: balance } = await readOnChainTokenBalance(
+        (account) => contract.balanceOf(account),
+        walletAddress
+      );
 
       const balanceContractMeta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
       
@@ -2648,7 +2656,7 @@ const QRPayment: React.FC = () => {
                       <p className="text-xs text-gray-600 font-semibold">
                         {(() => {
                           const meta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
-                          return `${meta.symbol}残高`;
+                          return `${meta.symbol} オンチェーン残高`;
                         })()}
                       </p>
                     </div>
@@ -2683,6 +2691,14 @@ const QRPayment: React.FC = () => {
                     </div>
                   ) : (
                     <p className="text-sm text-gray-500">残高取得できません</p>
+                  )}
+                  <p className="mt-2 text-xs leading-relaxed text-gray-600">
+                    {ON_CHAIN_BALANCE_NOTICE}
+                  </p>
+                  {selectedChainForPayment === NETWORKS.KAIA_MAINNET.chainId && (
+                    <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs leading-relaxed text-amber-800">
+                      {KAIA_DEPOSIT_WALLET_NOTICE}
+                    </p>
                   )}
 
                 </div>
