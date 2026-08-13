@@ -15,6 +15,7 @@ import { pinataService } from '../utils/pinata';
 import { formatShopIdAsHex, generateNonConflictingShopId, generateUniqueShopId } from '../utils/shopIdGenerator';
 import { getShopSettings } from '../utils/shopSettings';
 import WalletSelector from '../components/WalletSelector';
+import { isVerifiedPaymentSession } from '../utils/paymentTransferVerification';
 
 // ウォレットアドレスを省略表示する関数 (0x1234...5678 形式)
 const shortenAddress = (address: string, startChars: number = 6, endChars: number = 4): string => {
@@ -1172,12 +1173,12 @@ const SBTManagement: React.FC = () => {
     if (selectedPaymentId) {
       // 支払いセッションから発行する場合
       const payment = completedPayments.find((p) => p.id === selectedPaymentId);
-      if (!payment || !payment.payerAddress) {
+      if (!isVerifiedPaymentSession(payment) || !payment?.payerAddress) {
         setPaymentSBTStatus(prev => ({
           ...prev,
-          [selectedPaymentId]: { status: 'failed', message: '支払者アドレスが見つかりません' }
+          [selectedPaymentId]: { status: 'failed', message: '検証済みの決済が見つかりません' }
         }));
-        toast.error('支払者アドレスが見つかりません');
+        toast.error('検証済みの決済セッションだけがSBT発行に使用できます');
         return;
       }
       recipientAddress = payment.payerAddress;
@@ -1198,7 +1199,7 @@ const SBTManagement: React.FC = () => {
       
       // このウォレット+テンプレートの支払い回数をカウント
       const paymentCount = (completedPayments || []).filter(
-        (p) => p.payerAddress?.toLowerCase() === recipientAddress.toLowerCase()
+        (p) => isVerifiedPaymentSession(p) && p.payerAddress?.toLowerCase() === recipientAddress.toLowerCase()
       ).length;
       
       console.log(`🔢 マイルストーン進捗: ${paymentCount}/${template.maxStamps}回`);
