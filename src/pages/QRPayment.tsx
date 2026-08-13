@@ -14,6 +14,19 @@ import { isGaslessAvailable } from '../utils/gaslessPayment';
 import { mintSBT, type MintSBTParams } from '../utils/sbtMinting';
 import { pinataService } from '../utils/pinata';
 import { detectHashPackWallet, isHederaNetwork } from '../utils/mobileWallet';
+import {
+  ERC20_TRANSFER_EVENT_TOPIC,
+  collectUsedPaymentTransactionHashes,
+  comparePaymentSessionPriority,
+  compareTransferLogOrder,
+  isVerifiedPaymentSession,
+  normalizePaymentTransactionHash,
+  parseUsedPaymentTransactionHashes,
+  serializeUsedPaymentTransactionHashes,
+  verifyPaymentReceipt,
+  verifyPaymentTransfer,
+} from '../utils/paymentTransferVerification';
+
 
 // ウォレットアドレスを省略表示する関数 (0x1234...5678 形式)
 const shortenAddress = (address: string, startChars: number = 6, endChars: number = 4): string => {
@@ -47,7 +60,7 @@ interface SBTRecommendation {
 
 interface PaymentSession {
   id: string;
-  amount: number;
+  amount: string;
   currency: string;
   chainId: number;
   chainName: string;
@@ -56,13 +69,20 @@ interface PaymentSession {
   createdAt: string;
   expiresAt: string;
   expiresAtTimestamp: number;
-  createdAtBlockNumber?: number; // セッション作成時のブロック番号
+  createdAtBlockNumber: number;
+  tokenContractAddress: string;
+  recipientAddress: string;
+  expectedAmountBaseUnits: string;
   timeRemainingSeconds?: number;
   transactionHash?: string;
+  transactionBlockNumber?: number;
   detectedAt?: string;
-  payerAddress?: string; // 支払者のウォレットアドレス（SBT送付先）
+  payerAddress?: string; // Transferイベントのfrom（SBT送付先）
+  verificationStatus?: 'verified';
   shopName?: string; // 店舗名（エクスポート用）
 }
+
+const USED_PAYMENT_TRANSACTION_HASHES_KEY = 'usedPaymentTransactionHashes';
 
 // デバイス判定関数
 const isDesktop = () => {
@@ -261,6 +281,7 @@ const QRPayment: React.FC = () => {
   const [jpycBalance, setJpycBalance] = useState<string | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [lastBalanceCheck, setLastBalanceCheck] = useState<string>('');
+  const transactionMonitorRunningRef = useRef(false);
   const [shopInfo, setShopInfo] = useState({ name: DEFAULT_SHOP_INFO.name, id: DEFAULT_SHOP_INFO.id });
   const [sbtTemplates, setSbtTemplates] = useState<SBTTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('all'); // 'all' = 全テンプレート, それ以外 = 特定テンプレートID
@@ -427,6 +448,7 @@ const QRPayment: React.FC = () => {
       
       const contract = new ethers.Contract(paymentContractAddress, erc20Abi, provider);
       const balance = await contract.balanceOf(walletAddress);
+
       const balanceContractMeta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
       
       // Weiからトークン単位に変換
@@ -595,7 +617,7 @@ const QRPayment: React.FC = () => {
   const saveCompletedSessionsRef = useRef<string>('');
   
   useEffect(() => {
-    const completedSessions = paymentSessions.filter(s => s.status === 'completed' && s.payerAddress);
+    const completedSessions = paymentSessions.filter(s => isVerifiedPaymentSession(s) && s.payerAddress);
     const completedSessionIds = completedSessions.map(s => s.id).sort().join(',');
     
     // 無限ループ防止：同じセッションIDの組み合わせの場合はスキップ
@@ -631,6 +653,15 @@ const QRPayment: React.FC = () => {
       });
       
       localStorage.setItem('completedPaymentSessions', JSON.stringify(allCompletedSessions));
+
+      const usedHashes = parseUsedPaymentTransactionHashes(
+        localStorage.getItem(USED_PAYMENT_TRANSACTION_HASHES_KEY)
+      );
+      collectUsedPaymentTransactionHashes(allCompletedSessions).forEach((hash) => usedHashes.add(hash));
+      localStorage.setItem(
+        USED_PAYMENT_TRANSACTION_HASHES_KEY,
+        serializeUsedPaymentTransactionHashes(usedHashes)
+      );
       
       // PC環境かつ自動ローカル保存が有効な場合、ファイル保存を実行
       if (isDesktop() && autoLocalSaveEnabled && completedSessions.length > 0) {
@@ -675,7 +706,7 @@ const QRPayment: React.FC = () => {
       // 顧客別支払い回数を計算（全ての完了セッションを含む）
       const stats = new Map<string, number>();
       allCompletedSessions.forEach(session => {
-        if (session.payerAddress) {
+        if (isVerifiedPaymentSession(session) && session.payerAddress) {
           const currentCount = stats.get(session.payerAddress) || 0;
           stats.set(session.payerAddress, currentCount + 1);
         }
@@ -722,7 +753,7 @@ const QRPayment: React.FC = () => {
         // 統計を復元
         const stats = new Map<string, number>();
         sessions.forEach(session => {
-          if (session.payerAddress) {
+          if (isVerifiedPaymentSession(session) && session.payerAddress) {
             const currentCount = stats.get(session.payerAddress) || 0;
             stats.set(session.payerAddress, currentCount + 1);
           }
@@ -763,171 +794,189 @@ const QRPayment: React.FC = () => {
   // トランザクション監視 - pending セッションのトランザクションを検知
   useEffect(() => {
     const monitorTransactions = async () => {
-      try {
-        if (!window.ethereum) return;
+      if (transactionMonitorRunningRef.current || !window.ethereum) return;
+      transactionMonitorRunningRef.current = true;
 
-        // pending セッションのみ監視
-        const pendingSessions = paymentSessions.filter(
-          (s) => s.status === 'pending' && !s.transactionHash
-        );
+      try {
+        // 同条件のセッションでは、作成ブロックが古いものを先に割り当てる。
+        const pendingSessions = paymentSessions
+          .filter((session) => session.status === 'pending' && !session.transactionHash)
+          .sort(comparePaymentSessionPriority);
+
 
         if (pendingSessions.length === 0) return;
+
+        let storedCompletedSessions: PaymentSession[] = [];
+        try {
+          const savedSessions = localStorage.getItem('completedPaymentSessions');
+          storedCompletedSessions = savedSessions ? JSON.parse(savedSessions) : [];
+          if (!Array.isArray(storedCompletedSessions)) storedCompletedSessions = [];
+        } catch (error) {
+          console.warn('使用済み決済履歴の読み込みに失敗:', error);
+        }
+
+        const usedTransactionHashes = collectUsedPaymentTransactionHashes([
+          ...paymentSessions,
+          ...storedCompletedSessions,
+        ]);
+        parseUsedPaymentTransactionHashes(
+          localStorage.getItem(USED_PAYMENT_TRANSACTION_HASHES_KEY)
+        ).forEach((hash) => usedTransactionHashes.add(hash));
 
         const provider = new BrowserProvider(window.ethereum);
         const network = await provider.getNetwork();
         const chainId = Number(network.chainId);
-        
+
         console.log(`🔍 トランザクション監視中 - 接続ネットワーク: ChainID ${chainId}`);
         console.log(`   Pendingセッション数: ${pendingSessions.length}`);
 
-        // 各 pending セッション向けのトランザクション検索
         for (const session of pendingSessions) {
           console.log(`   セッション ${session.id.slice(0, 8)}... - 期待ChainID: ${session.chainId}, 現在ChainID: ${chainId}`);
           if (session.chainId !== chainId) {
-            console.warn(`   ⚠️ ネットワーク不一致: MetaMaskを ${session.chainName} (ChainID: ${session.chainId}) に切り替えてください`);
-            continue; // ネットワークが一致するもののみ
+            console.warn(`   ⚠️ ネットワーク不一致: ウォレットを ${session.chainName} (ChainID: ${session.chainId}) に切り替えてください`);
+            continue;
+          }
+
+          if (!session.tokenContractAddress || !session.recipientAddress || !session.expectedAmountBaseUnits) {
+            console.warn(`   ⚠️ セッション ${session.id} は検証用のトークンまたは金額情報がありません`);
+            continue;
           }
 
           try {
-            // ブロックを取得してトランザクションを検索
             const latestBlockNumber = await provider.getBlockNumber();
-            // セッション作成時のブロック番号以降のみを検索（過去のトランザクションを除外）
-            const searchFromBlock = session.createdAtBlockNumber || Math.max(0, latestBlockNumber - 10);
+            const paddedShopAddress = `0x${'0'.repeat(24)}${session.recipientAddress.slice(2).toLowerCase()}`;
+            const logs = await provider.getLogs({
+              address: session.tokenContractAddress,
+              fromBlock: session.createdAtBlockNumber + 1,
+              toBlock: 'latest',
+              topics: [ERC20_TRANSFER_EVENT_TOPIC, null, paddedShopAddress],
+            });
 
-            // 複数のJPYCコントラクトアドレスに対応（公式 + カスタムテスト用）
-            const jpycContracts = getJpycContracts(chainId);
-            console.log(`監視中のJPYCコントラクト (${chainId}):`, jpycContracts.map(addr => {
-              const meta = getJpycContractMeta(chainId, addr);
-              return `${addr} (${meta.label})`;
-            }));
-
-            // ERC20のTransferイベントシグネチャ: Transfer(address,address,uint256)
-            const transferEventSignature = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-            
-            // 店舗ウォレットアドレスをパディング（32バイト）
-            const paddedShopAddress = '0x' + '0'.repeat(24) + shopWalletAddress.slice(2).toLowerCase();
+            // RPCの返却順に依存せず、古いログから決定的に割り当てる。
+            const orderedLogs = [...logs].sort(compareTransferLogOrder);
 
             let foundTransaction = false;
 
-            // 各JPYCコントラクトについてTransferイベントを検索
-            for (const contractAddress of jpycContracts) {
-              const filter = {
-                address: contractAddress, // JPYCコントラクトアドレス
-                fromBlock: searchFromBlock,
-                toBlock: 'latest',
-                topics: [
-                  transferEventSignature, // Transfer event
-                  null, // from (任意のアドレス)
-                  paddedShopAddress, // to (店舗ウォレットアドレス)
-                ],
-              };
+            for (const log of orderedLogs) {
+              const transferValidation = verifyPaymentTransfer(log, {
+                tokenContractAddress: session.tokenContractAddress,
+                recipientAddress: session.recipientAddress,
+                amountBaseUnits: session.expectedAmountBaseUnits,
+                usedTransactionHashes,
+              });
 
-              const logs = await provider.getLogs(filter);
-
-              // トランザクションが見つかった場合は完了とする
-              if (logs.length > 0) {
-                const txHash = logs[0].transactionHash;
-                
-                // トランザクションの詳細情報を取得
-                const txDetails = await provider.getTransaction(txHash);
-                const payerAddress = txDetails?.from; // トランザクション送信者（支払者）のアドレス
-                const detectedContractMeta = getJpycContractMeta(chainId, contractAddress);
-                
-                console.log(`✓ JPYC決済検知: ${contractAddress} (${detectedContractMeta.label})`);
-                console.log(`  Tx: ${txHash}`);
-                console.log(`  支払者: ${payerAddress}`);
-                console.log(`  受取: ${shopWalletAddress}`);
-                
-                setPaymentSessions((prev) =>
-                  prev.map((s) =>
-                    s.id === session.id
-                      ? {
-                          ...s,
-                          status: 'completed',
-                          transactionHash: txHash,
-                          detectedAt: new Date().toLocaleString('ja-JP'),
-                          payerAddress: payerAddress, // 支払者アドレスを保存
-                        }
-                      : s
-                  )
-                );
-                
-                // 決済完了音を再生（選択された効果音ファイルを使用）
-                try {
-                  const soundMap = {
-                    sound1: '/sounds/payment-sound-1.wav',
-                    sound2: '/sounds/payment-sound-2.wav',
-                    sound3: '/sounds/payment-sound-3.wav'
-                  };
-                  
-                  const audio = new Audio(soundMap[selectedPaymentSound]);
-                  audio.volume = notificationVolume;
-                  audio.play().catch(err => {
-                    console.log('決済音の再生に失敗:', err);
-                  });
-                } catch (error) {
-                  // サウンド再生エラーは無視
-                  console.log('決済音の再生に失敗:', error);
-                }
-                
-                // ブラウザ通知を表示
-                try {
-                  if ('Notification' in window && Notification.permission === 'granted') {
-                    const contractMeta = getJpycContractMeta(chainId, contractAddress);
-                    new Notification('💰 決済完了！', {
-                      body: `${session.amount} ${contractMeta.symbol} の支払いを受け付けました`,
-                      icon: '/images/jpyc-logo.svg',
-                      tag: 'payment-complete',
-                    });
-                  } else if ('Notification' in window && Notification.permission === 'default') {
-                    // 通知の許可をリクエスト
-                    Notification.requestPermission();
-                  }
-                } catch (error) {
-                  console.log('通知の表示に失敗:', error);
-                }
-                
-                // 新規ウィンドウに通知を表示
-                if (qrWindowRef && !qrWindowRef.closed) {
-                  try {
-                    const contractMeta = getJpycContractMeta(chainId, contractAddress);
-                    const notification = qrWindowRef.document.createElement('div');
-                    notification.style.cssText = `
-                      position: fixed;
-                      top: 20px;
-                      left: 50%;
-                      transform: translateX(-50%);
-                      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                      color: white;
-                      padding: 20px 30px;
-                      border-radius: 12px;
-                      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-                      font-size: 20px;
-                      font-weight: bold;
-                      z-index: 9999;
-                      animation: slideDown 0.5s ease-out;
-                    `;
-                    notification.innerHTML = `🎉 決済完了！<br/><span style="font-size: 24px;">${session.amount} ${contractMeta.symbol}</span>`;
-                    qrWindowRef.document.body.appendChild(notification);
-                    
-                    // 5秒後に自動的に削除
-                    setTimeout(() => {
-                      if (notification.parentNode) {
-                        notification.remove();
-                      }
-                    }, 5000);
-                  } catch (error) {
-                    console.log('新規ウィンドウへの通知表示に失敗:', error);
-                  }
-                }
-                
-                console.log(`🎉 決済完了通知: ${session.amount} ${(() => {
-                  const contractMeta = getJpycContractMeta(chainId, contractAddress);
-                  return contractMeta.symbol;
-                })()} - Tx: ${txHash}`);
-                foundTransaction = true;
-                break; // 見つかったらループを抜ける
+              if (!transferValidation.valid) {
+                console.debug(`決済候補を除外: ${transferValidation.reason}`, log.transactionHash);
+                continue;
               }
+
+              const receipt = await provider.getTransactionReceipt(transferValidation.transactionHash);
+              const receiptValidation = verifyPaymentReceipt(
+                receipt,
+                transferValidation.transactionHash,
+                session.createdAtBlockNumber + 1
+              );
+              if (!receiptValidation.valid) {
+                console.warn(`決済候補のレシートを除外: ${receiptValidation.reason}`, log.transactionHash);
+                continue;
+              }
+
+              const normalizedHash = normalizePaymentTransactionHash(transferValidation.transactionHash);
+              if (!normalizedHash) continue;
+
+              // 次のpendingセッションを処理する前に予約し、同じ監視実行内での再利用を防ぐ。
+              usedTransactionHashes.add(normalizedHash);
+              localStorage.setItem(
+                USED_PAYMENT_TRANSACTION_HASHES_KEY,
+                serializeUsedPaymentTransactionHashes(usedTransactionHashes)
+              );
+
+              const detectedContractMeta = getJpycContractMeta(
+                chainId,
+                session.tokenContractAddress
+              );
+
+              console.log(`✓ JPYC決済検証完了: ${session.tokenContractAddress} (${detectedContractMeta.label})`);
+              console.log(`  Tx: ${normalizedHash}`);
+              console.log(`  支払者 (Transfer.from): ${transferValidation.payerAddress}`);
+              console.log(`  受取: ${session.recipientAddress}`);
+              console.log(`  金額 (最小単位): ${transferValidation.amountBaseUnits}`);
+
+              setPaymentSessions((previousSessions) =>
+                previousSessions.map((candidate) =>
+                  candidate.id === session.id && candidate.status === 'pending' && !candidate.transactionHash
+                    ? {
+                        ...candidate,
+                        status: 'completed',
+                        transactionHash: normalizedHash,
+                        transactionBlockNumber: receiptValidation.blockNumber,
+                        detectedAt: new Date().toLocaleString('ja-JP'),
+                        payerAddress: transferValidation.payerAddress,
+                        verificationStatus: 'verified',
+                      }
+                    : candidate
+                )
+              );
+
+              try {
+                const soundMap = {
+                  sound1: '/sounds/payment-sound-1.wav',
+                  sound2: '/sounds/payment-sound-2.wav',
+                  sound3: '/sounds/payment-sound-3.wav',
+                };
+                const audio = new Audio(soundMap[selectedPaymentSound]);
+                audio.volume = notificationVolume;
+                audio.play().catch((error) => console.log('決済音の再生に失敗:', error));
+              } catch (error) {
+                console.log('決済音の再生に失敗:', error);
+              }
+
+              try {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                  new Notification('💰 決済完了！', {
+                    body: `${session.amount} ${detectedContractMeta.symbol} の支払いを受け付けました`,
+                    icon: '/images/jpyc-logo.svg',
+                    tag: 'payment-complete',
+                  });
+                } else if ('Notification' in window && Notification.permission === 'default') {
+                  Notification.requestPermission();
+                }
+              } catch (error) {
+                console.log('通知の表示に失敗:', error);
+              }
+
+              if (qrWindowRef && !qrWindowRef.closed) {
+                try {
+                  const notification = qrWindowRef.document.createElement('div');
+                  notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    color: white;
+                    padding: 20px 30px;
+                    border-radius: 12px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                    font-size: 20px;
+                    font-weight: bold;
+                    z-index: 9999;
+                    animation: slideDown 0.5s ease-out;
+                  `;
+                  notification.innerHTML = `🎉 決済完了！<br/><span style="font-size: 24px;">${session.amount} ${detectedContractMeta.symbol}</span>`;
+                  qrWindowRef.document.body.appendChild(notification);
+
+                  setTimeout(() => {
+                    if (notification.parentNode) notification.remove();
+                  }, 5000);
+                } catch (error) {
+                  console.log('新規ウィンドウへの通知表示に失敗:', error);
+                }
+              }
+
+              console.log(`🎉 決済完了通知: ${session.amount} ${detectedContractMeta.symbol} - Tx: ${normalizedHash}`);
+              foundTransaction = true;
+              break;
             }
 
             if (!foundTransaction) {
@@ -939,16 +988,16 @@ const QRPayment: React.FC = () => {
         }
       } catch (error) {
         console.error('Transaction monitoring error:', error);
+      } finally {
+        transactionMonitorRunningRef.current = false;
       }
     };
 
-    // 初回実行（即座に開始）
     monitorTransactions();
-    
-    const monitorInterval = setInterval(monitorTransactions, 3000); // 3秒ごとに監視（リアルタイム性向上）
-    return () => clearInterval(monitorInterval);
-  }, [paymentSessions, shopWalletAddress]);
 
+    const monitorInterval = setInterval(monitorTransactions, 3000);
+    return () => clearInterval(monitorInterval);
+  }, [paymentSessions, shopWalletAddress, selectedPaymentSound, notificationVolume, qrWindowRef]);
   const generateQRCode = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -962,8 +1011,9 @@ const QRPayment: React.FC = () => {
       isNetworkMismatch
     });
 
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error('有効な金額を入力してください');
+    const normalizedAmount = amount.trim();
+    if (!/^\d+$/.test(normalizedAmount)) {
+      toast.error('金額は1以上の整数で入力してください');
       return;
     }
 
@@ -1009,23 +1059,38 @@ const QRPayment: React.FC = () => {
       const paymentId = `PAY${Date.now()}`;
       const expiresAtTimestamp = Math.floor(Date.now() / 1000) + expiryTimeMinutes * 60;
 
-      // 現在のブロック番号を取得
-      let currentBlockNumber: number | undefined;
-      if (window.ethereum) {
-        try {
-          const provider = new BrowserProvider(window.ethereum);
-          currentBlockNumber = await provider.getBlockNumber();
-          console.log(`QRコード生成時のブロック番号: ${currentBlockNumber}`);
-        } catch (error) {
-          console.warn('ブロック番号取得エラー:', error);
-        }
+      if (!window.ethereum) {
+        toast.error('決済開始ブロックを確認するため、ウォレットを接続してください');
+        return;
       }
 
-      // Wei単位に変換（18小数点、整数値に変換）
-      // JPYCとtJPYCは1トークンが1円で固定されているため、小数点は不要
-      const amountNum = parseInt(amount) || parseFloat(amount);
+      let currentBlockNumber: number;
+      try {
+        const provider = new BrowserProvider(window.ethereum);
+        const providerNetwork = await provider.getNetwork();
+        if (Number(providerNetwork.chainId) !== selectedChainForPayment) {
+          toast.error('ウォレットの実際のネットワークが決済ネットワークと一致しません');
+          return;
+        }
+        currentBlockNumber = await provider.getBlockNumber();
+        console.log(`QRコード生成時のブロック番号: ${currentBlockNumber}`);
+      } catch (error) {
+        console.error('ブロック番号取得エラー:', error);
+        toast.error('決済開始ブロックを取得できませんでした。ネットワーク接続を確認してください');
+        return;
+      }
+
       const qrContractMeta = getJpycContractMeta(selectedChainForPayment, paymentContractAddress);
-      const amountInWei = (BigInt(amountNum) * BigInt(10 ** qrContractMeta.decimals)).toString();
+      let amountInWei: string;
+      try {
+        const parsedAmount = ethers.parseUnits(normalizedAmount, qrContractMeta.decimals);
+        if (parsedAmount <= 0n) throw new Error('Payment amount must be positive');
+        amountInWei = parsedAmount.toString();
+      } catch (error) {
+        console.error('決済金額の最小単位変換エラー:', error);
+        toast.error(`金額は小数点以下${qrContractMeta.decimals}桁以内で入力してください`);
+        return;
+      }
 
       const payload = createPaymentPayload(
         shopInfo.id,
@@ -1045,7 +1110,7 @@ const QRPayment: React.FC = () => {
         networkName: paymentNetwork.displayName,
         contractAddress: paymentContractAddress,
         currencySymbol: qrContractMeta.symbol,
-        amount: amountNum,
+        amount: normalizedAmount,
         payloadChainId: payload.chainId,
         payloadContractAddress: payload.contractAddress,
         payloadCurrency: payload.currency
@@ -1090,7 +1155,7 @@ const QRPayment: React.FC = () => {
 
       const newSession: PaymentSession = {
         id: paymentId,
-        amount: amountNum,
+        amount: normalizedAmount,
         currency: qrContractMeta.symbol, // JPYC または tJPYC
         chainId: selectedChainForPayment,
         chainName: paymentNetwork.displayName,
@@ -1099,7 +1164,10 @@ const QRPayment: React.FC = () => {
         createdAt: new Date().toLocaleString('ja-JP'),
         expiresAt: new Date(expiresAtTimestamp * 1000).toLocaleString('ja-JP'),
         expiresAtTimestamp,
-        createdAtBlockNumber: currentBlockNumber, // セッション作成時のブロック番号
+        createdAtBlockNumber: currentBlockNumber,
+        tokenContractAddress: paymentContractAddress,
+        recipientAddress: shopWalletAddress,
+        expectedAmountBaseUnits: amountInWei,
         timeRemainingSeconds: expiryTimeMinutes * 60,
         transactionHash: undefined,
         detectedAt: undefined,
@@ -1391,6 +1459,15 @@ const QRPayment: React.FC = () => {
     sessionId: string,
     chainId: number
   ) => {
+    const verifiedSession = paymentSessions.find((session) => session.id === sessionId);
+    if (
+      !isVerifiedPaymentSession(verifiedSession) ||
+      verifiedSession?.payerAddress?.toLowerCase() !== recipientAddress.toLowerCase()
+    ) {
+      toast.error('検証済みの決済セッションだけがSBT発行に使用できます');
+      return;
+    }
+
     try {
       // 発行中ステータスを設定
       const newStatus = new Map(paymentSBTStatus);
@@ -2194,13 +2271,13 @@ const QRPayment: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      inputMode="decimal"
-                      pattern="[0-9]*\.?[0-9]*"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={amount}
                       onChange={(e) => {
                         const value = e.target.value;
-                        // 数字とドットのみ許可
-                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                        // 正の整数だけを許可
+                        if (value === '' || /^\d*$/.test(value)) {
                           setAmount(value);
                         }
                       }}
@@ -2607,6 +2684,7 @@ const QRPayment: React.FC = () => {
                   ) : (
                     <p className="text-sm text-gray-500">残高取得できません</p>
                   )}
+
                 </div>
               )}
               <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
@@ -2997,7 +3075,7 @@ const QRPayment: React.FC = () => {
                                         onClick={async () => {
                                           // この顧客の最新の決済セッションを取得
                                           const latestSession = paymentSessions
-                                            .filter(s => s.status === 'completed' && s.payerAddress === address)
+                                            .filter(s => isVerifiedPaymentSession(s) && s.payerAddress === address)
                                             .sort((a, b) => new Date(b.detectedAt || '').getTime() - new Date(a.detectedAt || '').getTime())[0];
                                           
                                           if (!latestSession) {
@@ -3044,7 +3122,7 @@ const QRPayment: React.FC = () => {
                 {/* 個別決済セッション表示（SBT発行機能付き） */}
                 <div className="space-y-3">
                   {paymentSessions
-                    .filter(s => s.status === 'completed' && s.payerAddress)
+                    .filter(s => isVerifiedPaymentSession(s) && s.payerAddress)
                     .sort((a, b) => new Date(b.detectedAt || '').getTime() - new Date(a.detectedAt || '').getTime())
                     .map((session) => {
                       const paymentCount = customerPaymentStats.get(session.payerAddress!) || 0;

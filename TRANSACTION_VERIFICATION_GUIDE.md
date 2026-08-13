@@ -82,61 +82,47 @@
 
 ### 📝 実装詳細（アプリ側）
 
-**ファイル**: `src/pages/QRPayment.tsx`
+**ファイル**: `src/pages/QRPayment.tsx`, `src/utils/paymentTransferVerification.ts`
 
-```typescript
-// トランザクション監視（5秒ごと）
-useEffect(() => {
-  const monitorTransactions = async () => {
-    // pending セッションを抽出
-    const pendingSessions = paymentSessions.filter(
-      (s) => s.status === 'pending' && !s.transactionHash
-    );
-
-    if (pendingSessions.length === 0) return;
-
-    // 現在のブロック番号を取得
-    const provider = new BrowserProvider(window.ethereum);
-    const latestBlockNumber = await provider.getBlockNumber();
-
-    // 過去 100 ブロックを検索
-    const searchFromBlock = Math.max(0, latestBlockNumber - 100);
-
-    // ショップウォレットへの JPYC 転送を検索
-    // From: ユーザーウォレット
-    // To: ショップウォレット
-    // Function: transfer()
-
-    // トランザクションハッシュを抽出
-    // → PaymentSession に記録
-    // → SBT 発行時に参照
-  };
-
-  const interval = setInterval(monitorTransactions, 5000);
-  return () => clearInterval(interval);
-}, [paymentSessions]);
-```
-
-### 🧮 データ構造
+決済セッションの作成時に、表示用金額とは別に次の値を正本として保存します。
 
 ```typescript
 interface PaymentSession {
-  id: string;                    // セッション ID
-  amount: number;                // JPYC 金額
-  currency: string;              // "JPYC"
-  chainId: number;               // 137 or 80002
-  chainName: string;             // "Polygon" など
-  qrCodeData: string;            // QR コード内の JSON
+  id: string;
+  amount: string;                       // 表示用（浮動小数点へ変換しない）
+  chainId: number;
   status: 'pending' | 'completed' | 'expired';
-  createdAt: string;             // ISO8601
-  expiresAt: string;             // ISO8601
-  expiresAtTimestamp: number;    // Unix timestamp
-  transactionHash?: string;      // ✅ 決済 Tx ハッシュ
-  detectedAt?: string;           // 検知時刻
-  payerAddress?: string;         // 支払者ウォレット（SBT 配布先）
+  createdAtBlockNumber: number;         // このブロックより後だけを検索
+  tokenContractAddress: string;         // セッション作成時に選択したJPYC
+  recipientAddress: string;             // QR作成時の店舗ウォレット
+  expectedAmountBaseUnits: string;      // parseUnitsで得た最小単位の整数
+  transactionHash?: string;
+  transactionBlockNumber?: number;
+  payerAddress?: string;                // Transferイベントのfrom
+  verificationStatus?: 'verified';
 }
 ```
 
+決済完了には、次の条件をすべて満たす必要があります。
+
+1. 接続中のチェーンがセッションの `chainId` と一致する。
+2. セッションに保存したトークンコントラクトが `Transfer` を発行する。
+3. `Transfer.to` が店舗ウォレットと一致する。
+4. `Transfer.value` が `expectedAmountBaseUnits` と完全一致する（不足・超過とも不一致）。
+5. トランザクションレシートの `status` が成功である。
+6. レシートのブロックが `createdAtBlockNumber` より後である。
+7. 正規化したトランザクションハッシュが未使用である。
+8. `payerAddress` はトランザクション実行者の `tx.from` ではなく、`Transfer.from` から取得する。
+
+使用済みハッシュは完了済みセッションに加え、`usedPaymentTransactionHashes` としてブラウザの `localStorage` に保存します。ページ再読み込み後も両方を統合して照合します。監視処理は同時に1回だけ実行し、候補を受理した時点で次のセッション処理より先にハッシュを予約します。
+
+### 同一条件セッションの割当規則と制約
+
+同じトークン・店舗・金額のpendingセッションが複数ある場合は、`createdAtBlockNumber`、次にセッションIDの昇順で最古のセッションを先に処理します。候補ログもブロック番号、次にログindexの昇順で処理し、1トランザクションを1セッションだけへ割り当てます。
+
+通常のERC-20 `transfer` にはこのアプリの `paymentId` が含まれません。そのため、同一条件の複数セッションと複数送金の意味上の対応を暗号学的に識別することはできません。この実装は推測で同一人物・同一注文とみなさず、観測できる順序による決定的な一対一割当を行います。
+
+SBTの決済連動発行と支払回数集計は `verificationStatus === 'verified'` の決済だけを対象にします。決済と無関係な既存の手動SBT発行は従来どおり利用できます。
 ### ✅ 確認方法
 
 #### **方法 1: アプリ内で確認**
