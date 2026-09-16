@@ -127,9 +127,9 @@ const Dashboard: React.FC = () => {
                 </p>
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <h3 className="font-bold text-amber-900 mb-2">🎫 SBT機能の本格利用には相談が必要</h3>
+                <h3 className="font-bold text-amber-900 mb-2">🎫 SBT機能の本番運用に必要な準備</h3>
                 <p className="text-sm text-amber-800 mb-3">
-                  SBT発行・管理機能の商用利用には：
+                  SBT発行・管理機能を本番運用する場合は、次の準備が必要です：
                 </p>
                 <ul className="text-sm text-amber-700 space-y-1">
                   <li>• 独自ドメイン・HTTPS証明書</li>
@@ -137,7 +137,7 @@ const Dashboard: React.FC = () => {
                   <li>• スマートコントラクトデプロイ</li>
                   <li>• セキュリティ・バックアップ体制</li>
                   <li>• 運用監視・メンテナンス</li>
-                  <li>• <strong>@masaru21への事前相談</strong></li>
+                  <li>• 利用地域の法令・規制への適合確認</li>
                 </ul>
               </div>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -218,7 +218,7 @@ const Dashboard: React.FC = () => {
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                 <h3 className="font-bold text-purple-900 mb-2 flex items-center gap-2">
                   デジタルスタンプカード発行
-                  <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">要相談</span>
+                  <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full">MIT</span>
                 </h3>
                 <p className="text-sm text-purple-800 mb-3">
                   Soul Bound Token（SBT）技術で実現する次世代スタンプカード：
@@ -230,7 +230,7 @@ const Dashboard: React.FC = () => {
                   <li>• 来店履歴の永続記録</li>
                   <li>• 偽造防止・不正利用防止</li>
                   <li>• <strong>JPYCペイアプリ</strong>での店舗情報連携</li>
-                  <li>• <strong className="text-amber-700">商用利用は@masaru21への事前相談が必要</strong></li>
+                  <li>• <strong className="text-green-700">MIT Licenseにより商用利用可能</strong></li>
                 </ul>
               </div>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
