@@ -37,8 +37,8 @@ const TermsAndPrivacy: React.FC = () => {
               <div className="bg-gray-50 rounded-lg p-4">
                 <ul className="text-sm text-gray-700 space-y-2">
                   <li>• SBT masaru21 Pay(仮) は、JPYC QR決済とSBT（Soulbound Token）スタンプカード発行システムです</li>
-                  <li>• <strong className="text-green-700">QRコード決済機能</strong>は店舗・個人事業主様に<strong className="text-green-700">無料</strong>で提供されています</li>
-                  <li>• <strong className="text-amber-700">SBT機能</strong>の商用利用には開発者への事前相談が必要です</li>
+                  <li>• QRコード決済機能とSBT機能を含むソースコードは<strong className="text-green-700">MIT License</strong>で公開しています</li>
+                  <li>• 個人利用・研究・商用利用を問わず、MIT Licenseの条件に従って利用できます</li>
                   <li>• Progressive Web App（PWA）として動作し、各種デバイスで利用可能です</li>
                 </ul>
               </div>
@@ -61,7 +61,7 @@ const TermsAndPrivacy: React.FC = () => {
                   </ul>
                 </div>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-amber-900 mb-2">商用利用時の追加要件</h4>
+                  <h4 className="font-semibold text-amber-900 mb-2">本番運用時の追加要件</h4>
                   <ul className="text-sm text-amber-800 space-y-1">
                     <li>• 独自サーバー・ドメインの準備</li>
                     <li>• HTTPS 証明書の設定</li>
