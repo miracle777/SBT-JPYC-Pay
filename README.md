@@ -40,9 +40,9 @@ This is a Progressive Web App (PWA) for shop owners to issue and manage SBT (Sou
 
 ## 📚 利用ガイド
 
-初回利用の方は [USER_GUIDE.md](./USER_GUIDE.md) を必ずお読みください。
+初回利用の方は [はじめての運用ガイド](./docs/PWA_SHOP_ONBOARDING_GUIDE.md) からお読みください。公開PWAの試用、運営管理者と参加店舗の役割、Pinataキーの扱いをまとめています。詳しい画面操作は [ユーザーガイド](./USER_GUIDE.md) を参照してください。
 
-> **⚠️ 重要**: SBTの発行には**サーバーの設定**と**インターネット接続**が必要です。
+> **⚠️ 重要**: SBTの発行にはインターネット接続が必要です。公開デモには実運用のPinataキーを入力しないでください。
 >
 > ### 📡 ネットワーク要件の詳細
 > - 🌐 **インターネット接続必要**: SBT発行時には以下のサービスへの接続が必要です
@@ -70,52 +70,25 @@ This is a Progressive Web App (PWA) for shop owners to issue and manage SBT (Sou
 > **⚠️ 重要な前提条件**
 >
 > - 🌐 **インターネット接続が必要**: SBT発行時にIPFSアップロードとブロックチェーン書き込みが必要です
-> - 🗺️ **サーバー環境推奨**: 実際の利用にはPinata API設定やMetaMask接続が必要です
+> - **実運用のPinataキーはサーバー側だけで管理**: サーバー経由のアップロード機能は現行版に未実装です。詳細は [Pinata設定ガイド](./DYNAMIC_PINATA_SETUP.md) を参照してください。
 > - 🏢 **組織単位での導入推奨**: 店舗や企業単位でのサーバー設定も含めた環境構築を推奨します
 
-### 🎯 利用シーン別セットアップガイド
+### 💻 ローカルで画面を確認する
 
-#### 1. 💻 個人デモ・テスト用（ローカル環境）
+リポジトリをクローンしたら、次のコマンドで起動します。画面の確認にPinataキーは不要です。
 
 ```bash
-# 1. リポジトリをクローン
 npm install
 npm run dev
-
-# 2. アプリ内の「設定」ページでAPIキーを入力
-# - Pinata API Key/Secret (テスト用でも登録必要)
-# - ウォレット接続 (MetaMask)
 ```
 
-#### 2. 🏢 店舗・企業導入用（サーバー環境）
-
-```bash
-# 1. サーバーにデプロイ
-# 例: Vercel, Netlify, AWS, Azure 等
-
-# 2. 環境変数でAPIキーを設定
-VITE_PINATA_API_KEY=your_organization_api_key
-VITE_PINATA_API_SECRET=your_organization_secret
-VITE_WALLET_CONNECT_PROJECT_ID=your_project_id
-
-# 3. 組織内でのアクセスURLを共有
-```
-
-### 1. 依存関係のインストール
-
-```bash
-npm install
-```
-
-### 2. 環境変数の設定
-
-`.env`ファイルを作成：
+WalletConnectを試す場合は、ローカル環境の `.env` にプロジェクトIDを設定します。
 
 ```env
-VITE_PINATA_API_KEY=your_pinata_api_key
-VITE_PINATA_API_SECRET=your_pinata_api_secret
 VITE_WALLET_CONNECT_PROJECT_ID=your_wallet_connect_project_id
 ```
+
+**Pinataの実キーを `VITE_` 付き変数に設定しないでください。** Vercelなどの管理画面に登録しても、Viteが読み込んでブラウザー向けのJavaScriptに含める場合は秘密になりません。自前で実運用する場合は、[運用ガイドのPinata章](./docs/PWA_SHOP_ONBOARDING_GUIDE.md#3-pinataは何に使うか)を参照してください。
 
 #### 🔑 WalletConnect プロジェクトID の取得方法
 
@@ -215,14 +188,14 @@ const config = createConfig({
 > **⚠️ 前提条件**:
 >
 > - 🌐 **インターネット接続が必要**: SBT発行時にオンラインでのアップロードが必要です
-> - 🗺️ **サーバー設定必要**: PinataのAPIキー、MetaMaskウォレットの接続が必要です
+> - **店舗登録とアップロードの確認が必要**: [はじめての運用ガイド](./docs/PWA_SHOP_ONBOARDING_GUIDE.md)で店舗登録・発行条件・Pinataの取り扱いを確認してください。
 
 #### 📝 基本フロー
 
 1. **ウォレット接続**: MetaMaskを接続
 2. **SBT設定**: 店舗情報とスタンプデザインを設定
 3. **決済QR生成**: 商品価格を入力してQRコード生成
-4. **SBT発行**: 条件達成時に自動でSBTを発行 (⚠️ インターネット接続必要)
+4. **SBT発行**: 店舗の発行権限とアップロード結果を確認してから、対象ネットワークで発行を承認
 
 詳細は [LICENSE](./LICENSE) をご確認ください。
 
@@ -565,6 +538,9 @@ Avalanche テストネットでテストを行う際は、テストネットAVAX
 - **[📱 モバイルウォレット対応ガイド](./MOBILE_WALLET_GUIDE.md)** - 各種ウォレット対応状況
 
 ### 📖 運用・管理ガイド
+
+- **[はじめての運用ガイド](./docs/PWA_SHOP_ONBOARDING_GUIDE.md)** — 公開PWA・店舗参加・自前運用
+- **[Pinata設定ガイド](./DYNAMIC_PINATA_SETUP.md)** — 実キーを入れてはいけない場所と現行実装の制約
 
 - **[🏪 ショップ管理者ガイド](./SHOP_ADMIN_GUIDE.md)** - 店舗運営者向け完全マニュアル
 - **[👤 ユーザーガイド](./USER_GUIDE.md)** - エンドユーザー向け操作ガイド
